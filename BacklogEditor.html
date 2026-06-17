@@ -929,7 +929,7 @@ function generateMarkdown() {
     '',
   ];
   buckets.forEach((b, i) => {
-    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title} — ${label[b.priority]}`);
+    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title}`);
     lines.push('');
     if (b.items.length === 0) {
       lines.push('*No items*');
@@ -1024,7 +1024,7 @@ function parseMarkdown(text) {
       // Strip "BUCKET N: " prefix
       title = title.replace(/^BUCKET\s+\d+:\s*/i, '');
       // Strip trailing " — PRIORITY LABEL" (handles —, –, -)
-      title = title.replace(/\s*[—–\-]\s*(?:🔴|🟡|🟢)?\s*(?:CRITICAL|MEDIUM|LOW)?\s*(?:PRIORITY)?$/i, '').trim();
+      title = title.replace(/\s*[—–\-]\s*(?:🔴|🟡|🟢|🔵)?\s*(?:CRITICAL|MEDIUM|LOW)?\s*(?:PRIORITY)?$/i, '').trim();
       current = { id: uid(), priority: detectPriority(line), expanded: false, title, items: [] };
       continue;
     }
