@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backlog Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.app-header {
+  background: linear-gradient(135deg, #0a0a14 0%, #0f172a 100%);
+  color: white;
+  padding: 18px 32px;
+  border-bottom: 1px solid #1e293b;
+}
+.app-header h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 3px; }
+.app-header p { font-size: 0.78rem; opacity: 0.4; }
+
+/* ── Toolbar ── */
+.toolbar {
+  background: #151821;
+  padding: 10px 32px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.btn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #3b82f6; box-shadow: 0 3px 14px rgba(59,130,246,0.4); transform: translateY(-1px); }
+.btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+.btn-secondary:hover { background: #263347; border-color: #475569; }
+.toolbar-hint { margin-left: auto; font-size: 0.74rem; color: #475569; }
+
+/* ── Container ── */
+#buckets-container {
+  max-width: 880px;
+  margin: 22px auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Bucket Card ── */
+.bucket-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  margin-bottom: 9px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border-left: 5px solid #334155;
+  transition: box-shadow 0.2s;
+  overflow: hidden;
+}
+.bucket-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.bucket-card.priority-critical { border-left-color: #ef4444; }
+.bucket-card.priority-medium  { border-left-color: #f59e0b; }
+.bucket-card.priority-low     { border-left-color: #3b82f6; }
+
+/* ── Bucket Header ── */
+.bucket-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+.bucket-header:hover { background: rgba(255,255,255,0.04); }
+
+.bucket-drag-handle {
+  color: #334155;
+  cursor: grab;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  padding: 2px 3px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.bucket-drag-handle:hover { color: #64748b; background: rgba(255,255,255,0.06); }
+.bucket-drag-handle:active { cursor: grabbing; }
+
+.bucket-number {
+  font-size: 0.68rem;
+  color: #475569;
+  min-width: 22px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+.priority-select {
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+.priority-select:focus { outline: none; border-color: #3b82f6; }
+
+.item-priority-select {
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 2px 3px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.item-priority-select:hover, .item-priority-select:focus {
+  outline: none; border-color: #3b82f6; color: #cbd5e1;
+}
+.item-row.na-item {
+  opacity: 0.55;
+}
+.item-row.na-item .item-text {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.bucket-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  cursor: text;
+}
+.bucket-title-input {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1.5px solid #3b82f6;
+  border-radius: 5px;
+  padding: 2px 8px;
+  outline: none;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.item-count-badge {
+  font-size: 0.7rem;
+  color: #64748b;
+  background: #0f172a;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rename-bucket-btn, .delete-bucket-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 3px 6px;
+  border-radius: 5px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.rename-bucket-btn { color: #334155; }
+.rename-bucket-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.12); }
+.delete-bucket-btn { color: #334155; }
+.delete-bucket-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+
+.chevron {
+  color: #475569;
+  font-size: 0.65rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.bucket-card.expanded .chevron { transform: rotate(90deg); }
+
+/* ── Bucket Body ── */
+.bucket-body { display: none; padding: 0 14px 12px 14px; }
+.bucket-card.expanded .bucket-body { display: block; }
+
+/* ── Items ── */
+.items-list { list-style: none; min-height: 8px; }
+.item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 5px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.item-row:hover { background: rgba(255,255,255,0.04); }
+.item-row:hover .item-actions { opacity: 1; }
+
+.item-drag-handle {
+  color: #2d3748;
+  cursor: grab;
+  flex-shrink: 0;
+  padding-top: 2px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.item-drag-handle:hover { color: #64748b; }
+.item-drag-handle:active { cursor: grabbing; }
+
+.item-text {
+  flex: 1;
+  font-size: 0.845rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+  cursor: text;
+}
+.item-text-input {
+  flex: 1;
+  font-size: 0.845rem;
+  line-height: 1.55;
+  border: 1.5px solid #3b82f6;
+  border-radius: 5px;
+  padding: 3px 7px;
+  outline: none;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+  resize: vertical;
+  min-height: 30px;
+}
+.item-actions {
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.item-edit-btn, .delete-item-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.item-edit-btn { color: #475569; }
+.item-edit-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.1); }
+.delete-item-btn { color: #475569; }
+.delete-item-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+
+/* ── Add Item ── */
+.add-item-area {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #1e293b;
+}
+.add-item-input {
+  flex: 1;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  padding: 6px 11px;
+  font-size: 0.835rem;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+  transition: border-color 0.15s;
+}
+.add-item-input::placeholder { color: #475569; }
+.add-item-input:focus { outline: none; border-color: #3b82f6; background: #0a0f1e; }
+.add-item-btn {
+  background: rgba(37,99,235,0.15);
+  border: 1px solid #2563eb;
+  color: #60a5fa;
+  padding: 6px 13px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.add-item-btn:hover { background: rgba(37,99,235,0.3); border-color: #3b82f6; }
+
+/* ── Sortable ── */
+.sortable-ghost { opacity: 0.25; background: rgba(59,130,246,0.15) !important; border-radius: 8px; }
+.sortable-drag { box-shadow: 0 16px 40px rgba(0,0,0,0.6) !important; transform: rotate(0.8deg) !important; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  padding: 11px 20px;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📋 Backlog Editor</h1>
+  <p id="editor-subtitle">Drag to reorder · Double-click to edit · Save exports Markdown</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="saveAsMarkdown()">💾 Save as Markdown</button>
+  <button class="btn btn-secondary" onclick="loadMarkdownFile()">📂 Load Markdown</button>
+  <button class="btn btn-secondary" onclick="addBucket()">＋ Add Bucket</button>
+  <span class="toolbar-hint">Drag ⠿ to reorder · Click ✏ or double-click title to rename · Double-click item to edit · Hover item for actions</span>
+</div>
+
+<div id="buckets-container"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+let _id = 1000;
+function uid() { return 's' + (++_id); }
+
+let buckets = [
+  {
+    id: uid(), priority: 'critical', expanded: false,
+    title: 'Brownfield / Adoption Blockers',
+    recommendation: 'Lead with this in every meeting. No large customer goes live without brownfield support.',
+    items: [
+      { id: uid(), text: 'Existing inventory → rental fleet not supported: Customer with pre-purchased items (batch ≠ New) cannot onboard into rental without a fresh PO. Critical migration blocker.' },
+      { id: uid(), text: 'Associate an existing Fixed Asset with a rental item: Not supported — must create new FA via transfer. Brownfield customers with existing FA books are blocked.' },
+      { id: uid(), text: 'Convert an existing Fixed Asset into a new rental item: Not supported.' },
+      { id: uid(), text: 'Serial entry at receipt vs. PO time: Most companies don\'t know VIN/serial at PO creation — only at receipt. Current process forces serial at PO time.' },
+      { id: uid(), text: 'Standard FA-from-PO-line conflicts with transfer process: If customer uses standard D365 FA creation on PO line, the rental transfer process tries to create a duplicate FA.' },
+      { id: uid(), text: 'FA creation timing must be configurable: Some companies want FA at receipt; others at invoice. Current transfer-to-FA process is fixed.' },
+    ]
+  },
+  {
+    id: uid(), priority: 'critical', expanded: false,
+    title: 'Bulk Items',
+    recommendation: 'Treat as a standalone epic. Bulk touches contracts, movements, FA, availability, and transport.',
+    items: [
+      { id: uid(), text: 'qty=2 on quote allowed for pricing, but on activation throws "only one rental item per contract line"' },
+      { id: uid(), text: 'PO for bulk: qty > 1 on PO line not allowed when item is a rental item — system overwrites to 1' },
+      { id: uid(), text: '"FROM" error on contract activation with bulk items (system doesn\'t know location)' },
+      { id: uid(), text: 'No partial returns — cannot return 3 of 5 units on a single line' },
+      { id: uid(), text: 'No qty tracking in movements — bulk items move as a group, not unit-by-unit' },
+      { id: uid(), text: 'No bulk availability view — no way to see how many units are available for a class' },
+      { id: uid(), text: 'FA process for bulk unclear — one FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo' },
+      { id: uid(), text: 'No split-load support for bulk items across different drop-point addresses' },
+    ]
+  },
+  {
+    id: uid(), priority: 'critical', expanded: false,
+    title: 'Core Bugs / PP2 Quality Issues',
+    recommendation: 'All P1 bugs must be triaged and assigned before PP2 ships. Ask Robert for current status.',
+    items: [
+      { id: uid(), text: '[Bug 1143337 · P1] Inventory not updated + asset shows "not acquired" on New→Rental fleet transfer' },
+      { id: uid(), text: '[Bug 1141073 · P1] Error when transferring Rental → Used Fleet' },
+      { id: uid(), text: '[Bug 1141005 · P1] Hardcoded number sequence assumption on fleet transfer' },
+      { id: uid(), text: '[Bug 1142657 · P1] Physical status = "Ordered" (not "In stock") after PO receipt' },
+      { id: uid(), text: '[Bug 1143366 · P1] "Rental item availability" ≠ "Rental Item Availability summary" (inconsistency)' },
+      { id: uid(), text: '[Bug 1143411 · P1] Serial number doesn\'t appear on Rental Item forms even though it exists in inventory' },
+      { id: uid(), text: '[Bug 1143235 · P2] Fixed assets default view doesn\'t show rental items' },
+      { id: uid(), text: '[Bug 1143309 · P2] Default filter bug when assigning rental item to contract line' },
+      { id: uid(), text: '[Bug 1143343 · P2] Period codes error message misleading when >5 periods w/ Simulate Utilization' },
+      { id: uid(), text: '[Bug 1143346 · P3] UX: Rental Item tab confusing when creating a released product' },
+      { id: uid(), text: '[N/A · P1] Re-rents broken in current preview build (Benjamin confirmed WIP)' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Platform Configurability',
+    recommendation: 'Frame these as roadmap discussions, not bugs. Get alignment on direction.',
+    items: [
+      { id: uid(), text: 'Status codes as self-definable lists (not fixed enums): Lachlan raised for both Physical status and Service status. Loxam wants their own status terminology. Currently locked as enum values — competitive disadvantage vs. Sycor.' },
+      { id: uid(), text: 'Fleet types as configurable table (not enum): Matthieu has planned for Public Preview. Lachlan strongly supports — also wants ability to remove mandatory batch tracking dependency.' },
+      { id: uid(), text: 'Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.' },
+      { id: uid(), text: 'Intercompany process skeleton: No intercompany rental process currently; needed for multi-entity deployments.' },
+      { id: uid(), text: 'Date/time override model: Operations teams frequently enter data after-the-fact. System defaults to current time — SMU reading timestamp, movement record time, and return date all use system clock at entry. Needs configurable override.' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Automation Gaps',
+    recommendation: 'High-leverage — each item reduces friction for operations teams. Sequence by customer value.',
+    items: [
+      { id: uid(), text: 'Batch = New auto-set: When creating a rental item via PO flow, batch status should default to "New" automatically. Users missing this causes downstream failures.' },
+      { id: uid(), text: 'Service status on item creation: When a new rental item arrives, service status should auto-default to "Preparation needed" (or configurable) — not rely on manual set.' },
+      { id: uid(), text: 'Work order for new equipment prep: Auto-trigger a WO when a new rental item\'s service status indicates preparation needed. Currently no way to create a WO without a customer.' },
+      { id: uid(), text: 'Work order from movement record: Should be able to create/link a work order directly from a movement record (currently only from contract line).' },
+      { id: uid(), text: 'Movement → service location → auto-create WO: Moving a rental item to a service location should optionally auto-create a Field Service work order.' },
+      { id: uid(), text: 'Damage decision code workflow: When a damage decision code is set on a movement, it should trigger automated follow-on actions (e.g., move to service location, create WO, set service status).' },
+      { id: uid(), text: 'WO completion → rental availability update: When FS work order is completed, rental item availability should automatically update (remove service block).' },
+      { id: uid(), text: 'Missing accessories auto-charge: When movement return lacks tracked accessories, system should auto-flag for charges.' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Field Service Integration Gaps',
+    recommendation: 'Align on integration philosophy. Short-term workarounds vs. proper FS integration.',
+    items: [
+      { id: uid(), text: 'Insurance & Warranty not linked to rental item: FS warranty only links to FA, not rental item. Cost allocation (covered vs. uncovered labor/parts) not tracked against per-item P&L.' },
+      { id: uid(), text: 'FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.' },
+      { id: uid(), text: 'FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision.' },
+      { id: uid(), text: 'Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported.' },
+      { id: uid(), text: 'ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.' },
+      { id: uid(), text: 'Inspection checklists ↔ FS inspection integration: Rental model-based inspection checklists should optionally trigger FS inspection templates. Regulatory inspection audit trails required for large customers.' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Re-Rents',
+    recommendation: 'Foundational scenario for any multi-entity or fleet-sharing operator. Unblock after PP2.',
+    items: [
+      { id: uid(), text: 'Preview build broken (WIP per Benjamin)' },
+      { id: uid(), text: 'No intercompany re-rent process (renting from a sister entity)' },
+      { id: uid(), text: 'Internal re-rent: financial dimensions not available on RentalLocation (only on InventSite — which was removed)' },
+      { id: uid(), text: 'External re-rent: process unclear; PO-to-contract workaround only' },
+      { id: uid(), text: 'Damage responsibility on return from external re-rent: no defined process' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Kitting / Packages',
+    recommendation: 'High value for customers renting complex equipment sets (e.g., prime mover + trailer + accessories). Design needed.',
+    items: [
+      { id: uid(), text: 'Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)' },
+      { id: uid(), text: 'Pricing at package class level only; no association of specific items to a package' },
+      { id: uid(), text: 'Movement must track individual kit components (for scanning at dispatch and return)' },
+      { id: uid(), text: 'Damage tracking must work at component level within a kit' },
+      { id: uid(), text: 'Package is currently tied to a Class, not specific items — unclear kit membership at runtime' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Accessory Packs',
+    recommendation: 'Distinct from bulk and kitting. These are standard per-model accessories that must travel with every unit. Define as a separate concept.',
+    items: [
+      { id: uid(), text: 'Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement' },
+      { id: uid(), text: 'No mechanism to track which accessories were dispatched on outbound or returned on inbound' },
+      { id: uid(), text: 'Missing accessories on return should auto-flag and trigger charges' },
+      { id: uid(), text: 'Distinct from bulk attachments: accessories are per-model standards, not separately purchased items' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Global Equipment Card',
+    recommendation: 'Critical for multi-entity and international operators. Sycor has this; it\'s a competitive gap. Long-term roadmap.',
+    items: [
+      { id: uid(), text: 'No global rental item concept — each LE has its own item master with no shared global layer' },
+      { id: uid(), text: 'Global descriptions, manufacturer info, model specs need to exist once and flow to all LEs' },
+      { id: uid(), text: 'Asset maintenance (inspection intervals, service schedules, warranty templates) should be at the global/model level' },
+      { id: uid(), text: 'Intercompany structure needed: global fleet → LE-specific rental details' },
+    ]
+  },
+  {
+    id: uid(), priority: 'medium', expanded: false,
+    title: 'Transport Documentation',
+    recommendation: 'Table-stakes for regulated transport. No paperwork = no go-live for companies with hazmat or compliance requirements. ISV recommendation needed short-term.',
+    items: [
+      { id: uid(), text: 'No paperwork generated from system: no waybill, no hazmat documentation, no delivery receipt' },
+      { id: uid(), text: 'No weight/dimensions on rental item record (should come from released product)' },
+      { id: uid(), text: 'No routing/dispatch solution (ISV partner recommendation needed — acknowledge gap proactively)' },
+      { id: uid(), text: 'Blanket PO for carrier vs. per-load PO — blanket approach not supported' },
+      { id: uid(), text: 'No mobile app for driver or external carrier (scan/count at point of delivery)' },
+    ]
+  },
+  {
+    id: uid(), priority: 'low', expanded: false,
+    title: 'UX / Usability Polish',
+    recommendation: 'Polish items. Important for demos and adoption but lower urgency than above.',
+    items: [
+      { id: uid(), text: 'Inspection checkbox hidden: Completing inspection on a movement is buried in line details — not discoverable. Robert had to search to find it. Needs to be front-and-center.' },
+      { id: uid(), text: 'Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.' },
+      { id: uid(), text: 'Fleet transfer not launchable from Rental Item form: Robert wants to start fleet transfer directly from the rental item — not from a separate menu form.' },
+      { id: uid(), text: 'Fixed assets default view: Doesn\'t show rental items — requires user view customization.' },
+      { id: uid(), text: 'Quantity on contract line allows invalid entry: Entering qty > 1 is permitted on the quote but fails at rental item assignment — should validate at input.' },
+    ]
+  },
+  {
+    id: uid(), priority: 'low', expanded: false,
+    title: 'Pricing Gaps',
+    recommendation: '',
+    items: [
+      { id: uid(), text: 'No item-level pricing (only class-level): Workaround is unique class per item — causes class fragmentation at scale' },
+      { id: uid(), text: 'Stepped pricing broken: Can only configure 1 period code per rate type — cannot configure tiered steps across period codes' },
+      { id: uid(), text: 'Discount groups only work at class level: Individual item discounts not supported' },
+      { id: uid(), text: 'BRC doesn\'t handle stepped pricing: Best Rate Calculation doesn\'t correctly evaluate stepped rate tiers' },
+    ]
+  },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtItemText(text) {
+  const idx = text.indexOf(':');
+  if (idx < 1) return esc(text);
+  return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
+}
+function getBucket(id) { return buckets.find(b => b.id === id); }
+function getCard(id) { return document.querySelector(`.bucket-card[data-id="${id}"]`); }
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── Initial Render ───────────────────────────────────────────────────────────
+function renderAll() {
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+  buckets.forEach((b, i) => container.appendChild(createBucketCard(b, i)));
+  initSortables();
+}
+
+function createBucketCard(bucket, idx) {
+  const card = document.createElement('div');
+  card.className = `bucket-card priority-${bucket.priority}${bucket.expanded ? ' expanded' : ''}`;
+  card.dataset.id = bucket.id;
+
+  card.innerHTML = `
+    <div class="bucket-header">
+      <span class="bucket-drag-handle" title="Drag to reorder">⠿</span>
+      <span class="bucket-number">#${idx + 1}</span>
+      <select class="priority-select" title="Change priority">
+        <option value="critical" ${bucket.priority === 'critical' ? 'selected' : ''}>🔴 Critical</option>
+        <option value="medium"   ${bucket.priority === 'medium'   ? 'selected' : ''}>🟡 Medium</option>
+        <option value="low"      ${bucket.priority === 'low'      ? 'selected' : ''}>🔵 Low</option>
+      </select>
+      <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
+      <button class="rename-bucket-btn" title="Rename bucket">✏</button>
+      <span class="item-count-badge">${bucket.items.length}</span>
+      <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="bucket-body">
+      <ul class="items-list" data-bucket-id="${bucket.id}">
+        ${bucket.items.map(makeItemLI).join('')}
+      </ul>
+      <div class="add-item-area">
+        <input type="text" class="add-item-input" placeholder="New item — press Enter or click Add">
+        <button class="add-item-btn">＋ Add</button>
+      </div>
+    </div>
+  `;
+
+  // header: toggle on click (except interactive controls)
+  card.querySelector('.bucket-header').addEventListener('click', (e) => {
+    if (e.target.closest('.priority-select, .delete-bucket-btn, .rename-bucket-btn, .bucket-drag-handle, input')) return;
+    toggleBucket(bucket.id);
+  });
+
+  // priority change
+  card.querySelector('.priority-select').addEventListener('change', (e) => {
+    changePriority(bucket.id, e.target.value);
+    e.stopPropagation();
+  });
+
+  // rename bucket button
+  card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    editBucketTitle(bucket.id);
+  });
+
+  // rename title on double-click
+  card.querySelector('.bucket-title').addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    editBucketTitle(bucket.id);
+  });
+
+  // delete bucket
+  card.querySelector('.delete-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete bucket "${bucket.title}"?\nThis cannot be undone.`)) deleteBucket(bucket.id);
+  });
+
+  // item actions
+  wireItemEvents(card, bucket.id);
+
+  // add item
+  const input = card.querySelector('.add-item-input');
+  card.querySelector('.add-item-btn').addEventListener('click', () => {
+    const t = input.value.trim();
+    if (t) { addItem(bucket.id, t); input.value = ''; } else input.focus();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      addItem(bucket.id, input.value.trim());
+      input.value = '';
+    }
+  });
+
+  return card;
+}
+
+function makeItemLI(item) {
+  const p = item.priority || 'medium';
+  const naClass = p === 'na' ? ' na-item' : '';
+  return `
+    <li class="item-row${naClass}" data-id="${item.id}">
+      <span class="item-drag-handle" title="Drag to reorder">⠿</span>
+      <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
+        <option value="critical" ${p === 'critical' ? 'selected' : ''}>🔴 Critical</option>
+        <option value="medium"   ${p === 'medium'   ? 'selected' : ''}>🟡 Medium</option>
+        <option value="low"      ${p === 'low'      ? 'selected' : ''}>🔵 Low</option>
+        <option value="na"       ${p === 'na'       ? 'selected' : ''}>⬜ N/A</option>
+      </select>
+      <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+      <div class="item-actions">
+        <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
+        <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
+      </div>
+    </li>`;
+}
+
+function wireItemEvents(card, bucketId) {
+  card.querySelectorAll('.delete-item-btn').forEach(btn =>
+    btn.addEventListener('click', () => deleteItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-edit-btn').forEach(btn =>
+    btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-text').forEach(span =>
+    span.addEventListener('dblclick', () => editItem(bucketId, span.dataset.itemId)));
+  card.querySelectorAll('.item-priority-select').forEach(sel =>
+    sel.addEventListener('change', () => {
+      const b = getBucket(bucketId);
+      const item = b && b.items.find(i => i.id === sel.dataset.itemId);
+      if (item) {
+        item.priority = sel.value;
+        sel.closest('.item-row').classList.toggle('na-item', sel.value === 'na');
+      }
+    }));
+}
+
+// ─── Sortables ────────────────────────────────────────────────────────────────
+let _bucketSort = null;
+const _itemSorts = new Map();
+
+function initSortables() {
+  const container = document.getElementById('buckets-container');
+  if (_bucketSort) _bucketSort.destroy();
+  _bucketSort = Sortable.create(container, {
+    handle: '.bucket-drag-handle',
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd(e) {
+      if (e.oldIndex !== e.newIndex) {
+        const [m] = buckets.splice(e.oldIndex, 1);
+        buckets.splice(e.newIndex, 0, m);
+        updateNumbers();
+      }
+    }
+  });
+  initItemSortables();
+}
+
+function makeItemSortable(list) {
+  const bid = list.dataset.bucketId;
+  if (_itemSorts.has(bid)) _itemSorts.get(bid).destroy();
+  const s = Sortable.create(list, {
+    group: 'shared-items',
+    handle: '.item-drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd(e) {
+      const fromId = e.from.dataset.bucketId;
+      const toId   = e.to.dataset.bucketId;
+      const fromB  = getBucket(fromId);
+      const toB    = getBucket(toId);
+      if (!fromB || !toB) return;
+
+      if (fromId === toId) {
+        // same bucket reorder
+        if (e.oldIndex !== e.newIndex) {
+          const [m] = fromB.items.splice(e.oldIndex, 1);
+          fromB.items.splice(e.newIndex, 0, m);
+        }
+      } else {
+        // cross-bucket move — move item in data model
+        const [m] = fromB.items.splice(e.oldIndex, 1);
+        toB.items.splice(e.newIndex, 0, m);
+        // re-wire action buttons on the moved <li> so its bucketId is correct
+        const li = e.item;
+        const itemId = li.dataset.id;
+        li.querySelector('.delete-item-btn').onclick = () => deleteItem(toId, itemId);
+        li.querySelector('.item-edit-btn').onclick   = () => editItem(toId, itemId);
+        li.querySelector('.item-text').ondblclick    = () => editItem(toId, itemId);
+        li.querySelector('.item-priority-select').onchange = (e) => {
+          const bTo = getBucket(toId);
+          const itm = bTo && bTo.items.find(i => i.id === itemId);
+          if (itm) {
+            itm.priority = e.target.value;
+            li.classList.toggle('na-item', e.target.value === 'na');
+          }
+        };
+        // update count badges
+        updateCount(fromId);
+        updateCount(toId);
+      }
+    }
+  });
+  _itemSorts.set(bid, s);
+  return s;
+}
+
+function initItemSortables() {
+  document.querySelectorAll('.items-list').forEach(list => makeItemSortable(list));
+}
+
+function updateNumbers() {
+  document.querySelectorAll('.bucket-card').forEach((card, i) => {
+    card.querySelector('.bucket-number').textContent = `#${i + 1}`;
+  });
+}
+
+// ─── Bucket Actions ───────────────────────────────────────────────────────────
+function toggleBucket(id) {
+  const b = getBucket(id);
+  if (!b) return;
+  b.expanded = !b.expanded;
+  getCard(id).classList.toggle('expanded', b.expanded);
+}
+
+function changePriority(id, priority) {
+  const b = getBucket(id);
+  if (!b) return;
+  b.priority = priority;
+  const card = getCard(id);
+  card.classList.remove('priority-critical', 'priority-medium', 'priority-low');
+  card.classList.add('priority-' + priority);
+}
+
+function deleteBucket(id) {
+  const idx = buckets.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  buckets.splice(idx, 1);
+  const card = getCard(id);
+  card.style.transition = 'all 0.2s';
+  card.style.opacity = '0';
+  card.style.marginBottom = '0';
+  card.style.maxHeight = '0';
+  setTimeout(() => { card.remove(); updateNumbers(); }, 210);
+  showToast('Bucket deleted');
+}
+
+function addBucket() {
+  const b = { id: uid(), priority: 'medium', expanded: true, title: 'New Bucket', items: [] };
+  buckets.push(b);
+  const card = createBucketCard(b, buckets.length - 1);
+  document.getElementById('buckets-container').appendChild(card);
+  // wire item sortable for new bucket
+  const list = card.querySelector('.items-list');
+  makeItemSortable(list);
+  updateNumbers();
+  setTimeout(() => editBucketTitle(b.id), 60);
+}
+
+function editBucketTitle(id) {
+  const b = getBucket(id);
+  if (!b) return;
+  const card = getCard(id);
+  const span = card.querySelector('.bucket-title');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'bucket-title-input';
+  input.value = b.title;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  const save = () => {
+    b.title = input.value.trim() || b.title;
+    const s = document.createElement('span');
+    s.className = 'bucket-title'; s.title = 'Double-click to rename'; s.textContent = b.title;
+    s.addEventListener('dblclick', (e) => { e.stopPropagation(); editBucketTitle(id); });
+    input.replaceWith(s);
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') {
+      const s = document.createElement('span');
+      s.className = 'bucket-title'; s.title = 'Double-click to rename'; s.textContent = b.title;
+      s.addEventListener('dblclick', (e2) => { e2.stopPropagation(); editBucketTitle(id); });
+      input.replaceWith(s);
+    }
+  });
+}
+
+// ─── Item Actions ─────────────────────────────────────────────────────────────
+function addItem(bucketId, text, priority = 'medium') {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const item = { id: uid(), text, priority };
+  b.items.push(item);
+  const card = getCard(bucketId);
+  const list = card.querySelector('.items-list');
+  const li = document.createElement('li');
+  li.className = 'item-row'; li.dataset.id = item.id;
+  li.innerHTML = `
+    <span class="item-drag-handle" title="Drag to reorder">⠿</span>
+    <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
+      <option value="critical">🔴 Critical</option>
+      <option value="medium" selected>🟡 Medium</option>
+      <option value="low">🔵 Low</option>
+      <option value="na">⬜ N/A</option>
+    </select>
+    <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+    <div class="item-actions">
+      <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit">✎</button>
+      <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
+    </div>`;
+  li.querySelector('.item-priority-select').addEventListener('change', (e) => {
+    item.priority = e.target.value;
+    li.classList.toggle('na-item', e.target.value === 'na');
+  });
+  li.querySelector('.delete-item-btn').addEventListener('click', () => deleteItem(bucketId, item.id));
+  li.querySelector('.item-edit-btn').addEventListener('click', () => editItem(bucketId, item.id));
+  li.querySelector('.item-text').addEventListener('dblclick', () => editItem(bucketId, item.id));
+  list.appendChild(li);
+  updateCount(bucketId);
+}
+
+function deleteItem(bucketId, itemId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const idx = b.items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  b.items.splice(idx, 1);
+  const li = document.querySelector(`.item-row[data-id="${itemId}"]`);
+  if (li) {
+    li.style.transition = 'all 0.15s';
+    li.style.opacity = '0'; li.style.height = '0'; li.style.padding = '0'; li.style.overflow = 'hidden';
+    setTimeout(() => li.remove(), 160);
+  }
+  updateCount(bucketId);
+}
+
+function editItem(bucketId, itemId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const item = b.items.find(i => i.id === itemId);
+  if (!item) return;
+  const li = document.querySelector(`.item-row[data-id="${itemId}"]`);
+  const span = li.querySelector('.item-text');
+  const ta = document.createElement('textarea');
+  ta.className = 'item-text-input';
+  ta.value = item.text;
+  ta.rows = Math.max(2, Math.ceil(item.text.length / 90));
+  span.replaceWith(ta);
+  ta.focus();
+  const save = () => {
+    item.text = ta.value.trim() || item.text;
+    const s = document.createElement('span');
+    s.className = 'item-text'; s.dataset.itemId = itemId; s.innerHTML = fmtItemText(item.text);
+    s.addEventListener('dblclick', () => editItem(bucketId, itemId));
+    ta.replaceWith(s);
+  };
+  ta.addEventListener('blur', save);
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+    if (e.key === 'Escape') {
+      const s = document.createElement('span');
+      s.className = 'item-text'; s.dataset.itemId = itemId; s.innerHTML = fmtItemText(item.text);
+      s.addEventListener('dblclick', () => editItem(bucketId, itemId));
+      ta.replaceWith(s);
+    }
+  });
+}
+
+function updateCount(bucketId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const badge = getCard(bucketId)?.querySelector('.item-count-badge');
+  if (badge) badge.textContent = b.items.length;
+}
+
+// ─── Markdown Export ──────────────────────────────────────────────────────────
+function generateMarkdown() {
+  const label = { critical: '🔴 CRITICAL PRIORITY', medium: '🟡 MEDIUM PRIORITY', low: '🔵 LOW PRIORITY' };
+  const emoji = { critical: '🔴', medium: '🟡', low: '🔵' };
+  const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const lines = [
+    '# Backlog Editor',
+    `**Updated: ${now}**`,
+    '',
+    '---',
+    '',
+  ];
+  buckets.forEach((b, i) => {
+    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title} — ${label[b.priority]}`);
+    lines.push('');
+    if (b.items.length === 0) {
+      lines.push('*No items*');
+    } else {
+      const ie = { critical: '🔴', medium: '🟡', low: '🔵', na: '⬜' };
+      b.items.forEach(item => lines.push(`- ${ie[item.priority || 'medium']} ${item.text}`));
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+async function saveAsMarkdown() {
+  const md = generateMarkdown();
+  const suggestedName = 'backlog.md';
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(md); await w.close();
+      showToast('✓ Saved!');
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  // Fallback download
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = suggestedName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ Downloaded!');
+}
+
+// ─── Markdown Import ──────────────────────────────────────────────────────────
+function loadMarkdownFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.md,.txt';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const parsed = parseMarkdown(text);
+    if (!parsed.length) { showToast('⚠ No buckets found in file'); return; }
+    if (!confirm(`Load "${file.name}"?\nThis will replace the current ${buckets.length} bucket(s) with ${parsed.length} bucket(s).`)) return;
+    buckets = parsed;
+    renderAll();
+    document.getElementById('editor-subtitle').textContent = `Loaded: ${file.name}`;
+    showToast(`✓ Loaded ${parsed.length} buckets`);
+  };
+  input.click();
+}
+
+function parseMarkdown(text) {
+  const lines = text.split('\n');
+  const result = [];
+  let current = null;
+
+  const priorityMap = {
+    '🔴': 'critical', 'CRITICAL': 'critical',
+    '🟡': 'medium',   'MEDIUM': 'medium',
+    '🟢': 'low',      '🔵': 'low',      'LOW': 'low'
+  };
+
+  function detectPriority(line) {
+    if (line.includes('🔴') || /CRITICAL/i.test(line)) return 'critical';
+    if (line.includes('🟢') || line.includes('🔵') || /LOW/i.test(line)) return 'low';
+    return 'medium';
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim();
+
+    // Bucket heading: ## ... BUCKET N: Title — PRIORITY  OR  ## Title
+    if (line.startsWith('## ')) {
+      if (current) result.push(current);
+      let title = line.replace(/^##\s+/, '');
+      // Strip leading emoji (any Unicode emoji / symbol chars) and non-word chars
+      title = title.replace(/^[\p{Emoji}\p{S}\p{So}]+\s*/u, '');
+      // Also nuke any remaining leading non-alphanumeric junk (rendering artifacts like ◆ ◇ ▶)
+      title = title.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+      // Strip "BUCKET N: " prefix
+      title = title.replace(/^BUCKET\s+\d+:\s*/i, '');
+      // Strip trailing " — PRIORITY LABEL" (handles —, –, -)
+      title = title.replace(/\s*[—–\-]\s*(?:🔴|🟡|🟢)?\s*(?:CRITICAL|MEDIUM|LOW)?\s*(?:PRIORITY)?$/i, '').trim();
+      current = { id: uid(), priority: detectPriority(line), expanded: false, title, items: [] };
+      continue;
+    }
+
+    if (!current) continue;
+
+    // Item bullet
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      let text = line.slice(2).trim();
+      let itemPriority = 'medium';
+      if (text.startsWith('🔴 '))      { itemPriority = 'critical'; text = text.slice('🔴 '.length); }
+      else if (text.startsWith('🟡 ')) { itemPriority = 'medium';   text = text.slice('🟡 '.length); }
+      else if (text.startsWith('🟢 ')) { itemPriority = 'low';      text = text.slice('🟢 '.length); }
+      else if (text.startsWith('🔵 ')) { itemPriority = 'low';      text = text.slice('🔵 '.length); }
+      else if (text.startsWith('⬜ ')) { itemPriority = 'na';       text = text.slice('⬜ '.length); }
+      current.items.push({ id: uid(), text, priority: itemPriority });
+      continue;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
