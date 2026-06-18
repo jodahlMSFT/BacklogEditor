@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "puppeteer": "^25.1.0"
+  }
+}
