@@ -73,6 +73,16 @@ body {
 .search-clear.visible { display: block; color: #94a3b8; }
 .search-clear:hover { color: #e2e8f0; }
 mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1px; }
+/* ── Tags ─────────────────────────────────────────────────────────────────── */
+.tag-chip { display:inline-flex; align-items:center; gap:2px; font-size:0.68rem; font-weight:700; font-family:'Courier New',monospace; background:#0e2a3e; border:1px solid #1d4e6b; color:#38bdf8; padding:1px 7px 1px 5px; border-radius:10px; cursor:pointer; white-space:nowrap; transition:background 0.12s,border-color 0.12s; user-select:none; }
+.tag-chip:hover { background:#0e3a58; border-color:#38bdf8; }
+.tag-remove { background:none; border:none; color:#38bdf8; cursor:pointer; font-size:0.6rem; padding:0 0 0 2px; line-height:1; opacity:0.5; vertical-align:middle; }
+.tag-remove:hover { opacity:1; color:#f87171; }
+.tag-add-btn { background:none; border:1px dashed #334155; color:#475569; font-size:0.68rem; padding:1px 6px; border-radius:8px; cursor:pointer; line-height:1.6; flex-shrink:0; transition:all 0.12s; }
+.tag-add-btn:hover { border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.06); }
+.tag-input-inline { font-family:'Courier New',monospace; font-size:0.75rem; background:#0f172a; border:1px solid #38bdf8; border-radius:6px; color:#38bdf8; padding:2px 7px; outline:none; width:80px; }
+.item-tags { display:flex; flex-wrap:wrap; gap:3px; align-items:center; flex-shrink:0; margin-left:2px; }
+.bucket-tags { display:flex; flex-wrap:wrap; gap:3px; align-items:center; margin:0 4px; }
 .btn-ghost { background: none; color: #64748b; border: 1px solid #334155; font-size: 0.76rem; padding: 5px 10px; }
 .btn-ghost:hover { color: #cbd5e1; border-color: #475569; background: rgba(255,255,255,0.06); transform: none; box-shadow: none; }
 .toolbar-sep { width: 1px; height: 20px; background: #1e293b; flex-shrink: 0; margin: 0 2px; }
@@ -475,27 +485,43 @@ function clearSearch() {
 
 function applyBucketSearch() {
   const q = searchQuery;
+  const isTagSearch = q.startsWith('#');
+  const tagQ = isTagSearch ? q.slice(1).toLowerCase() : null;
   document.querySelectorAll('.bucket-card').forEach(card => {
+    const bid = card.dataset.id;
+    const bucket = getBucket(bid);
     let visibleCount = 0;
     card.querySelectorAll('.item-row').forEach(row => {
       const textEl = row.querySelector('.item-text');
       if (!textEl) return;
       const raw = textEl.dataset.raw || textEl.textContent;
-      textEl.dataset.raw = raw; // cache original text
-      const match = !q || raw.toLowerCase().includes(q);
+      textEl.dataset.raw = raw;
+      const item = bucket ? bucket.items.find(i => i.id === row.dataset.id) : null;
+      let match;
+      if (!q) {
+        match = true;
+      } else if (isTagSearch) {
+        match = !!(item && (item.tags || []).some(t => t.toLowerCase().includes(tagQ)));
+      } else {
+        match = raw.toLowerCase().includes(q) || !!(item && (item.tags || []).some(t => t.toLowerCase().includes(q)));
+      }
       row.style.display = match ? '' : 'none';
       if (match) {
-        textEl.innerHTML = q ? highlightText(raw, q) : fmtItemText(raw);
+        textEl.innerHTML = q && !isTagSearch && raw.toLowerCase().includes(q) ? highlightText(raw, q) : fmtItemText(raw);
         visibleCount++;
       }
     });
+    const bucketTagMatch = !!(q && isTagSearch && bucket && (bucket.tags || []).some(t => t.toLowerCase().includes(tagQ)));
     if (q) {
-      card.style.display = visibleCount > 0 ? '' : 'none';
-      // auto-expand buckets with matches
-      if (visibleCount > 0) {
+      const show = visibleCount > 0 || bucketTagMatch;
+      card.style.display = show ? '' : 'none';
+      if (show) {
         const body = card.querySelector('.bucket-body');
         if (body) body.style.display = '';
         card.classList.remove('collapsed');
+        if (bucketTagMatch && visibleCount === 0) {
+          card.querySelectorAll('.item-row').forEach(r => r.style.display = '');
+        }
       }
     } else {
       card.style.display = '';
@@ -523,13 +549,17 @@ function renderPriorityView() {
 
   // Flatten all items, attaching bucket title
   const q = searchQuery;
+  const isTagSearch = q.startsWith('#');
+  const tagQ = isTagSearch ? q.slice(1).toLowerCase() : null;
   const flat = [];
   buckets.forEach(b => b.items.forEach(item => flat.push({ ...item, bucketTitle: b.title })));
 
   const grouped = {};
   ORDER.forEach(p => grouped[p] = flat.filter(i => {
     if (i.priority !== p) return false;
-    return !q || i.text.toLowerCase().includes(q);
+    if (!q) return true;
+    if (isTagSearch) return (i.tags || []).some(t => t.toLowerCase().includes(tagQ));
+    return i.text.toLowerCase().includes(q) || (i.tags || []).some(t => t.toLowerCase().includes(q));
   }));
 
   ORDER.forEach(p => {
@@ -549,7 +579,8 @@ function renderPriorityView() {
       <div class="pv-items">
         ${items.map(item => `
           <div class="pv-item${item.priority === 'na' ? ' na-item' : ''}">
-              <span class="pv-item-text">${q ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
+            <span class="pv-item-text">${q && !isTagSearch && item.text.toLowerCase().includes(q) ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
+            ${item.tags && item.tags.length ? `<span class="pv-item-tags">${item.tags.map(t => `<span class="tag-chip" data-tag="${esc(t)}" onclick="onTagChipClick(this)">#${esc(t)}</span>`).join('')}</span>` : ''}
             <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>
           </div>`).join('')}
       </div>`;
@@ -590,6 +621,7 @@ function createBucketCard(bucket, idx) {
         <option value="low"      ${bucket.priority === 'low'      ? 'selected' : ''}>🔵 Low</option>
       </select>
       <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
+      <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       <button class="rename-bucket-btn" title="Rename bucket">✏</button>
       <span class="item-count-badge">${bucket.items.length}</span>
       <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
@@ -608,7 +640,7 @@ function createBucketCard(bucket, idx) {
 
   // header: toggle on click (except interactive controls)
   card.querySelector('.bucket-header').addEventListener('click', (e) => {
-    if (e.target.closest('.priority-select, .delete-bucket-btn, .rename-bucket-btn, .bucket-drag-handle, input')) return;
+    if (e.target.closest('.priority-select, .delete-bucket-btn, .rename-bucket-btn, .bucket-drag-handle, .bucket-tags, input, button')) return;
     toggleBucket(bucket.id);
   });
 
@@ -668,6 +700,7 @@ function makeItemLI(item) {
         <option value="na"       ${p === 'na'       ? 'selected' : ''}>⬜ N/A</option>
       </select>
       <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+      <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
       <div class="item-actions">
         <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
         <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
@@ -822,7 +855,7 @@ function deleteBucket(id) {
 }
 
 function addBucket() {
-  const b = { id: uid(), priority: 'medium', expanded: true, title: 'New Bucket', items: [] };
+  const b = { id: uid(), priority: 'medium', expanded: true, title: 'New Bucket', items: [], tags: [] };
   buckets.push(b);
   const card = createBucketCard(b, buckets.length - 1);
   document.getElementById('buckets-container').appendChild(card);
@@ -867,7 +900,7 @@ function editBucketTitle(id) {
 function addItem(bucketId, text, priority = 'medium') {
   const b = getBucket(bucketId);
   if (!b) return;
-  const item = { id: uid(), text, priority };
+  const item = { id: uid(), text, priority, tags: [] };
   b.items.push(item);
   const card = getCard(bucketId);
   const list = card.querySelector('.items-list');
@@ -882,6 +915,7 @@ function addItem(bucketId, text, priority = 'medium') {
       <option value="na">⬜ N/A</option>
     </select>
     <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+    <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML([], 'item', item.id)}</div>
     <div class="item-actions">
       <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit">✎</button>
       <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
@@ -951,6 +985,85 @@ function updateCount(bucketId) {
   if (badge) badge.textContent = b.items.length;
 }
 
+// ─── Tag Helpers ──────────────────────────────────────────────────────────────
+function tagChipHtml(tag, type, ownerId) {
+  return `<span class="tag-chip" data-tag="${esc(tag)}" onclick="onTagChipClick(this)">#${esc(tag)}<span class="tag-remove" onclick="event.stopPropagation();onTagRemoveClick('${type}','${ownerId}','${esc(tag)}')">✕</span></span>`;
+}
+function tagAddBtnHtml(type, ownerId) {
+  return `<button class="tag-add-btn" onclick="showTagInput('${type}','${ownerId}',this)" title="Add tag">＋</button>`;
+}
+function tagsInnerHTML(tags, type, ownerId) {
+  const chips = (tags || []).map(t => tagChipHtml(t, type, ownerId)).join('');
+  return chips + tagAddBtnHtml(type, ownerId);
+}
+function onTagChipClick(el) {
+  const tag = el.dataset.tag;
+  const inp = document.getElementById('searchInput');
+  if (inp) { inp.value = '#' + tag; inp.dispatchEvent(new Event('input')); }
+}
+function onTagRemoveClick(type, ownerId, tag) {
+  removeTag(type, ownerId, tag);
+}
+function showTagInput(type, ownerId, btn) {
+  const container = btn.closest('.item-tags, .bucket-tags');
+  if (!container) return;
+  const existing = container.querySelector('.tag-input-inline');
+  if (existing) { existing.focus(); return; }
+  const inp = document.createElement('input');
+  inp.className = 'tag-input-inline';
+  inp.placeholder = 'tag…';
+  inp.maxLength = 30;
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag(type, ownerId, inp.value.trim()); inp.remove(); }
+    if (e.key === 'Escape') inp.remove();
+  };
+  inp.onblur = () => { if (inp.value.trim()) addTag(type, ownerId, inp.value.trim()); inp.remove(); };
+  btn.before(inp);
+  inp.focus();
+}
+function addTag(type, ownerId, tag) {
+  if (!tag) return;
+  tag = tag.replace(/\s+/g, '-').replace(/[^\w\-\.]/g, '');
+  if (!tag) return;
+  if (type === 'bucket') {
+    const b = getBucket(ownerId);
+    if (!b) return;
+    if (!b.tags) b.tags = [];
+    if (!b.tags.includes(tag)) b.tags.push(tag);
+    refreshTagsEl('bucket', ownerId, b.tags);
+  } else {
+    const item = findItemById(ownerId);
+    if (!item) return;
+    if (!item.tags) item.tags = [];
+    if (!item.tags.includes(tag)) item.tags.push(tag);
+    refreshTagsEl('item', ownerId, item.tags);
+  }
+}
+function removeTag(type, ownerId, tag) {
+  if (type === 'bucket') {
+    const b = getBucket(ownerId);
+    if (!b || !b.tags) return;
+    b.tags = b.tags.filter(t => t !== tag);
+    refreshTagsEl('bucket', ownerId, b.tags);
+  } else {
+    const item = findItemById(ownerId);
+    if (!item || !item.tags) return;
+    item.tags = item.tags.filter(t => t !== tag);
+    refreshTagsEl('item', ownerId, item.tags);
+  }
+}
+function findItemById(id) {
+  for (const b of buckets) {
+    const item = b.items.find(i => i.id === id);
+    if (item) return item;
+  }
+  return null;
+}
+function refreshTagsEl(type, ownerId, tags) {
+  const el = document.querySelector(`.${type}-tags[data-owner="${ownerId}"]`);
+  if (el) el.innerHTML = tagsInnerHTML(tags, type, ownerId);
+}
+
 // ─── Markdown Export ──────────────────────────────────────────────────────────
 function generateMarkdown() {
   const label = { critical: '🔴 CRITICAL PRIORITY', medium: '🟡 MEDIUM PRIORITY', low: '🔵 LOW PRIORITY' };
@@ -963,14 +1076,18 @@ function generateMarkdown() {
     '---',
     '',
   ];
+  const ie = { critical: '🔴', medium: '🟡', low: '🔵', na: '⬜' };
+  function tagsStr(tags) {
+    if (!tags || !tags.length) return '';
+    return ' ' + tags.map(t => `[${t}]`).join('');
+  }
   buckets.forEach((b, i) => {
-    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title}`);
+    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title}${tagsStr(b.tags)}`);
     lines.push('');
     if (b.items.length === 0) {
       lines.push('*No items*');
     } else {
-      const ie = { critical: '🔴', medium: '🟡', low: '🔵', na: '⬜' };
-      b.items.forEach(item => lines.push(`- ${ie[item.priority || 'medium']} ${item.text}`));
+      b.items.forEach(item => lines.push(`- ${ie[item.priority || 'medium']} ${item.text}${tagsStr(item.tags)}`));
     }
     lines.push('');
     lines.push('---');
@@ -1202,6 +1319,18 @@ async function loadMarkdownFile() {
   }
 }
 
+function extractTags(str) {
+  const m = str.match(/^(.*?)(\s*(?:\[[^\]]+\])+)\s*$/);
+  if (!m) return { text: str.trim(), tags: [] };
+  const text = m[1].trim();
+  const tagStr = m[2];
+  const tags = [];
+  let t;
+  const re = /\[([^\]]+)\]/g;
+  while ((t = re.exec(tagStr)) !== null) tags.push(t[1]);
+  return { text, tags };
+}
+
 function parseMarkdown(text) {
   const lines = text.split('\n');
   const result = [];
@@ -1234,7 +1363,8 @@ function parseMarkdown(text) {
       title = title.replace(/^BUCKET\s+\d+:\s*/i, '');
       // Strip trailing " — PRIORITY LABEL" (handles —, –, -)
       title = title.replace(/\s*[—–\-]\s*(?:🔴|🟡|🟢|🔵)?\s*(?:CRITICAL|MEDIUM|LOW)?\s*(?:PRIORITY)?$/i, '').trim();
-      current = { id: uid(), priority: detectPriority(line), expanded: false, title, items: [] };
+      const { text: bucketTitle, tags: bucketTags } = extractTags(title);
+      current = { id: uid(), priority: detectPriority(line), expanded: false, title: bucketTitle, items: [], tags: bucketTags };
       continue;
     }
 
@@ -1249,7 +1379,8 @@ function parseMarkdown(text) {
       else if (text.startsWith('🟢 ')) { itemPriority = 'low';      text = text.slice('🟢 '.length); }
       else if (text.startsWith('🔵 ')) { itemPriority = 'low';      text = text.slice('🔵 '.length); }
       else if (text.startsWith('⬜ ')) { itemPriority = 'na';       text = text.slice('⬜ '.length); }
-      current.items.push({ id: uid(), text, priority: itemPriority });
+      const { text: itemText, tags: itemTags } = extractTags(text);
+      current.items.push({ id: uid(), text: itemText, priority: itemPriority, tags: itemTags });
       continue;
     }
   }
