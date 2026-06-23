@@ -379,6 +379,111 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   z-index: 1000;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Timeline View ─────────────────────────────────────────────────────────── */
+.tl-view {
+  background: #0a1628;
+  min-height: calc(100vh - 140px);
+  padding: 36px 40px 60px;
+}
+.tl-title-h2 {
+  font-size: 2.4rem; font-weight: 800; color: #ffffff;
+  cursor: pointer; line-height: 1.1; margin-bottom: 40px;
+  user-select: none; display: inline-block;
+}
+.tl-title-h2:hover { opacity: 0.85; }
+.tl-title-h2 .tl-t-light { font-weight: 300; color: #94a3b8; }
+.tl-title-input {
+  font-size: 2.4rem; font-weight: 800; color: #fff;
+  background: transparent; border: none; border-bottom: 2px solid #3b82f6;
+  outline: none; font-family: inherit; margin-bottom: 40px; display: block;
+}
+.tl-scroll-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 40px; -webkit-overflow-scrolling: touch; }
+.tl-cols-row { display: inline-flex; min-width: 100%; position: relative; }
+/* Horizontal timeline line — centre at meta(50px) + half-dot(9px) = 59px */
+.tl-cols-row::before {
+  content: ''; position: absolute; top: 59px;
+  left: 60px; right: 60px; height: 2px;
+  background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 50%, #7dd3fc 100%);
+  z-index: 0; pointer-events: none;
+}
+.tl-col-unit { flex: 1 0 220px; max-width: 320px; display: flex; flex-direction: column; align-items: stretch; padding: 0 6px; }
+/* ── Milestone header ── */
+.tl-ms-header { display: flex; flex-direction: column; align-items: center; }
+.tl-ms-meta { min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 6px; gap: 2px; text-align: center; }
+.tl-ms-version { font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; cursor: pointer; transition: color 0.12s; }
+.tl-ms-version:hover { color: #e2e8f0; }
+.tl-ms-date { font-size: 0.72rem; color: #475569; cursor: pointer; transition: color 0.12s; }
+.tl-ms-date:hover { color: #e2e8f0; }
+.tl-ms-date.shipped { color: #4ade80; font-weight: 600; }
+.tl-dot-row { height: 18px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+.tl-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 3px solid #7dd3fc; background: #0a1628;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; position: relative; z-index: 2;
+}
+.tl-dot:hover { transform: scale(1.35); box-shadow: 0 0 12px rgba(125,211,252,0.6); }
+.tl-dot.shipped { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+.tl-dot.shipped:hover { box-shadow: 0 0 16px rgba(74,222,128,0.8); }
+.tl-dot.inflight { background: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 8px rgba(56,189,248,0.4); }
+.tl-dot.inflight:hover { box-shadow: 0 0 14px rgba(56,189,248,0.8); }
+.tl-dot.planned { background: #0a1628; border-color: #7dd3fc; }
+.tl-ms-label { min-height: 44px; padding: 8px 4px 0; font-size: 0.75rem; color: #64748b; text-align: center; line-height: 1.35; cursor: pointer; transition: color 0.12s; }
+.tl-ms-label:hover { color: #e2e8f0; }
+.tl-ms-label.shipped { color: #4ade80; }
+.tl-ms-label.inflight { color: #38bdf8; }
+.tl-pointer { width: 0; height: 0; margin: 0 auto; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 9px solid transparent; border-bottom: 9px solid #071829; }
+.tl-pointer.shipped { border-bottom-color: #041d0d; }
+.tl-pointer.planned { border-bottom-color: #0b1c32; }
+/* ── Column card ── */
+.tl-card { flex: 1; padding: 14px 16px 18px; border: 1px solid #1e3a5f; border-top: 3px solid #38bdf8; }
+.tl-card.shipped { background: #041d0d; border-color: #0d3321; border-top-color: #4ade80; }
+.tl-card.inflight { background: #071829; border-color: #1e3a5f; border-top-color: #38bdf8; }
+.tl-card.planned  { background: #0b1c32; border-color: #1a3050; border-top-color: #7dd3fc; }
+.tl-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.1em; padding: 3px 9px; border-radius: 4px; margin-bottom: 11px;
+  cursor: pointer; user-select: none; transition: opacity 0.15s;
+}
+.tl-badge:hover { opacity: 0.7; }
+.tl-badge.shipped { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.6); color: #4ade80; }
+.tl-badge.inflight { background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.6); color: #38bdf8; }
+.tl-badge.planned  { background: rgba(125,211,252,0.06); border: 1px solid rgba(125,211,252,0.4); color: #7dd3fc; }
+.tl-card-title { font-size: 0.95rem; font-weight: 700; color: #f0f4f8; margin-bottom: 12px; line-height: 1.35; cursor: pointer; }
+.tl-card-title:hover { color: #ffffff; }
+.tl-card-title-input {
+  font-size: 0.95rem; font-weight: 700; color: #f0f4f8;
+  background: rgba(255,255,255,0.06); border: 1px solid #38bdf8; border-radius: 4px;
+  padding: 3px 8px; outline: none; width: 100%; font-family: inherit; margin-bottom: 12px; display: block;
+}
+.tl-card-divider { height: 1px; background: #1e3a5f; margin: 0 -16px 10px; }
+.tl-card-divider.shipped { background: #0d3321; }
+.tl-card-divider.planned { background: #1a3050; }
+.tl-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; font-size: 0.82rem; line-height: 1.4; }
+.tl-icon { flex-shrink: 0; width: 12px; margin-top: 2px; font-size: 0.68rem; font-weight: 800; }
+.tl-icon.ok   { color: #4ade80; }
+.tl-icon.go   { color: #38bdf8; }
+.tl-icon.soft { color: #475569; }
+.tl-icon.na   { color: #334155; }
+.tl-itext { color: #cbd5e1; flex: 1; }
+.tl-itext.bold { color: #f0f4f8; font-weight: 600; }
+.tl-itext.dim  { color: #4b5873; }
+.tl-itext.strike { color: #334155; text-decoration: line-through; }
+.tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; }
+.tl-empty { color: #2a3f5e; font-size: 0.78rem; padding: 4px 0; font-style: italic; }
+.tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
+.tl-add-ms-btn {
+  background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
+  color: #334155; cursor: pointer; font-size: 0.78rem; padding: 14px; text-align: center;
+  width: 100%; transition: all 0.15s; min-height: 70px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; margin-top: 120px;
+}
+.tl-add-ms-btn:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.07); }
+.tl-meta-inline-input {
+  background: rgba(14,31,56,0.95); border: 1px solid #38bdf8; border-radius: 4px;
+  color: #e2e8f0; padding: 2px 7px; outline: none; font-family: inherit;
+  font-size: inherit; font-weight: inherit; max-width: 180px; box-sizing: border-box;
+}
 </style>
 </head>
 <body>
@@ -398,6 +503,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   <div class="view-toggle">
     <button id="btn-view-buckets" class="btn-view active" onclick="setView('buckets')" title="Group by bucket">☰ Buckets</button>
     <button id="btn-view-priority" class="btn-view" onclick="setView('priority')" title="Flat list ranked by priority">≡ Priority</button>
+    <button id="btn-view-timeline" class="btn-view" onclick="setView('timeline')" title="Roadmap timeline by tag">◼ Timeline</button>
   </div>
   <span class="toolbar-sep"></span>
   <button class="btn btn-ghost" onclick="expandAll()" title="Expand all">▾ Expand all</button>
@@ -420,6 +526,8 @@ let _id = 1000;
 function uid() { return 's' + (++_id); }
 
 let buckets = [];
+let tagMeta = {};         // { tagId: { status, label, date, sublabel, colTitle, order } }
+let roadmapTitle = 'Backlog';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(str) {
@@ -470,6 +578,7 @@ let searchQuery = '';
 function onSearchInput(val) {
   searchQuery = val.trim().toLowerCase();
   document.getElementById('search-clear').classList.toggle('visible', searchQuery !== '');
+  if (currentView === 'timeline') return;
   if (currentView === 'buckets') applyBucketSearch();
   else renderPriorityView();
 }
@@ -479,6 +588,7 @@ function clearSearch() {
   const inp = document.getElementById('search-input');
   if (inp) { inp.value = ''; inp.focus(); }
   document.getElementById('search-clear').classList.remove('visible');
+  if (currentView === 'timeline') return;
   if (currentView === 'buckets') applyBucketSearch();
   else renderPriorityView();
 }
@@ -533,8 +643,20 @@ function setView(view) {
   currentView = view;
   document.getElementById('btn-view-buckets').classList.toggle('active', view === 'buckets');
   document.getElementById('btn-view-priority').classList.toggle('active', view === 'priority');
-  if (view === 'buckets') renderAll();
-  else renderPriorityView();
+  document.getElementById('btn-view-timeline').classList.toggle('active', view === 'timeline');
+  const cont = document.getElementById('buckets-container');
+  if (view === 'timeline') {
+    cont.style.maxWidth = 'none';
+    cont.style.margin = '0';
+    cont.style.padding = '0';
+    renderTimelineView();
+  } else {
+    cont.style.maxWidth = '880px';
+    cont.style.margin = '22px auto';
+    cont.style.padding = '0 20px 80px';
+    if (view === 'buckets') renderAll();
+    else renderPriorityView();
+  }
 }
 
 // ─── Priority View ────────────────────────────────────────────────────────────
@@ -1064,6 +1186,250 @@ function refreshTagsEl(type, ownerId, tags) {
   if (el) el.innerHTML = tagsInnerHTML(tags, type, ownerId);
 }
 
+// ─── Timeline View ────────────────────────────────────────────────────────────
+function getTagMeta(tag) {
+  if (!tagMeta[tag]) tagMeta[tag] = {};
+  const m = tagMeta[tag];
+  return {
+    status:   m.status   || 'planned',
+    label:    m.label    !== undefined ? m.label    : tag,
+    date:     m.date     || '',
+    sublabel: m.sublabel || '',
+    colTitle: m.colTitle !== undefined ? m.colTitle : (m.label !== undefined ? m.label : tag),
+    order:    m.order    != null ? m.order : null,
+  };
+}
+function setTagMetaField(tag, patch) {
+  if (!tagMeta[tag]) tagMeta[tag] = {};
+  Object.assign(tagMeta[tag], patch);
+}
+function parseVersionTag(s) {
+  if (/^\d+(\.\d+)+$/.test(s)) return s.split('.').map(Number);
+  return null;
+}
+function sortedTagIds() {
+  const seen = new Set();
+  buckets.forEach(b => {
+    (b.tags || []).forEach(t => seen.add(t));
+    b.items.forEach(i => (i.tags || []).forEach(t => seen.add(t)));
+  });
+  Object.keys(tagMeta).forEach(t => seen.add(t));
+  return [...seen].sort((a, b) => {
+    const ma = tagMeta[a] || {}, mb = tagMeta[b] || {};
+    const oa = ma.order != null ? ma.order : Infinity;
+    const ob = mb.order != null ? mb.order : Infinity;
+    if (oa !== Infinity || ob !== Infinity) { if (oa !== ob) return oa - ob; }
+    const va = parseVersionTag(a), vb = parseVersionTag(b);
+    if (va && vb) {
+      for (let i = 0; i < Math.max(va.length, vb.length); i++) { const d = (va[i]||0)-(vb[i]||0); if (d) return d; }
+      return 0;
+    }
+    if (va) return -1; if (vb) return 1;
+    return a.localeCompare(b);
+  });
+}
+function itemsForTag(tag) {
+  const result = [];
+  buckets.forEach(b => b.items.forEach(i => {
+    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
+  }));
+  return result;
+}
+function tlStatusLabel(s) {
+  if (s === 'shipped') return '✓ SHIPPED';
+  if (s === 'inflight') return '● IN FLIGHT';
+  return '○ PLANNED';
+}
+function cycleStatus(tag) {
+  const m = getTagMeta(tag);
+  const order = ['planned','inflight','shipped'];
+  const next = order[(order.indexOf(m.status) + 1) % 3];
+  setTagMetaField(tag, { status: next });
+  renderTimelineView();
+}
+function tlStartInlineEdit(el, currentVal, onSave) {
+  const inp = document.createElement('input');
+  inp.className = 'tl-meta-inline-input';
+  inp.value = currentVal;
+  inp.onblur = () => onSave(inp.value.trim());
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { onSave(currentVal); }
+  };
+  el.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+function editRoadmapTitle(el) {
+  const inp = document.createElement('input');
+  inp.className = 'tl-title-input';
+  inp.value = roadmapTitle;
+  inp.onblur = () => { roadmapTitle = inp.value.trim() || roadmapTitle; renderTimelineView(); };
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { roadmapTitle = roadmapTitle; inp.blur(); }
+  };
+  el.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+function renderTimelineView() {
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+  const tags = sortedTagIds();
+  const view = document.createElement('div');
+  view.className = 'tl-view';
+
+  // Title
+  const titleEl = document.createElement('div');
+  titleEl.className = 'tl-title-h2';
+  titleEl.title = 'Click to edit title';
+  titleEl.innerHTML = `<strong>${esc(roadmapTitle)}</strong> <span class="tl-t-light">Roadmap</span>`;
+  titleEl.onclick = () => editRoadmapTitle(titleEl);
+  view.appendChild(titleEl);
+
+  if (!tags.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#2a3f5e;text-align:center;padding:80px 0;font-size:1rem;';
+    empty.innerHTML = 'No tags yet.<br><span style="font-size:0.85rem;color:#1e3a5f">Add <code style="color:#38bdf8;background:rgba(56,189,248,0.08);padding:1px 5px;border-radius:3px;">[version]</code> tags to items in the Buckets view to build your roadmap.</span>';
+    view.appendChild(empty);
+    container.appendChild(view);
+    return;
+  }
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'tl-scroll-wrap';
+  const colsRow = document.createElement('div');
+  colsRow.className = 'tl-cols-row';
+
+  tags.forEach(tag => {
+    const m = getTagMeta(tag);
+    const s = m.status;
+    const unit = document.createElement('div');
+    unit.className = 'tl-col-unit';
+
+    // ── Milestone header ──
+    const msHeader = document.createElement('div');
+    msHeader.className = 'tl-ms-header';
+
+    const msMeta = document.createElement('div');
+    msMeta.className = 'tl-ms-meta';
+
+    const msVersion = document.createElement('span');
+    msVersion.className = 'tl-ms-version';
+    msVersion.textContent = m.label || tag;
+    msVersion.title = 'Click to rename version/name';
+    msVersion.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msVersion, m.label || tag, v => { setTagMetaField(tag, {label: v || tag}); renderTimelineView(); }); };
+
+    const msDate = document.createElement('span');
+    msDate.className = 'tl-ms-date' + (s === 'shipped' ? ' shipped' : '');
+    if (m.date) {
+      msDate.textContent = m.date;
+    } else {
+      msDate.textContent = 'Set date…';
+      msDate.style.opacity = '0.3'; msDate.style.fontStyle = 'italic';
+    }
+    msDate.title = 'Click to edit date (e.g. April 2026)';
+    msDate.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msDate, m.date || '', v => { setTagMetaField(tag, {date: v}); renderTimelineView(); }); };
+
+    msMeta.appendChild(msVersion);
+    msMeta.appendChild(msDate);
+    msHeader.appendChild(msMeta);
+
+    const dotRow = document.createElement('div');
+    dotRow.className = 'tl-dot-row';
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot ' + s;
+    dot.title = 'Click to cycle: planned → in flight → shipped';
+    dot.onclick = () => cycleStatus(tag);
+    dotRow.appendChild(dot);
+    msHeader.appendChild(dotRow);
+
+    const msLabel = document.createElement('div');
+    msLabel.className = 'tl-ms-label' + (s === 'shipped' ? ' shipped' : s === 'inflight' ? ' inflight' : '');
+    if (m.sublabel) {
+      msLabel.textContent = m.sublabel;
+    } else {
+      msLabel.textContent = 'Set label…';
+      msLabel.style.opacity = '0.2'; msLabel.style.fontStyle = 'italic';
+    }
+    msLabel.title = 'Click to set milestone label';
+    msLabel.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msLabel, m.sublabel || '', v => { setTagMetaField(tag, {sublabel: v}); renderTimelineView(); }); };
+    msHeader.appendChild(msLabel);
+
+    const ptr = document.createElement('div');
+    ptr.className = 'tl-pointer' + (s === 'shipped' ? ' shipped' : s === 'planned' ? ' planned' : '');
+    msHeader.appendChild(ptr);
+
+    unit.appendChild(msHeader);
+
+    // ── Column card ──
+    const card = document.createElement('div');
+    card.className = 'tl-card ' + s;
+
+    const badge = document.createElement('div');
+    badge.className = 'tl-badge ' + s;
+    badge.textContent = tlStatusLabel(s);
+    badge.title = 'Click to cycle status';
+    badge.onclick = () => cycleStatus(tag);
+    card.appendChild(badge);
+
+    const cardTitle = document.createElement('div');
+    cardTitle.className = 'tl-card-title';
+    cardTitle.textContent = m.colTitle || m.label || tag;
+    cardTitle.title = 'Click to edit column title';
+    cardTitle.onclick = e => { e.stopPropagation(); tlStartInlineEdit(cardTitle, m.colTitle || m.label || tag, v => { setTagMetaField(tag, {colTitle: v}); renderTimelineView(); }); };
+    card.appendChild(cardTitle);
+
+    const divider = document.createElement('div');
+    divider.className = 'tl-card-divider ' + s;
+    card.appendChild(divider);
+
+    const items = itemsForTag(tag);
+    if (items.length) {
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'tl-item';
+        let iconClass, textClass, icon;
+        if (s === 'shipped') {
+          icon = '✓'; iconClass = 'ok'; textClass = 'bold';
+        } else if (item.priority === 'na') {
+          icon = '–'; iconClass = 'na'; textClass = 'strike';
+        } else if (item.priority === 'critical') {
+          icon = '›'; iconClass = 'go'; textClass = 'bold';
+        } else if (item.priority === 'low') {
+          icon = '›'; iconClass = 'soft'; textClass = 'dim';
+        } else {
+          icon = '›'; iconClass = 'soft'; textClass = '';
+        }
+        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(item.text)}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
+        card.appendChild(row);
+      });
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'tl-empty';
+      empty.textContent = `No items tagged [${tag}]`;
+      card.appendChild(empty);
+    }
+
+    unit.appendChild(card);
+    colsRow.appendChild(unit);
+  });
+
+  // Add-milestone placeholder
+  const addUnit = document.createElement('div');
+  addUnit.className = 'tl-add-ms';
+  const addBtn = document.createElement('div');
+  addBtn.className = 'tl-add-ms-btn';
+  addBtn.innerHTML = '＋<br><span style="font-size:0.68rem;opacity:0.5">Tag items in<br>Buckets view</span>';
+  addBtn.title = 'Switch to Buckets view to tag items';
+  addBtn.onclick = () => setView('buckets');
+  addUnit.appendChild(addBtn);
+  colsRow.appendChild(addUnit);
+
+  scrollWrap.appendChild(colsRow);
+  view.appendChild(scrollWrap);
+  container.appendChild(view);
+}
+
 // ─── Markdown Export ──────────────────────────────────────────────────────────
 function generateMarkdown() {
   const label = { critical: '🔴 CRITICAL PRIORITY', medium: '🟡 MEDIUM PRIORITY', low: '🔵 LOW PRIORITY' };
@@ -1093,6 +1459,13 @@ function generateMarkdown() {
     lines.push('---');
     lines.push('');
   });
+  // Serialize tag metadata for timeline view
+  const metaObj = { _title: roadmapTitle };
+  Object.entries(tagMeta).forEach(([k, v]) => { metaObj[k] = v; });
+  if (Object.keys(tagMeta).length || roadmapTitle !== 'Backlog') {
+    lines.push('');
+    lines.push(`<!-- tag-meta: ${JSON.stringify(metaObj)} -->`);
+  }
   return lines.join('\n');
 }
 
@@ -1332,6 +1705,17 @@ function extractTags(str) {
 }
 
 function parseMarkdown(text) {
+  // Extract and restore tag metadata (timeline view)
+  const metaMatch = text.match(/<!--\s*tag-meta:\s*(\{[\s\S]*?\})\s*-->/);
+  if (metaMatch) {
+    try {
+      const m = JSON.parse(metaMatch[1]);
+      if (m._title) roadmapTitle = m._title;
+      tagMeta = {};
+      Object.entries(m).forEach(([k, v]) => { if (k !== '_title') tagMeta[k] = v; });
+    } catch(e) {}
+    text = text.replace(/<!--\s*tag-meta:[\s\S]*?-->/, '');
+  }
   const lines = text.split('\n');
   const result = [];
   let current = null;
