@@ -54,6 +54,25 @@ body {
 .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
 .btn-secondary:hover { background: #263347; border-color: #475569; }
 .toolbar-hint { margin-left: auto; font-size: 0.74rem; color: #475569; }
+.search-wrap { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 9px; color: #475569; font-size: 0.82rem; pointer-events: none; }
+.search-input {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  padding: 6px 28px 6px 30px;
+  width: 200px;
+  outline: none;
+  transition: border-color 0.15s, width 0.2s;
+}
+.search-input:focus { border-color: #3b82f6; width: 260px; }
+.search-input::placeholder { color: #475569; }
+.search-clear { position: absolute; right: 8px; background: none; border: none; color: #475569; cursor: pointer; font-size: 1rem; padding: 0; line-height: 1; display: none; }
+.search-clear.visible { display: block; color: #94a3b8; }
+.search-clear:hover { color: #e2e8f0; }
+mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1px; }
 .btn-ghost { background: none; color: #64748b; border: 1px solid #334155; font-size: 0.76rem; padding: 5px 10px; }
 .btn-ghost:hover { color: #cbd5e1; border-color: #475569; background: rgba(255,255,255,0.06); transform: none; box-shadow: none; }
 .toolbar-sep { width: 1px; height: 20px; background: #1e293b; flex-shrink: 0; margin: 0 2px; }
@@ -373,6 +392,12 @@ body {
   <span class="toolbar-sep"></span>
   <button class="btn btn-ghost" onclick="expandAll()" title="Expand all">▾ Expand all</button>
   <button class="btn btn-ghost" onclick="collapseAll()" title="Collapse all">▸ Collapse all</button>
+  <span class="toolbar-sep"></span>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input id="search-input" class="search-input" type="text" placeholder="Search items…" oninput="onSearchInput(this.value)" onkeydown="if(event.key==='Escape'){clearSearch()}">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Clear search">✕</button>
+  </div>
   <span class="toolbar-hint">Drag ⠿ to reorder · Click ✏ or double-click title to rename · Double-click item to edit · Hover item for actions</span>
 </div>
 
@@ -400,6 +425,21 @@ function fmtItemText(text) {
   if (idx < 1) return esc(text);
   return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
 }
+
+function highlightText(text, q) {
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx < 0) return fmtItemText(text);
+  const before = text.slice(0, idx);
+  const match  = text.slice(idx, idx + q.length);
+  const after  = text.slice(idx + q.length);
+  // Apply bold-colon formatting around the highlighted span
+  const full = before + '\x01' + match + '\x02' + after;
+  const colonIdx = full.indexOf(':');
+  if (colonIdx > 0 && colonIdx < full.indexOf('\x01')) {
+    return `<strong>${esc(before.slice(0, colonIdx))}</strong>${esc(before.slice(colonIdx))}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+  }
+  return `${esc(before)}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+}
 function getBucket(id) { return buckets.find(b => b.id === id); }
 function getCard(id) { return document.querySelector(`.bucket-card[data-id="${id}"]`); }
 
@@ -415,6 +455,53 @@ function showToast(msg) {
 
 // ─── View State ───────────────────────────────────────────────────────────────
 let currentView = 'buckets';
+let searchQuery = '';
+
+function onSearchInput(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('search-clear').classList.toggle('visible', searchQuery !== '');
+  if (currentView === 'buckets') applyBucketSearch();
+  else renderPriorityView();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  const inp = document.getElementById('search-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  document.getElementById('search-clear').classList.remove('visible');
+  if (currentView === 'buckets') applyBucketSearch();
+  else renderPriorityView();
+}
+
+function applyBucketSearch() {
+  const q = searchQuery;
+  document.querySelectorAll('.bucket-card').forEach(card => {
+    let visibleCount = 0;
+    card.querySelectorAll('.item-row').forEach(row => {
+      const textEl = row.querySelector('.item-text');
+      if (!textEl) return;
+      const raw = textEl.dataset.raw || textEl.textContent;
+      textEl.dataset.raw = raw; // cache original text
+      const match = !q || raw.toLowerCase().includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) {
+        textEl.innerHTML = q ? highlightText(raw, q) : fmtItemText(raw);
+        visibleCount++;
+      }
+    });
+    if (q) {
+      card.style.display = visibleCount > 0 ? '' : 'none';
+      // auto-expand buckets with matches
+      if (visibleCount > 0) {
+        const body = card.querySelector('.bucket-body');
+        if (body) body.style.display = '';
+        card.classList.remove('collapsed');
+      }
+    } else {
+      card.style.display = '';
+    }
+  });
+}
 
 function setView(view) {
   currentView = view;
@@ -435,11 +522,15 @@ function renderPriorityView() {
   const BORDER = { critical: '#ef4444', medium: '#f59e0b', low: '#3b82f6', na: '#334155' };
 
   // Flatten all items, attaching bucket title
+  const q = searchQuery;
   const flat = [];
   buckets.forEach(b => b.items.forEach(item => flat.push({ ...item, bucketTitle: b.title })));
 
   const grouped = {};
-  ORDER.forEach(p => grouped[p] = flat.filter(i => i.priority === p));
+  ORDER.forEach(p => grouped[p] = flat.filter(i => {
+    if (i.priority !== p) return false;
+    return !q || i.text.toLowerCase().includes(q);
+  }));
 
   ORDER.forEach(p => {
     const items = grouped[p];
@@ -458,7 +549,7 @@ function renderPriorityView() {
       <div class="pv-items">
         ${items.map(item => `
           <div class="pv-item${item.priority === 'na' ? ' na-item' : ''}">
-            <span class="pv-item-text">${fmtItemText(item.text)}</span>
+              <span class="pv-item-text">${q ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
             <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>
           </div>`).join('')}
       </div>`;
@@ -481,6 +572,7 @@ function renderAll() {
   }
   buckets.forEach((b, i) => container.appendChild(createBucketCard(b, i)));
   initSortables();
+  if (searchQuery) applyBucketSearch();
 }
 
 function createBucketCard(bucket, idx) {
@@ -1336,6 +1428,15 @@ function parseMarkdown(text) {
   if (_parsed && _parsed.length) buckets = _parsed;
   renderAll();
 })();
+
+// Ctrl+F / Cmd+F → focus search
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    const inp = document.getElementById('search-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+});
 </script>
 </body>
 </html>
