@@ -1,6 +1,6 @@
 # BacklogEditor
 
-A single-file, zero-dependency interactive backlog editor. Dark-themed HTML app with drag-and-drop buckets, per-item priority, markdown import/export, and live editing — no build step, no server required.
+A single-file, zero-dependency interactive backlog editor. Dark-themed HTML app with drag-and-drop buckets, per-item priority, markdown import/export, live editing, and a read-only shareable snapshot — no build step, no server required.
 
 ## Features
 
@@ -9,29 +9,38 @@ A single-file, zero-dependency interactive backlog editor. Dark-themed HTML app 
 - **Inline editing** — double-click or ✎ button to edit any item; rename buckets in place
 - **Add / delete** — add new items per bucket, add new buckets, delete items or entire buckets
 - **Cross-bucket drag** — drag items between buckets via the ⠿ handle
-- **Markdown import** — load any `.md` file; bucket headings and item bullets are parsed automatically
-- **Markdown export** — save to a new `.md` file with emoji-prefixed priority per item
+- **Priority view** — flat cross-bucket list ranked by item priority (🔴→🟡→🔵→⬜), with bucket tags on each item
+- **Live search** — filter items across all buckets in real time
+- **Tagging** — add `[tag]` tokens to items; filter by tag
+- **Markdown import** — load any `.md` file via the File System Access API (retains file handle for direct save)
+- **Markdown save** — 💾 Save overwrites the loaded file directly; **Save As…** for a new location
+- **Snapshot export** — 📤 exports a self-contained read-only HTML file with both Buckets and Priority views, suitable for sharing via SharePoint or Teams
+- **Expand / Collapse all** — works in both Bucket and Priority views
 - **Dark theme** — easy on the eyes
 
 ## Usage
 
 Open `BacklogEditor.html` directly in any modern browser — no server, no install.
 
-### Loading a markdown file
-Click **📂 Load MD** and select any `.md` file. Expected format:
+### Loading a file
+Click **📂 Load** and select any `.md` file. The editor starts empty — you must load a file to see content.
 
+### Saving
+- **💾 Save** — writes directly back to the file you loaded (no dialog after first load)
+- **Save As…** — pick a new file location
+
+### Sharing
+Click **📤 Share snapshot** to export a standalone read-only HTML file. Upload to SharePoint and share the link, or pin as a Website tab in Microsoft Teams.
+
+### Markdown format
 ```markdown
 ## 🔴 Bucket Title
 
 - 🔴 Critical item text
-- 🟡 Medium item text
+- 🟡 Medium item text [tag]
 - 🔵 Low item text
+- ⬜ N/A item text
 ```
-
-Bucket numbers (`BUCKET 1:`), priority labels (`— CRITICAL PRIORITY`), and leading emoji/symbols are stripped automatically on load.
-
-### Saving
-Click **💾 Save MD** to download the current state as a new markdown file.
 
 ## Keyboard / interaction tips
 
@@ -43,6 +52,15 @@ Click **💾 Save MD** to download the current state as a new markdown file.
 | Reorder items | Drag ⠿ handle |
 | Reorder buckets | Drag bucket header |
 | Rename bucket | Double-click bucket title |
+| Search | Type in search box in toolbar |
+| Filter by tag | Click a tag chip or type `#tagname` in search |
+
+## ADO Integration (planned)
+
+The editor is designed to work alongside Azure DevOps:
+- **Backlog as thinking space** — lightweight, fast, opinionated
+- **ADO as execution space** — structured, tracked, accountable
+- Planned: push selected items to ADO as Deliverables; pull a diff of ADO changes back as a review
 
 ---
 
