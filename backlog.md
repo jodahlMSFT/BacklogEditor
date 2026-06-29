@@ -1,22 +1,23 @@
 # Backlog Editor
-**Updated: 18 June 2026**
+**Updated: 25 June 2026**
 
 ---
 
 ## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item"
 
-- 🔴 Update labels: Makes users align to new terminology. Makes data model discussions easier.
-- 🔴 Update tables, objects, etc.: Important for long-term alignment.
+- 🔴 Update labels: Makes users align to new terminology. Makes data model discussions easier. [10.0.49]
+- 🔴 Update tables, objects, etc.: Important for long-term alignment. [10.0.50]
 
 ---
 
 ## 🔴 BUCKET 2: Brownfield / Adoption Blockers
 
-- 🔴 Batch tracking: Make batch tracking optional.
-- 🔴 Existing inventory: Create fleet item from existing inventory.
-- 🔴 Consolidate fleet location and inventory location/warehouse: incl. on-hand availability across fleets and inventory/rental
-- 🔴 S/N: Make S/N optional.
-- 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt.
+- 🔴 Batch tracking: Make batch tracking optional. [10.0.50]
+- 🔴 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50]
+- 🔴 Existing inventory: Create fleet item from existing inventory. [10.0.50]
+- 🔴 S/N: Make S/N optional. [10.0.50]
+- 🔴 Consolidate fleet location and inventory location/warehouse: incl. on-hand availability across fleets and inventory/rental [10.0.50]
+- 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt. [10.0.50]
 - 🟡 Existing Fixed Asset: Associate an existing Fixed Asset with a fleet item.
 - 🟡 Existing Fixed Asset: Create new fleet item from existing Fixed Asset.
 - 🟡 Standard FA-from-PO-line conflicts with transfer process: If customer uses standard D365 FA creation on PO line, the rental transfer process tries to create a duplicate FA.
@@ -26,9 +27,9 @@
 
 ## 🔴 BUCKET 3: Bulk Items
 
-- 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc).
-- 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity,
-- 🔴 FA process for bulk: One FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo
+- 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc). [10.0.50]
+- 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity, [10.0.50]
+- 🔴 FA process for bulk: One FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo [10.0.50]
 - 🟡 Scan and process: picking/quantity control on outbound movement
 - 🟡 Allow bulk partial returns: cannot return 3 of 5 units on a single line
 - ⬜ qty=2 on quote allowed for pricing, but on activation throws "only one rental item per contract line"
@@ -42,19 +43,50 @@
 
 ## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O
 
+- 🔴 Entities and actions: Enables CAT & Deere to build their own UX on top of F&O capabilities. [10.0.50]
 - 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc.
 
 ---
 
-## 🟡 BUCKET 5: Configurability (incl. configurable fleet types)
+## 🔴 BUCKET 5: Demo data
 
-- 🟡 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets.
+- 🔴 Demo data: Rental demo data [10.0.50]
+
+---
+
+## 🔴 BUCKET 6: Financial tags
+
+- 🔴 Financial tags defaulting: [10.0.50]
+
+---
+
+## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50]
+
+- 🟡 Check-in and check-out ap: Yard worker inspections and movements processing. [10.0.50]
+
+---
+
+## 🔴 BUCKET 8: RPO
+
+- 🔴 RPO: Validate rent-to-purchase scenarios. [10.0.50]
+
+---
+
+## 🟡 BUCKET 9: CAT: Improvements
+
+- 🔴 CAT: Ability to associate customer with rental template. [10.0.50]
+- 🟡 CAT: Auto-close expired quotes.
+
+---
+
+## 🟡 BUCKET 10: Configurability
+
 - 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology.
 - 🟡 Access to fleets: Limit fleet visibility per user/role
 
 ---
 
-## 🟡 BUCKET 6: Improved search (free text, configurations and features, AI search)
+## 🟡 BUCKET 11: Improved search (free text, configurations and features, AI search)
 
 - 🟡 Free text search: search on configuration, features, etc.
 - 🟡 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search.
@@ -62,9 +94,9 @@
 
 ---
 
-## 🟡 BUCKET 7: Re-Rents
+## 🟡 BUCKET 12: Re-Rents
 
-- 🔴 Preview build broken (WIP per Benjamin)
+- 🔴 Preview build broken (WIP per Benjamin) [10.0.50]
 - 🟡 Intercompany re-rent process: (renting from a sister entity)
 - 🟡 Internal re-rent: financial dimensions not available on RentalLocation (only on InventSite — which was removed)
 - 🟡 External re-rent: process unclear; PO-to-contract workaround only
@@ -72,7 +104,7 @@
 
 ---
 
-## 🟡 BUCKET 8: Automation Gaps
+## 🟡 BUCKET 13: Automation Gaps
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
 - 🟡 (Auto-) create work order from item movement: For prep, etc. work flows
@@ -93,7 +125,7 @@
 
 ---
 
-## 🟡 BUCKET 9: Intercompany
+## 🟡 BUCKET 14: Intercompany
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -102,10 +134,10 @@
 
 ---
 
-## 🟡 BUCKET 10: Field Service Integration Gaps
+## 🟡 BUCKET 15: Field Service Integration Gaps
 
-- 🔴 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision.
-- 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported.
+- 🔴 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision. [10.0.50]
+- 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported. [10.0.50]
 - 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
 - 🟡 ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.
 - 🟡 Insurance & Warranty not linked to rental item: FS warranty only links to FA, not rental item. Cost allocation (covered vs. uncovered labor/parts) not tracked against per-item P&L.
@@ -114,15 +146,16 @@
 
 ---
 
-## 🟡 BUCKET 11: Jobsite management
+## 🟡 BUCKET 16: Jobsite management
 
+- 🔴 CAT: Add lat/long to jobsite. [10.0.50]
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
 - 🟡 Jobsite grouping: Associate jobsite with rental location/territory
 
 ---
 
-## 🟡 BUCKET 12: Pricing Gaps
+## 🟡 BUCKET 17: Pricing Gaps
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -131,7 +164,13 @@
 
 ---
 
-## 🟡 BUCKET 13: Combined Sales and Rental
+## 🟡 BUCKET 18: Counter rentals
+
+- 🟡 Counter rentals: Integration with Commerce (10.0.52) [10.0.52]
+
+---
+
+## 🟡 BUCKET 19: Combined Sales and Rental
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote (Deere)
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
@@ -139,7 +178,7 @@
 
 ---
 
-## 🟡 BUCKET 14: Kitting / Packages
+## 🟡 BUCKET 20: Kitting / Packages
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -149,14 +188,14 @@
 
 ---
 
-## 🔵 BUCKET 15: Availability and Reservations
+## 🔵 BUCKET 21: Availability and Reservations
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
 
 ---
 
-## 🔵 BUCKET 16: UX / Usability Polish
+## 🔵 BUCKET 22: UX / Usability Polish
 
 - 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
 - 🟡 Multi-assign: fleet items to quote and contract lines
@@ -166,7 +205,7 @@
 
 ---
 
-## 🔵 BUCKET 17: Accessory Packs
+## 🔵 BUCKET 23: Accessory Packs
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
@@ -175,7 +214,7 @@
 
 ---
 
-## 🔵 BUCKET 18: Transportation Management
+## 🔵 BUCKET 24: Transportation Management
 
 - 🟡 Blanket PO for carrier vs. per-load PO — blanket approach not supported
 - 🟡 No mobile app for driver or external carrier (scan/count at point of delivery)
@@ -185,7 +224,7 @@
 
 ---
 
-## 🔴 BUCKET 19: Core Bugs / PP2 Quality Issues
+## 🔴 BUCKET 25: Core Bugs / PP2 Quality Issues
 
 - 🟡 [Bug 1143337 · P1] Inventory not updated + asset shows "not acquired" on New→Rental fleet transfer
 - 🟡 [Bug 1141073 · P1] Error when transferring Rental → Used Fleet
@@ -201,3 +240,6 @@
 - 🟡 Date/time override model: Operations teams frequently enter data after-the-fact. System defaults to current time — SMU reading timestamp, movement record time, and return date all use system clock at entry. Needs configurable override.
 
 ---
+
+
+<!-- tag-meta: {"_title":"Backlog","10.0.49":{},"10.0.50":{},"10.0.52":{}} -->
