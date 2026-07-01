@@ -224,7 +224,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   font-weight: 700;
   flex-shrink: 0;
 }
-.rename-bucket-btn, .delete-bucket-btn {
+.rename-bucket-btn, .delete-bucket-btn, .link-bucket-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -236,6 +236,8 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 .rename-bucket-btn { color: #334155; }
 .rename-bucket-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.12); }
+.link-bucket-btn { filter: grayscale(1) opacity(0.55); }
+.link-bucket-btn:hover { filter: none; background: rgba(56,189,248,0.12); }
 .delete-bucket-btn { color: #334155; }
 .delete-bucket-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
 
@@ -305,7 +307,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   flex-shrink: 0;
   padding-top: 1px;
 }
-.item-edit-btn, .delete-item-btn {
+.item-edit-btn, .delete-item-btn, .item-link-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -317,8 +319,19 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 .item-edit-btn { color: #475569; }
 .item-edit-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.1); }
+.item-link-btn { color: #475569; filter: grayscale(1) opacity(0.7); }
+.item-link-btn:hover { filter: none; background: rgba(56,189,248,0.12); }
+.item-row.ado-committed .item-link-btn { filter: none; }
 .delete-item-btn { color: #475569; }
 .delete-item-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+
+/* Link-to-ADO modal extras */
+.ado-link-current { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; margin-bottom: 12px; border: 1px solid #1e293b; border-radius: 10px;
+  background: rgba(56,189,248,0.05); font-size: 0.84rem; color: #cbd5e1; }
+.ado-link-current a { color: #38bdf8; }
+.ado-link-unlink { flex-shrink: 0; padding: 4px 10px; font-size: 0.78rem; }
+.ado-link-relabel { font-size: 0.76rem; color: #64748b; margin: -4px 2px 12px; }
 
 /* ── Add Item ── */
 .add-item-area {
@@ -391,6 +404,11 @@ body.ado-selecting .item-row.ado-selected { background: rgba(16,185,129,0.08); }
 .item-row.ado-committed .item-select,
 .item-row.ado-excluded .item-select { visibility: hidden; }
 .item-row.ado-excluded { opacity: 0.5; }
+/* Priority view: same ADO-selection affordances as bucket rows */
+body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); border-color: #10b981; }
+.pv-item.ado-committed .item-select,
+.pv-item.ado-excluded .item-select { visibility: hidden; }
+.pv-item.ado-excluded { opacity: 0.5; }
 .ado-local-chip {
   display: inline-flex; align-items: center; flex-shrink: 0;
   font-size: 0.62rem; font-weight: 700; font-family: 'Courier New', monospace;
@@ -536,6 +554,8 @@ body.ado-selecting .item-row.ado-selected { background: rgba(16,185,129,0.08); }
 .ado-rev-meta { font-size: 0.74rem; color: #64748b; margin-top: 5px; font-family: 'Courier New', monospace; }
 .ado-rev-meta strong { color: #cbd5e1; }
 .ado-rev-title-change { color: #f0b429; }
+.ado-rev-move-change { color: #38bdf8; }
+.ado-rev-dim { color: #64748b; }
 .ado-rev-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 .ado-rev-accept, .ado-rev-ignore { border: 1px solid; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 7px; white-space: nowrap; transition: all 0.12s; font-family: inherit; }
 .ado-rev-accept { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.4); }
@@ -766,6 +786,31 @@ body.ado-selecting .item-row.ado-selected { background: rgba(16,185,129,0.08); }
     <div class="ado-modal-foot">
       <button class="btn btn-ghost" onclick="closeAdoPull()">Cancel</button>
       <button class="btn btn-ado" id="ado-pull-confirm" onclick="confirmAdoPull()" disabled>Pull into backlog</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link an existing backlog bucket/item to an existing ADO work item -->
+<div class="ado-modal-overlay" id="ado-link-overlay" onclick="if(event.target===this)closeAdoLink()">
+  <div class="ado-modal">
+    <div class="ado-modal-head">
+      <h2 id="ado-link-title">Link to Azure DevOps</h2>
+      <p id="ado-link-sub">Connect this backlog entry to an existing ADO work item — no new item is
+         created. Updates flow the same as a committed item.</p>
+    </div>
+    <div class="ado-modal-body">
+      <div id="ado-link-current"></div>
+      <label class="ado-field-label" for="ado-link-id">Work item ID</label>
+      <div class="ado-pull-idrow">
+        <input class="ado-select" id="ado-link-id" type="number" placeholder="e.g. 1200500"
+               onkeydown="if(event.key==='Enter')adoLinkLookup()">
+        <button class="btn btn-ado-ghost" onclick="adoLinkLookup()">Look up</button>
+      </div>
+      <div id="ado-link-result"></div>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeAdoLink()">Cancel</button>
+      <button class="btn btn-ado" id="ado-link-confirm" onclick="confirmAdoLink()" disabled>Link</button>
     </div>
   </div>
 </div>
@@ -1045,16 +1090,17 @@ function toggleAdoSelect() {
   adoSelected.clear();
   document.body.classList.toggle('ado-selecting', adoSelecting);
   document.getElementById('btn-ado').classList.toggle('active', adoSelecting);
-  document.querySelectorAll('.item-row.ado-selected').forEach(r => r.classList.remove('ado-selected'));
+  document.querySelectorAll('.ado-selected').forEach(r => r.classList.remove('ado-selected'));
   document.querySelectorAll('.item-select:checked').forEach(cb => { cb.checked = false; });
-  if (adoSelecting && currentView !== 'buckets') setView('buckets');
+  // Selection works in Buckets and Priority views; Timeline has no item rows.
+  if (adoSelecting && currentView === 'timeline') setView('buckets');
   updateAdoBar();
   if (adoSelecting) showToast('Select items, then commit to ADO');
 }
 
 function onAdoSelectToggle(cb) {
   const id = cb.dataset.itemId;
-  const row = cb.closest('.item-row');
+  const row = cb.closest('.item-row, .pv-item');
   if (cb.checked) { adoSelected.add(id); row && row.classList.add('ado-selected'); }
   else            { adoSelected.delete(id); row && row.classList.remove('ado-selected'); }
   updateAdoBar();
@@ -1244,10 +1290,21 @@ function computeAdoDiff() {
     // tracked titles) the backlog text — which equalled the ADO title at commit time.
     const baseTitle = item.ado.title != null ? item.ado.title : item.text;
     const titleChanged = srv.title != null && srv.title !== baseTitle;
-    if (!stateChanged && !titleChanged) return;
+    // Re-parented in ADO: the item now hangs under a different work item than the one
+    // its backlog bucket maps to. Only meaningful when we know both parents.
+    const oldParentId = item.ado.parent && item.ado.parent.id;
+    const newParentId = srv.parentId;
+    const parentChanged = newParentId != null && oldParentId != null && newParentId !== oldParentId;
+    if (!stateChanged && !titleChanged && !parentChanged) return;
+    const newParentBucket = parentChanged ? buckets.find(b => b.ado && b.ado.id === newParentId) : null;
+    const newParentSrv = parentChanged ? ado.fetch(newParentId) : null;
     const row = {
       item, bucket, from: item.ado.state, to: srv.state,
       stateChanged, titleChanged, titleFrom: baseTitle, titleTo: srv.title,
+      parentChanged, newParentId,
+      parentFrom: bucket.title,
+      parentTo: newParentBucket ? newParentBucket.title : (newParentSrv ? newParentSrv.title : `#${newParentId}`),
+      parentInBacklog: !!newParentBucket,
     };
     (stateChanged && ADO_CLOSED_STATES.includes(srv.state) ? closed : modified).push(row);
   });
@@ -1293,7 +1350,15 @@ async function checkAdoUpdates() {
   try {
     await ado.refreshItems(linkedAdoIds());       // pull current ADO state for tracked items
   } catch (e) { showToast('ADO check failed: ' + e.message); return; }
-  const diff = computeAdoDiff();
+  let diff = computeAdoDiff();
+  // A re-parent points at a work item we may not have cached — fetch those parents so
+  // the "Moved" whisper can name the new home instead of showing a bare #id.
+  const unknownParents = [...new Set(diff.modified
+    .filter(r => r.parentChanged && r.newParentId && !ado.fetch(r.newParentId))
+    .map(r => r.newParentId))];
+  if (unknownParents.length) {
+    try { await ado.refreshItems(unknownParents); diff = computeAdoDiff(); } catch (e) {}
+  }
   if (!adoModeCount(diff, 'updates')) { showToast('✓ No updates — tracked items match ADO'); return; }
   openAdoReview();
 }
@@ -1427,17 +1492,19 @@ function renderAdoReview() {
       </div>`; }).join('')));
   }
 
-  // 🟡 Modified — a whisper. State and/or title changed in ADO.
+  // 🟡 Modified — a whisper. State, title and/or parent changed in ADO.
   if (!isNew && d.modified.length) {
-    sections.push(section('🟡', 'Modified', 'State or title changed in ADO', 'modified', d.modified.map(r => `
+    sections.push(section('🟡', 'Modified', 'State, title or parent changed in ADO', 'modified', d.modified.map(r => `
       <div class="ado-rev-row" data-kind="modified" data-item="${r.item.id}">
         <div class="ado-rev-main">
           <div class="ado-rev-text">${esc(r.item.text)}</div>
           <div class="ado-rev-meta">#${r.item.ado.id}${r.stateChanged ? ` · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)}` : ''} · ${esc(r.bucket.title)}</div>
           ${r.titleChanged ? `<div class="ado-rev-meta ado-rev-title-change">✎ “${esc(r.titleFrom)}” → “${esc(r.titleTo)}”</div>` : ''}
+          ${r.parentChanged ? `<div class="ado-rev-meta ado-rev-move-change">↳ Moved: ${esc(r.parentFrom)} → ${esc(r.parentTo)}${r.parentInBacklog ? '' : ' <span class="ado-rev-dim">(not a backlog bucket)</span>'}</div>` : ''}
         </div>
         <div class="ado-rev-actions">
           ${r.titleChanged ? `<button class="ado-rev-accept" onclick="adoRevAdoptTitle('${r.item.id}')" title="Rename the backlog entry to match ADO">Use ADO title</button>` : ''}
+          ${r.parentChanged && r.parentInBacklog ? `<button class="ado-rev-accept" onclick="adoRevAdoptMove('${r.item.id}')" title="Move the backlog entry to match ADO">Move here</button>` : ''}
           <button class="ado-rev-ignore" onclick="adoRevAcknowledge('${r.item.id}')">Got it</button>
         </div>
       </div>`).join('')));
@@ -1505,12 +1572,19 @@ function adoRevClosedStrike(itemId) {
   showToast('Struck from backlog');
 }
 
-// Accept the ADO state/title as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
+// Accept the ADO state/title/parent as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
 function adoRevAcknowledge(itemId) {
   const hit = findLinkedItem(itemId);
   if (!hit) return;
   const srv = ado.fetch(hit.item.ado.id);
-  if (srv) { hit.item.ado.state = srv.state; hit.item.ado.title = srv.title; }
+  if (srv) {
+    hit.item.ado.state = srv.state;
+    hit.item.ado.title = srv.title;
+    if (srv.parentId != null) {
+      const level = hit.item.ado.parent && hit.item.ado.parent.level;
+      hit.item.ado.parent = { level: level || null, id: srv.parentId };
+    }
+  }
   reRender(); renderAdoReview();
 }
 
@@ -1526,6 +1600,26 @@ function adoRevAdoptTitle(itemId) {
   }
   reRender(); renderAdoReview();
   showToast('Renamed to match ADO');
+}
+
+// Adopt the ADO re-parent: relocate the backlog entry under the bucket that maps to the
+// item's new ADO parent, and refresh the baseline. Only offered when such a bucket exists.
+function adoRevAdoptMove(itemId) {
+  const hit = findLinkedItem(itemId);
+  if (!hit) return;
+  const srv = ado.fetch(hit.item.ado.id);
+  if (!srv || srv.parentId == null) return;
+  const target = buckets.find(b => b.ado && b.ado.id === srv.parentId);
+  if (!target) { showToast('No backlog bucket maps to that parent'); return; }
+  if (target !== hit.bucket) {
+    hit.bucket.items = hit.bucket.items.filter(i => i.id !== hit.item.id);
+    target.items.push(hit.item);
+  }
+  hit.item.ado.parent = { level: target.ado.type, id: target.ado.id };
+  hit.item.ado.state = srv.state;
+  hit.item.ado.title = srv.title;
+  reRender(); renderAdoReview();
+  showToast('Moved to ' + target.title);
 }
 
 // Display label for a "new" row's destination bucket.
@@ -1688,6 +1782,122 @@ function confirmAdoPull() {
   showToast(`Pulled #${id} as a bucket` + (nItems ? ` with ${nItems} item${nItems === 1 ? '' : 's'}` : ''));
 }
 
+// ─── Link an existing backlog entry to an existing ADO work item ───────────────
+// Unlike Pull (which creates a new bucket), this associates a bucket/item you already
+// have with a work item that already exists in ADO — no create, no duplicate.
+let _adoLinkTarget = null;   // { kind:'bucket'|'item', objId, bucketId }
+let _adoLinkFound = null;    // the looked-up work item, once validated
+
+// Resolve the current link target to its backlog object (+ owning bucket for items).
+function adoLinkResolve() {
+  if (!_adoLinkTarget) return null;
+  if (_adoLinkTarget.kind === 'bucket') {
+    const b = getBucket(_adoLinkTarget.objId);
+    return b ? { obj: b, bucket: b } : null;
+  }
+  const hit = findLinkedItem(_adoLinkTarget.objId);
+  return hit ? { obj: hit.item, bucket: hit.bucket } : null;
+}
+
+function openAdoLink(kind, objId, bucketId) {
+  _adoLinkTarget = { kind, objId, bucketId };
+  _adoLinkFound = null;
+  const res = adoLinkResolve();
+  if (!res) { _adoLinkTarget = null; return; }
+  const noun = kind === 'bucket' ? 'bucket' : 'item';
+  document.getElementById('ado-link-title').textContent = `Link ${noun} to Azure DevOps`;
+  document.getElementById('ado-link-sub').textContent =
+    `Connect “${res.obj.title || res.obj.text}” to an existing ADO work item — no new item is created.`;
+  // If already linked, show the current link + an Unlink option.
+  const cur = document.getElementById('ado-link-current');
+  const linked = res.obj.ado && res.obj.ado.id;
+  cur.innerHTML = linked
+    ? `<div class="ado-link-current">
+         <div>Currently linked to <a href="${adoUrl(res.obj.ado.id)}" target="_blank" rel="noopener">#${res.obj.ado.id}</a>
+           ${res.obj.ado.title ? `“${esc(res.obj.ado.title)}”` : ''}</div>
+         <button class="btn btn-ghost ado-link-unlink" onclick="adoLinkUnlink()">Unlink</button>
+       </div>
+       <div class="ado-link-relabel">Look up another ID below to re-link.</div>`
+    : '';
+  document.getElementById('ado-link-id').value = '';
+  document.getElementById('ado-link-result').innerHTML = '';
+  document.getElementById('ado-link-confirm').disabled = true;
+  document.getElementById('ado-link-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('ado-link-id').focus(), 30);
+}
+
+function closeAdoLink() {
+  document.getElementById('ado-link-overlay').classList.remove('show');
+  _adoLinkTarget = null; _adoLinkFound = null;
+}
+
+async function adoLinkLookup() {
+  const raw = document.getElementById('ado-link-id').value.trim();
+  const result = document.getElementById('ado-link-result');
+  const confirmBtn = document.getElementById('ado-link-confirm');
+  confirmBtn.disabled = true; _adoLinkFound = null;
+  if (!raw) { result.innerHTML = ''; return; }
+  const id = parseInt(raw, 10);
+  result.innerHTML = `<div class="ado-pull-empty">Looking up #${esc(raw)}…</div>`;
+  try {
+    await ado.refreshItems([id]);
+  } catch (e) {
+    result.innerHTML = `<div class="ado-pull-error">Lookup failed: ${esc(e.message)}</div>`;
+    return;
+  }
+  const wi = ado.fetch(id);
+  if (!wi) {
+    result.innerHTML = `<div class="ado-pull-error">No ADO work item found with ID #${esc(raw)}.</div>`;
+    return;
+  }
+  const res = adoLinkResolve();
+  const ownId = res && res.obj.ado && res.obj.ado.id;
+  if (id !== ownId && linkedAdoIds().has(id)) {
+    result.innerHTML = `<div class="ado-pull-error">#${id} “${esc(wi.title)}” is already linked elsewhere in the backlog.</div>`;
+    return;
+  }
+  _adoLinkFound = wi;
+  result.innerHTML = `<div class="ado-pull-parent">
+      <span class="ado-pull-parent-type">${esc(wi.type)}</span>
+      <div class="ado-pull-parent-title">${esc(wi.title)}</div>
+      <div class="ado-pull-parent-sub">#${wi.id} · ${adoStateSpan(wi.state)}${wi.parentId ? ' · under #' + wi.parentId : ''}</div>
+    </div>`;
+  confirmBtn.disabled = false;
+}
+
+function confirmAdoLink() {
+  const res = adoLinkResolve();
+  const srv = _adoLinkFound;
+  if (!res || !srv) { closeAdoLink(); return; }
+  if (_adoLinkTarget.kind === 'bucket') {
+    res.obj.ado = { id: srv.id, type: srv.type, state: srv.state, title: srv.title };
+  } else {
+    // Baseline parent: the bucket's own ADO link when it has one (so no false "moved"
+    // whisper against its home), else the item's real ADO parent.
+    const bAdo = res.bucket && res.bucket.ado;
+    const parentId = (bAdo && bAdo.id) != null ? bAdo.id : (srv.parentId != null ? srv.parentId : null);
+    const parentLevel = (bAdo && bAdo.type) || null;
+    res.obj.ado = {
+      id: srv.id, type: srv.type, state: srv.state, title: srv.title,
+      parent: parentId != null ? { level: parentLevel, id: parentId } : null,
+    };
+  }
+  const noun = _adoLinkTarget.kind === 'bucket' ? 'Bucket' : 'Item';
+  closeAdoLink();
+  reRender();
+  showToast(`${noun} linked to #${srv.id}`);
+}
+
+function adoLinkUnlink() {
+  const res = adoLinkResolve();
+  if (!res) { closeAdoLink(); return; }
+  const had = res.obj.ado && res.obj.ado.id;
+  delete res.obj.ado;
+  closeAdoLink();
+  reRender();
+  if (had) showToast(`Unlinked from #${had}`);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(str) {
   return String(str)
@@ -1699,7 +1909,7 @@ function esc(str) {
 
 function fmtItemText(text) {
   const idx = text.indexOf(':');
-  if (idx < 1) return esc(text);
+  if (idx < 1) return `<strong>${esc(text)}</strong>`;
   return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
 }
 
@@ -1709,13 +1919,18 @@ function highlightText(text, q) {
   const before = text.slice(0, idx);
   const match  = text.slice(idx, idx + q.length);
   const after  = text.slice(idx + q.length);
-  // Apply bold-colon formatting around the highlighted span
-  const full = before + '\x01' + match + '\x02' + after;
-  const colonIdx = full.indexOf(':');
-  if (colonIdx > 0 && colonIdx < full.indexOf('\x01')) {
-    return `<strong>${esc(before.slice(0, colonIdx))}</strong>${esc(before.slice(colonIdx))}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+  const hl = `<mark class="hl">${esc(match)}</mark>`;
+  const colonIdx = text.indexOf(':');
+  // Colon sits in the prefix, before the highlight: bold up to the colon.
+  if (colonIdx >= 1 && colonIdx < before.length) {
+    return `<strong>${esc(before.slice(0, colonIdx))}</strong>${esc(before.slice(colonIdx))}${hl}${esc(after)}`;
   }
-  return `${esc(before)}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+  // No colon anywhere: bold the whole sentence (highlight embedded).
+  if (colonIdx < 1) {
+    return `<strong>${esc(before)}${hl}${esc(after)}</strong>`;
+  }
+  // Colon falls within/after the highlight: leave unbolded.
+  return `${esc(before)}${hl}${esc(after)}`;
 }
 function getBucket(id) { return buckets.find(b => b.id === id); }
 function getCard(id) { return document.querySelector(`.bucket-card[data-id="${id}"]`); }
@@ -1858,12 +2073,19 @@ function renderPriorityView() {
         <span class="pv-group-chevron">▶</span>
       </div>
       <div class="pv-items">
-        ${items.map(item => `
-          <div class="pv-item${item.priority === 'na' ? ' na-item' : ''}">
+        ${items.map(item => {
+          const committed = !!(item.ado && item.ado.id);
+          const excluded = isNoAdo(item);
+          const stateClass = committed ? ' ado-committed' : (excluded ? ' ado-excluded' : '');
+          const selected = adoSelected.has(item.id);
+          return `
+          <div class="pv-item${item.priority === 'na' ? ' na-item' : ''}${stateClass}${selected ? ' ado-selected' : ''}" data-id="${item.id}">
+            <input type="checkbox" class="item-select"${selected ? ' checked' : ''} data-item-id="${item.id}" title="Select for ADO commit" onchange="onAdoSelectToggle(this)">
             <span class="pv-item-text">${q && !isTagSearch && item.text.toLowerCase().includes(q) ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
             ${item.tags && item.tags.length ? `<span class="pv-item-tags">${item.tags.map(t => `<span class="tag-chip" data-tag="${esc(t)}" onclick="onTagChipClick(this)">#${esc(t)}</span>`).join('')}</span>` : ''}
             <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>${adoChipHTML(item)}
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
 
     container.appendChild(group);
@@ -1904,6 +2126,7 @@ function createBucketCard(bucket, idx) {
       <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false)}
+      <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
       <button class="rename-bucket-btn" title="Rename bucket">✏</button>
       <span class="item-count-badge">${bucket.items.length}</span>
       <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
@@ -1936,6 +2159,12 @@ function createBucketCard(bucket, idx) {
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     editBucketTitle(bucket.id);
+  });
+
+  // link bucket to an existing ADO work item
+  card.querySelector('.link-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAdoLink('bucket', bucket.id);
   });
 
   // rename title on double-click
@@ -1975,9 +2204,10 @@ function makeItemLI(item) {
   const excluded = isNoAdo(item);
   const committed = !!(item.ado && item.ado.id);
   const stateClass = committed ? ' ado-committed' : (excluded ? ' ado-excluded' : '');
+  const selected = adoSelected.has(item.id);
   return `
-    <li class="item-row${naClass}${stateClass}" data-id="${item.id}">
-      <input type="checkbox" class="item-select" data-item-id="${item.id}" title="Select for ADO commit">
+    <li class="item-row${naClass}${stateClass}${selected ? ' ado-selected' : ''}" data-id="${item.id}">
+      <input type="checkbox" class="item-select"${selected ? ' checked' : ''} data-item-id="${item.id}" title="Select for ADO commit">
       <span class="item-drag-handle" title="Drag to reorder">⠿</span>
       <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
         <option value="critical" ${p === 'critical' ? 'selected' : ''}>🔴 Critical</option>
@@ -1989,6 +2219,7 @@ function makeItemLI(item) {
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
       ${adoChipHTML(item)}
       <div class="item-actions">
+        ${excluded ? '' : `<button class="item-link-btn" data-item-id="${item.id}" title="${committed ? 'Manage ADO link (#' + item.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>`}
         <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
         <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
       </div>
@@ -2000,6 +2231,8 @@ function wireItemEvents(card, bucketId) {
     btn.addEventListener('click', () => deleteItem(bucketId, btn.dataset.itemId)));
   card.querySelectorAll('.item-edit-btn').forEach(btn =>
     btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-link-btn').forEach(btn =>
+    btn.addEventListener('click', () => openAdoLink('item', btn.dataset.itemId, bucketId)));
   card.querySelectorAll('.item-text').forEach(span =>
     span.addEventListener('dblclick', () => editItem(bucketId, span.dataset.itemId)));
   card.querySelectorAll('.item-priority-select').forEach(sel =>
@@ -2207,6 +2440,8 @@ function addItem(bucketId, text, priority = 'medium') {
   });
   li.querySelector('.delete-item-btn').addEventListener('click', () => deleteItem(bucketId, item.id));
   li.querySelector('.item-edit-btn').addEventListener('click', () => editItem(bucketId, item.id));
+  const linkBtn = li.querySelector('.item-link-btn');
+  if (linkBtn) linkBtn.addEventListener('click', () => openAdoLink('item', item.id, bucketId));
   li.querySelector('.item-text').addEventListener('dblclick', () => editItem(bucketId, item.id));
   const cb = li.querySelector('.item-select');
   if (cb) cb.addEventListener('change', () => onAdoSelectToggle(cb));
@@ -2710,7 +2945,7 @@ function exportSnapshot() {
   }
   function fmt(text) {
     const idx = text.indexOf(':');
-    if (idx < 1) return esc(text);
+    if (idx < 1) return `<strong>${esc(text)}</strong>`;
     return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
   }
 

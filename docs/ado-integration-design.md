@@ -81,6 +81,12 @@ Three lenses, added one at a time; each adds meaning without adding noise.
     bucket.
 - **⇩ Pull by ID** — bring an arbitrary existing ADO work item in: it becomes a bucket
   and the user selects which children come along as items (dedupes already-linked ids).
+- **🔗 Link to ADO** (per bucket / per item) — associate a backlog entry you *already*
+  have with an existing ADO work item **without creating anything**. The 🔗 button on a
+  bucket header or item row opens a lookup-by-id modal; on confirm the entry gains the
+  same ADO link a commit would give it (so it tracks state/title/parent changes and is
+  skipped by future commits). The same modal **unlinks** or **re-links** an entry. An id
+  already linked elsewhere is rejected.
 - Scope for "new" is chosen per-check: every committed bucket, or one picked parent —
   always just the direct children one level below (never a deep tree walk).
 - Review sections are **collapsed by default with counts**, states are **color-coded to
