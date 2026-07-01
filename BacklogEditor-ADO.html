@@ -1157,6 +1157,15 @@ function closeAdoPreview() {
   document.getElementById('ado-modal-overlay').classList.remove('show');
 }
 
+// Look for an existing child of `parentId` with the same type + title, so commits
+// can adopt it instead of creating a duplicate (idempotent retry/refresh safety).
+async function adoFindChildByTitle(parentId, type, title) {
+  try { await ado.refreshChildren(parentId); } catch (e) { /* mock / offline */ }
+  const kids = ado.childrenOf(parentId) || [];
+  const norm = s => (s || '').trim().toLowerCase();
+  return kids.find(k => norm(k.title) === norm(title) && (!type || k.type === type)) || null;
+}
+
 async function confirmAdoCommit() {
   const picks = selectedAdoItems();
   if (!picks.length) { closeAdoPreview(); return; }
@@ -1171,17 +1180,20 @@ async function confirmAdoCommit() {
   try {
     let nItems = 0, nBuckets = 0;
     for (const { bucket, items } of groupPicksByBucket(picks)) {
-      // Materialize the bucket once, one level below the parent.
+      // Materialize the bucket once, one level below the parent. Adopt an existing
+      // same-title child if one is already there (idempotent — avoids duplicates on
+      // retry after a partial failure or a page refresh).
       if (!(bucket.ado && bucket.ado.id)) {
-        const w = await ado.createWorkItem(bType, bucket.title, parent.id, 'bucket');
-        bucket.ado = { id: w.id, type: bType, state: w.state, parent: { level: parent.level, id: parent.id } };
-        nBuckets++;
+        let w = await adoFindChildByTitle(parent.id, bType, bucket.title);
+        if (!w) { w = await ado.createWorkItem(bType, bucket.title, parent.id, 'bucket'); nBuckets++; }
+        bucket.ado = { id: w.id, type: w.type || bType, state: w.state, parent: { level: parent.level, id: parent.id } };
       }
-      // Create each item one level below its bucket.
+      // Create each item one level below its bucket (adopt existing by title).
       for (const item of items) {
-        const w = await ado.createWorkItem(iType, item.text, bucket.ado.id, 'item');
-        item.ado = { id: w.id, type: iType, state: w.state, parent: { level: bType, id: bucket.ado.id } };
-        nItems++;
+        if (item.ado && item.ado.id) continue;
+        let w = await adoFindChildByTitle(bucket.ado.id, iType, item.text);
+        if (!w) { w = await ado.createWorkItem(iType, item.text, bucket.ado.id, 'item'); nItems++; }
+        item.ado = { id: w.id, type: w.type || iType, state: w.state, parent: { level: bType, id: bucket.ado.id } };
       }
     }
     closeAdoPreview();
@@ -2156,22 +2168,13 @@ function addItem(bucketId, text, priority = 'medium') {
   b.items.push(item);
   const card = getCard(bucketId);
   const list = card.querySelector('.items-list');
-  const li = document.createElement('li');
-  li.className = 'item-row'; li.dataset.id = item.id;
-  li.innerHTML = `
-    <span class="item-drag-handle" title="Drag to reorder">⠿</span>
-    <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
-      <option value="critical">🔴 Critical</option>
-      <option value="medium" selected>🟡 Medium</option>
-      <option value="low">🔵 Low</option>
-      <option value="na">⬜ N/A</option>
-    </select>
-    <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
-    <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML([], 'item', item.id)}</div>
-    <div class="item-actions">
-      <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit">✎</button>
-      <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
-    </div>`;
+  // Build the row from the single source of truth so it gets the ADO select
+  // checkbox, priority, tags and state classes exactly like a full render.
+  const tpl = document.createElement('template');
+  tpl.innerHTML = makeItemLI(item).trim();
+  const li = tpl.content.firstElementChild;
+  list.appendChild(li);
+  // Wire just this row (mirrors wireItemEvents for a single item).
   li.querySelector('.item-priority-select').addEventListener('change', (e) => {
     item.priority = e.target.value;
     li.classList.toggle('na-item', e.target.value === 'na');
@@ -2179,7 +2182,8 @@ function addItem(bucketId, text, priority = 'medium') {
   li.querySelector('.delete-item-btn').addEventListener('click', () => deleteItem(bucketId, item.id));
   li.querySelector('.item-edit-btn').addEventListener('click', () => editItem(bucketId, item.id));
   li.querySelector('.item-text').addEventListener('dblclick', () => editItem(bucketId, item.id));
-  list.appendChild(li);
+  const cb = li.querySelector('.item-select');
+  if (cb) cb.addEventListener('change', () => onAdoSelectToggle(cb));
   updateCount(bucketId);
 }
 

@@ -58,6 +58,15 @@ const PROJECT = cfg('ADO_PROJECT', 'FinOps');
 const ORG_URL = (cfg('ADO_ORG_URL', `https://dev.azure.com/${ORG}`)).replace(/\/+$/, '');
 const PORT = parseInt(cfg('ADO_PROXY_PORT', '7777'), 10);
 const API_VERSION = '7.0';
+// FinOps requires a Release value on create. We inherit it from the parent work
+// item; ADO_RELEASE_FIELD / ADO_DEFAULT_RELEASE let you override the field ref or
+// provide a fallback when a parent has none.
+const RELEASE_FIELD = cfg('ADO_RELEASE_FIELD', 'Microsoft.Dynamics.AX7.Release');
+const DEFAULT_RELEASE = cfg('ADO_DEFAULT_RELEASE', '');
+// The Area path is inherited from the parent so new items land in the same area.
+const AREA_FIELD = cfg('ADO_AREA_FIELD', 'System.AreaPath');
+// Fields new work items inherit from their parent when not set explicitly.
+const INHERIT_FIELDS = [RELEASE_FIELD, AREA_FIELD].filter(Boolean);
 
 if (!PAT) {
   console.error('\n[ado-proxy] No PAT found. Create a git-ignored `.ado-pat` file');
@@ -148,8 +157,28 @@ async function getChildren(id) {
 }
 const getChildren_fetch = ids => getWorkItems(ids);
 
-async function createWorkItem(type, title, parentId) {
+async function createWorkItem(type, title, parentId, fields) {
+  fields = Object.assign({}, fields);
   const ops = [{ op: 'add', path: '/fields/System.Title', value: title }];
+  // Inherit contextual fields from the parent (Release — required by FinOps — and
+  // Area path) unless the caller set them explicitly. One GET fetches them all.
+  const needed = INHERIT_FIELDS.filter(f => fields[f] == null);
+  if (parentId && needed.length) {
+    try {
+      const p = await adoRequest('GET',
+        `${ORG_URL}/${encodeURIComponent(PROJECT)}/_apis/wit/workitems/${parentId}` +
+        `?fields=${needed.map(encodeURIComponent).join(',')}&api-version=${API_VERSION}`);
+      const pf = (p && p.fields) || {};
+      needed.forEach(f => { if (pf[f] != null && pf[f] !== '') fields[f] = pf[f]; });
+    } catch (e) { /* fall back to defaults below */ }
+  }
+  // Release fallback if the parent didn't supply one.
+  if (RELEASE_FIELD && fields[RELEASE_FIELD] == null && DEFAULT_RELEASE) {
+    fields[RELEASE_FIELD] = DEFAULT_RELEASE;
+  }
+  for (const [ref, val] of Object.entries(fields)) {
+    if (val != null) ops.push({ op: 'add', path: `/fields/${ref}`, value: val });
+  }
   if (parentId) {
     ops.push({
       op: 'add', path: '/relations/-',
@@ -213,7 +242,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && parts[0] === 'workitem') {
       const b = await readBody(req);
       if (!b.type || !b.title) return sendJson(res, 400, { message: 'type and title are required' });
-      return sendJson(res, 200, await createWorkItem(b.type, b.title, b.parentId || null));
+      return sendJson(res, 200, await createWorkItem(b.type, b.title, b.parentId || null, b.fields || null));
     }
     sendJson(res, 404, { message: 'not found' });
   } catch (e) {

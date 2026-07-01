@@ -117,6 +117,30 @@ These are ADO **work-item type names**. Reads don't care about type names, but i
 project's process uses different names, a **create** will return HTTP 400. Fix by editing
 `ADO_LADDER` near the top of `BacklogEditor-ADO.html` to match your project's types.
 
+## Required / inherited fields on create (Release, Area)
+
+Some processes make fields **required**, so a bare create fails with e.g.
+`TF401320: Rule Error for field 'Release'`. In FinOps the required field is **Release**
+(`Microsoft.Dynamics.AX7.Release`, values like `Rainier`).
+
+The proxy handles this automatically: on create it **inherits from the parent** both the
+**Release** and the **Area path** (`System.AreaPath`, e.g. `FinOps\SCM\Rental Management`),
+so new items land in the same area/release as the parent they're created under. You can
+override the field refs or provide a release fallback via env:
+
+| Variable              | Default                          | Meaning                                   |
+| --------------------- | -------------------------------- | ----------------------------------------- |
+| `ADO_RELEASE_FIELD`   | `Microsoft.Dynamics.AX7.Release` | Reference name of the required release field |
+| `ADO_AREA_FIELD`      | `System.AreaPath`                | Reference name of the area-path field     |
+| `ADO_DEFAULT_RELEASE` | — (empty)                        | Value to use if a parent has no release   |
+
+The `POST /workitem` body also accepts an optional `fields` map (`{ "Ref.Name": "value" }`)
+to set additional fields or override an inherited one.
+
+> **Delete needs a separate permission.** A standard **Work Items (Read & write)** PAT can
+> create/read/update but **cannot delete** work items (`VS403145: Insufficient permissions`).
+> Delete test items from the ADO web UI.
+
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
@@ -124,8 +148,11 @@ project's process uses different names, a **create** will return HTTP 400. Fix b
 | Pill stays **demo (mock)** | Proxy not running, or on a different port than `adoProxyUrl`/`7777`. Start it, then refresh. |
 | Proxy exits on start | No PAT found — create `.ado-pat` or set `ADO_PAT`. |
 | `401`/`203` from a read | PAT expired or missing **Work Items (Read)** scope. |
-| `400` on **Commit to ADO** | Work-item type names don't match your process — adjust `ADO_LADDER`. |
+| `400` on **Commit to ADO** (`TF401320` rule error) | A required field isn't set. For Release the proxy inherits it from the parent; for other fields set `ADO_DEFAULT_RELEASE` or pass `fields` in the create body. |
+| `400` on **Commit to ADO** (unknown type) | Work-item type names don't match your process — adjust `ADO_LADDER`. |
 | `403` on create | PAT lacks **Work Items (Read & write)** scope. |
+| `VS403145` on delete | Expected — delete needs a separate permission; remove items via the ADO UI. |
+| Duplicate bucket/item appears in ADO | Commit now **adopts** an existing same-title child under the parent, so re-committing after a partial failure or a page refresh won't create duplicates. Delete any pre-existing dupes in the ADO UI. |
 
 ## Security notes
 
