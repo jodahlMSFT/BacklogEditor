@@ -535,6 +535,7 @@ body.ado-selecting .item-row.ado-selected { background: rgba(16,185,129,0.08); }
 .ado-rev-text { font-size: 0.94rem; color: #f1f5f9; line-height: 1.45; font-weight: 500; }
 .ado-rev-meta { font-size: 0.74rem; color: #64748b; margin-top: 5px; font-family: 'Courier New', monospace; }
 .ado-rev-meta strong { color: #cbd5e1; }
+.ado-rev-title-change { color: #f0b429; }
 .ado-rev-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 .ado-rev-accept, .ado-rev-ignore { border: 1px solid; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 7px; white-space: nowrap; transition: all 0.12s; font-family: inherit; }
 .ado-rev-accept { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.4); }
@@ -1186,14 +1187,14 @@ async function confirmAdoCommit() {
       if (!(bucket.ado && bucket.ado.id)) {
         let w = await adoFindChildByTitle(parent.id, bType, bucket.title);
         if (!w) { w = await ado.createWorkItem(bType, bucket.title, parent.id, 'bucket'); nBuckets++; }
-        bucket.ado = { id: w.id, type: w.type || bType, state: w.state, parent: { level: parent.level, id: parent.id } };
+        bucket.ado = { id: w.id, type: w.type || bType, state: w.state, title: w.title || bucket.title, parent: { level: parent.level, id: parent.id } };
       }
       // Create each item one level below its bucket (adopt existing by title).
       for (const item of items) {
         if (item.ado && item.ado.id) continue;
         let w = await adoFindChildByTitle(bucket.ado.id, iType, item.text);
         if (!w) { w = await ado.createWorkItem(iType, item.text, bucket.ado.id, 'item'); nItems++; }
-        item.ado = { id: w.id, type: w.type || iType, state: w.state, parent: { level: bType, id: bucket.ado.id } };
+        item.ado = { id: w.id, type: w.type || iType, state: w.state, title: w.title || item.text, parent: { level: bType, id: bucket.ado.id } };
       }
     }
     closeAdoPreview();
@@ -1237,9 +1238,18 @@ function computeAdoDiff() {
   const closed = [], modified = [];
   linkedItems.forEach(({ item, bucket }) => {
     const srv = ado.fetch(item.ado.id);
-    if (!srv || srv.state === item.ado.state) return;
-    const row = { item, bucket, from: item.ado.state, to: srv.state };
-    (ADO_CLOSED_STATES.includes(srv.state) ? closed : modified).push(row);
+    if (!srv) return;
+    const stateChanged = srv.state !== item.ado.state;
+    // Baseline title: the last ADO title we recorded, or (for links made before we
+    // tracked titles) the backlog text — which equalled the ADO title at commit time.
+    const baseTitle = item.ado.title != null ? item.ado.title : item.text;
+    const titleChanged = srv.title != null && srv.title !== baseTitle;
+    if (!stateChanged && !titleChanged) return;
+    const row = {
+      item, bucket, from: item.ado.state, to: srv.state,
+      stateChanged, titleChanged, titleFrom: baseTitle, titleTo: srv.title,
+    };
+    (stateChanged && ADO_CLOSED_STATES.includes(srv.state) ? closed : modified).push(row);
   });
 
   // New: direct children (one level below) of the chosen scope that aren't linked
@@ -1417,15 +1427,17 @@ function renderAdoReview() {
       </div>`; }).join('')));
   }
 
-  // 🟡 Modified — a whisper. Just refresh the cached state.
+  // 🟡 Modified — a whisper. State and/or title changed in ADO.
   if (!isNew && d.modified.length) {
-    sections.push(section('🟡', 'Modified', 'State changed in ADO', 'modified', d.modified.map(r => `
+    sections.push(section('🟡', 'Modified', 'State or title changed in ADO', 'modified', d.modified.map(r => `
       <div class="ado-rev-row" data-kind="modified" data-item="${r.item.id}">
         <div class="ado-rev-main">
           <div class="ado-rev-text">${esc(r.item.text)}</div>
-          <div class="ado-rev-meta">#${r.item.ado.id} · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)} · ${esc(r.bucket.title)}</div>
+          <div class="ado-rev-meta">#${r.item.ado.id}${r.stateChanged ? ` · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)}` : ''} · ${esc(r.bucket.title)}</div>
+          ${r.titleChanged ? `<div class="ado-rev-meta ado-rev-title-change">✎ “${esc(r.titleFrom)}” → “${esc(r.titleTo)}”</div>` : ''}
         </div>
         <div class="ado-rev-actions">
+          ${r.titleChanged ? `<button class="ado-rev-accept" onclick="adoRevAdoptTitle('${r.item.id}')" title="Rename the backlog entry to match ADO">Use ADO title</button>` : ''}
           <button class="ado-rev-ignore" onclick="adoRevAcknowledge('${r.item.id}')">Got it</button>
         </div>
       </div>`).join('')));
@@ -1493,13 +1505,27 @@ function adoRevClosedStrike(itemId) {
   showToast('Struck from backlog');
 }
 
-// Accept the ADO state as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
+// Accept the ADO state/title as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
 function adoRevAcknowledge(itemId) {
   const hit = findLinkedItem(itemId);
   if (!hit) return;
   const srv = ado.fetch(hit.item.ado.id);
-  if (srv) hit.item.ado.state = srv.state;
+  if (srv) { hit.item.ado.state = srv.state; hit.item.ado.title = srv.title; }
   reRender(); renderAdoReview();
+}
+
+// Adopt the ADO title into the backlog entry (rename to match ADO), and refresh baseline.
+function adoRevAdoptTitle(itemId) {
+  const hit = findLinkedItem(itemId);
+  if (!hit) return;
+  const srv = ado.fetch(hit.item.ado.id);
+  if (srv) {
+    hit.item.text = srv.title;
+    hit.item.ado.title = srv.title;
+    hit.item.ado.state = srv.state;
+  }
+  reRender(); renderAdoReview();
+  showToast('Renamed to match ADO');
 }
 
 // Display label for a "new" row's destination bucket.
@@ -1518,7 +1544,7 @@ function ensureBucketForWi(wi) {
   if (!bucket) {
     bucket = {
       id: uid(), priority: 'medium', expanded: true, title: wi.title, items: [], tags: [],
-      ado: { id: wi.id, type: wi.type, state: wi.state || 'New' },
+      ado: { id: wi.id, type: wi.type, state: wi.state || 'New', title: wi.title },
     };
     buckets.push(bucket);
   }
@@ -1536,7 +1562,7 @@ function adoRevAddNew(adoId) {
   if (!bucket) return;
   bucket.items.push({
     id: uid(), text: srv.title, priority: 'medium', tags: [],
-    ado: { id: srv.id, type: srv.type, state: srv.state, parent: { level: bucket.ado.type, id: bucket.ado.id } },
+    ado: { id: srv.id, type: srv.type, state: srv.state, title: srv.title, parent: { level: bucket.ado.type, id: bucket.ado.id } },
   });
   reRender(); renderAdoReview();
   showToast('Added to backlog');
@@ -1643,7 +1669,7 @@ function confirmAdoPull() {
 
   const bucket = {
     id: uid(), priority: 'medium', expanded: true, title: wi.title, items: [], tags: [],
-    ado: { id: wi.id, type: wi.type, state: wi.state },
+    ado: { id: wi.id, type: wi.type, state: wi.state, title: wi.title },
   };
   let nItems = 0;
   childIds.forEach(cid => {
@@ -1652,7 +1678,7 @@ function confirmAdoPull() {
     if (!c) return;
     bucket.items.push({
       id: uid(), text: c.title, priority: 'medium', tags: [],
-      ado: { id: c.id, type: c.type, state: c.state, parent: { level: wi.type, id: wi.id } },
+      ado: { id: c.id, type: c.type, state: c.state, title: c.title, parent: { level: wi.type, id: wi.id } },
     });
     nItems++;
   });
