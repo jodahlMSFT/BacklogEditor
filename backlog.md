@@ -1,23 +1,24 @@
 # Backlog Editor
-**Updated: 25 June 2026**
+**Updated: 02 July 2026**
 
 ---
 
 ## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item"
 
-- 🔴 Update labels: Makes users align to new terminology. Makes data model discussions easier. [10.0.49]
-- 🔴 Update tables, objects, etc.: Important for long-term alignment. [10.0.50]
+- 🔴 Rename "Rental Item" to "Fleet item" in UI: Makes users align to new terminology. Makes data model discussions easier. [10.0.49]
+- 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc.: Important for long-term alignment. [10.0.50]
 
 ---
 
-## 🔴 BUCKET 2: Brownfield / Adoption Blockers
+## 🔴 BUCKET 2: Brownfield / Adoption Blockers <!-- ado:1149926 -->
 
-- 🔴 Batch tracking: Make batch tracking optional. [10.0.50]
-- 🔴 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50]
-- 🔴 Existing inventory: Create fleet item from existing inventory. [10.0.50]
-- 🔴 S/N: Make S/N optional. [10.0.50]
-- 🔴 Consolidate fleet location and inventory location/warehouse: incl. on-hand availability across fleets and inventory/rental [10.0.50]
-- 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt. [10.0.50]
+- 🔴 Batch tracking: Make batch tracking optional. [10.0.50] <!-- ado:1149927 -->
+- 🔴 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
+- 🔴 Existing inventory: Create fleet item from existing inventory. [10.0.50] <!-- ado:1149929 -->
+- 🔴 Existing inventory: Create fleet items from existing inventory at scale. <!-- ado:1149930 -->
+- 🔴 S/N: Make S/N optional. [10.0.50] <!-- ado:1149931 -->
+- 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt. [10.0.50] <!-- ado:1149932 -->
+- 🟡 Consolidate fleet location and inventory location/warehouse: incl. on-hand availability across fleets and inventory/rental [10.0.50]
 - 🟡 Existing Fixed Asset: Associate an existing Fixed Asset with a fleet item.
 - 🟡 Existing Fixed Asset: Create new fleet item from existing Fixed Asset.
 - 🟡 Standard FA-from-PO-line conflicts with transfer process: If customer uses standard D365 FA creation on PO line, the rental transfer process tries to create a duplicate FA.
@@ -81,8 +82,9 @@
 
 ## 🟡 BUCKET 10: Configurability
 
-- 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology.
+- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology.
 - 🟡 Access to fleets: Limit fleet visibility per user/role
+- 🟡 Configurable master data: Fleet item attributes
 
 ---
 
@@ -96,7 +98,7 @@
 
 ## 🟡 BUCKET 12: Re-Rents
 
-- 🔴 Preview build broken (WIP per Benjamin) [10.0.50]
+- 🔴 Re-rent of fleet items rented from competitors. [10.0.49]
 - 🟡 Intercompany re-rent process: (renting from a sister entity)
 - 🟡 Internal re-rent: financial dimensions not available on RentalLocation (only on InventSite — which was removed)
 - 🟡 External re-rent: process unclear; PO-to-contract workaround only
@@ -136,10 +138,12 @@
 
 ## 🟡 BUCKET 15: Field Service Integration Gaps
 
+- 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class. [10.0.50]
 - 🔴 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision. [10.0.50]
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported. [10.0.50]
 - 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
 - 🟡 ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.
+- 🟡 Upcoming WOs: Timing of WOs from upcoming planned maintenance should be visible in F&O (affects availability for rent)
 - 🟡 Insurance & Warranty not linked to rental item: FS warranty only links to FA, not rental item. Cost allocation (covered vs. uncovered labor/parts) not tracked against per-item P&L.
 - 🟡 Estimated return to rental fleet: Calculated return-to-ready times (average per model, time on last contract)
 - 🔵 Inspection checklists ↔ FS inspection integration: Rental model-based inspection checklists should optionally trigger FS inspection templates. Regulatory inspection audit trails required for large customers.
@@ -224,22 +228,7 @@
 
 ---
 
-## 🔴 BUCKET 25: Core Bugs / PP2 Quality Issues
-
-- 🟡 [Bug 1143337 · P1] Inventory not updated + asset shows "not acquired" on New→Rental fleet transfer
-- 🟡 [Bug 1141073 · P1] Error when transferring Rental → Used Fleet
-- 🟡 [Bug 1141005 · P1] Hardcoded number sequence assumption on fleet transfer
-- 🟡 [Bug 1142657 · P1] Physical status = "Ordered" (not "In stock") after PO receipt
-- 🟡 [Bug 1143366 · P1] "Rental item availability" ≠ "Rental Item Availability summary" (inconsistency)
-- 🟡 [Bug 1143411 · P1] Serial number doesn't appear on Rental Item forms even though it exists in inventory
-- 🟡 [Bug 1143235 · P2] Fixed assets default view doesn't show rental items
-- 🟡 [Bug 1143309 · P2] Default filter bug when assigning rental item to contract line
-- 🟡 [Bug 1143343 · P2] Period codes error message misleading when >5 periods w/ Simulate Utilization
-- 🟡 [Bug 1143346 · P3] UX: Rental Item tab confusing when creating a released product
-- 🟡 [N/A · P1] Re-rents broken in current preview build (Benjamin confirmed WIP)
-- 🟡 Date/time override model: Operations teams frequently enter data after-the-fact. System defaults to current time — SMU reading timestamp, movement record time, and return date all use system clock at entry. Needs configurable override.
-
----
-
 
 <!-- tag-meta: {"_title":"Backlog","10.0.49":{},"10.0.50":{},"10.0.52":{}} -->
+
+<!-- ado-meta: {"acked":{"1149926":"Proposed","1149927":"Not Started","1149928":"Not Started","1149929":"Not Started","1149930":"Not Started","1149931":"Not Started","1149932":"Not Started"},"ignoredNew":[]} -->
