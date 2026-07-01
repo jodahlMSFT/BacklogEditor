@@ -1,2 +1,6 @@
 
 node_modules/
+
+# ADO proxy secrets — never commit
+.ado-pat
+.env

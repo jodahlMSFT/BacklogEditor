@@ -1,0 +1,3146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backlog Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.app-header {
+  background: linear-gradient(135deg, #0a0a14 0%, #0f172a 100%);
+  color: white;
+  padding: 18px 32px;
+  border-bottom: 1px solid #1e293b;
+}
+.app-header h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 3px; }
+.app-header p { font-size: 0.78rem; opacity: 0.4; }
+
+/* ── Toolbar ── */
+.toolbar {
+  background: #151821;
+  padding: 10px 32px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.btn {
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover { background: #3b82f6; box-shadow: 0 3px 14px rgba(59,130,246,0.4); transform: translateY(-1px); }
+.btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+.btn-secondary:hover { background: #263347; border-color: #475569; }
+.toolbar-hint { margin-left: auto; font-size: 0.74rem; color: #475569; }
+.search-wrap { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 9px; color: #475569; font-size: 0.82rem; pointer-events: none; }
+.search-input {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  padding: 6px 28px 6px 30px;
+  width: 200px;
+  outline: none;
+  transition: border-color 0.15s, width 0.2s;
+}
+.search-input:focus { border-color: #3b82f6; width: 260px; }
+.search-input::placeholder { color: #475569; }
+.search-clear { position: absolute; right: 8px; background: none; border: none; color: #475569; cursor: pointer; font-size: 1rem; padding: 0; line-height: 1; display: none; }
+.search-clear.visible { display: block; color: #94a3b8; }
+.search-clear:hover { color: #e2e8f0; }
+mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1px; }
+/* ── Tags ─────────────────────────────────────────────────────────────────── */
+.tag-chip { display:inline-flex; align-items:center; gap:2px; font-size:0.68rem; font-weight:700; font-family:'Courier New',monospace; background:#0e2a3e; border:1px solid #1d4e6b; color:#38bdf8; padding:1px 7px 1px 5px; border-radius:10px; cursor:pointer; white-space:nowrap; transition:background 0.12s,border-color 0.12s; user-select:none; }
+.tag-chip:hover { background:#0e3a58; border-color:#38bdf8; }
+.tag-remove { background:none; border:none; color:#38bdf8; cursor:pointer; font-size:0.6rem; padding:0 0 0 2px; line-height:1; opacity:0.5; vertical-align:middle; }
+.tag-remove:hover { opacity:1; color:#f87171; }
+.tag-add-btn { background:none; border:1px dashed #334155; color:#475569; font-size:0.68rem; padding:1px 6px; border-radius:8px; cursor:pointer; line-height:1.6; flex-shrink:0; transition:all 0.12s; }
+.tag-add-btn:hover { border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.06); }
+.tag-input-inline { font-family:'Courier New',monospace; font-size:0.75rem; background:#0f172a; border:1px solid #38bdf8; border-radius:6px; color:#38bdf8; padding:2px 7px; outline:none; width:80px; }
+.item-tags { display:flex; flex-wrap:wrap; gap:3px; align-items:center; flex-shrink:0; margin-left:2px; }
+.bucket-tags { display:flex; flex-wrap:wrap; gap:3px; align-items:center; margin:0 4px; }
+.btn-ghost { background: none; color: #64748b; border: 1px solid #334155; font-size: 0.76rem; padding: 5px 10px; }
+.btn-ghost:hover { color: #cbd5e1; border-color: #475569; background: rgba(255,255,255,0.06); transform: none; box-shadow: none; }
+.toolbar-sep { width: 1px; height: 20px; background: #1e293b; flex-shrink: 0; margin: 0 2px; }
+.view-toggle { display: flex; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 2px; }
+.view-toggle .btn-view { background: none; border: none; color: #64748b; font-size: 0.76rem; font-weight: 600; padding: 4px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.view-toggle .btn-view.active { background: #1e293b; color: #e2e8f0; }
+.view-toggle .btn-view:hover:not(.active) { color: #94a3b8; }
+/* Priority view */
+.pv-group { margin-bottom: 18px; }
+.pv-group-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #151821; border-radius: 8px; cursor: pointer; user-select: none; margin-bottom: 4px; border: 1px solid #1e293b; }
+.pv-group-header:hover { background: #1a2030; }
+.pv-group-title { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; flex: 1; }
+.pv-group-count { font-size: 0.7rem; color: #64748b; background: #0f172a; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.pv-group-chevron { color: #475569; font-size: 0.65rem; transition: transform 0.2s; }
+.pv-group.open .pv-group-chevron { transform: rotate(90deg); }
+.pv-items { display: none; padding: 4px 0 8px 0; }
+.pv-group.open .pv-items { display: block; }
+.pv-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 12px; border-radius: 7px; transition: background 0.1s; background: #1a1f2e; border: 1px solid #1e293b; margin-bottom: 4px; }
+.pv-item:hover { background: #1e2538; border-color: #2d3f5e; }
+.pv-item.na-item { opacity: 0.5; }
+.pv-item.na-item .pv-item-text { text-decoration: line-through; color: #64748b; }
+.pv-item-text { flex: 1; font-size: 0.92rem; line-height: 1.6; color: #cbd5e1; }
+.pv-bucket-tag { font-size: 0.75rem; color: #94a3b8; background: #0f172a; border: 1px solid #334155; padding: 3px 10px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+
+/* ── Container ── */
+#buckets-container {
+  max-width: 880px;
+  margin: 22px auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Bucket Card ── */
+.bucket-card {
+  background: #1a1f2e;
+  border-radius: 10px;
+  margin-bottom: 9px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border-left: 5px solid #334155;
+  transition: box-shadow 0.2s;
+  overflow: hidden;
+}
+.bucket-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+.bucket-card.priority-critical { border-left-color: #ef4444; }
+.bucket-card.priority-medium  { border-left-color: #f59e0b; }
+.bucket-card.priority-low     { border-left-color: #3b82f6; }
+
+/* ── Bucket Header ── */
+.bucket-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+.bucket-header:hover { background: rgba(255,255,255,0.04); }
+
+.bucket-drag-handle {
+  color: #334155;
+  cursor: grab;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  padding: 2px 3px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.bucket-drag-handle:hover { color: #64748b; background: rgba(255,255,255,0.06); }
+.bucket-drag-handle:active { cursor: grabbing; }
+
+.bucket-number {
+  font-size: 0.68rem;
+  color: #475569;
+  min-width: 22px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+.priority-select {
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+.priority-select:focus { outline: none; border-color: #3b82f6; }
+
+.item-priority-select {
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 2px 3px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.item-priority-select:hover, .item-priority-select:focus {
+  outline: none; border-color: #3b82f6; color: #cbd5e1;
+}
+.item-row.na-item {
+  opacity: 0.55;
+}
+.item-row.na-item .item-text {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.bucket-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  cursor: text;
+}
+.bucket-title-input {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1.5px solid #3b82f6;
+  border-radius: 5px;
+  padding: 2px 8px;
+  outline: none;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.item-count-badge {
+  font-size: 0.7rem;
+  color: #64748b;
+  background: #0f172a;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rename-bucket-btn, .delete-bucket-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 3px 6px;
+  border-radius: 5px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.rename-bucket-btn { color: #334155; }
+.rename-bucket-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.12); }
+.delete-bucket-btn { color: #334155; }
+.delete-bucket-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+
+.chevron {
+  color: #475569;
+  font-size: 0.65rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.bucket-card.expanded .chevron { transform: rotate(90deg); }
+
+/* ── Bucket Body ── */
+.bucket-body { display: none; padding: 0 14px 12px 14px; }
+.bucket-card.expanded .bucket-body { display: block; }
+
+/* ── Items ── */
+.items-list { list-style: none; min-height: 8px; }
+.item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 5px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.item-row:hover { background: rgba(255,255,255,0.04); }
+.item-row:hover .item-actions { opacity: 1; }
+
+.item-drag-handle {
+  color: #2d3748;
+  cursor: grab;
+  flex-shrink: 0;
+  padding-top: 2px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.item-drag-handle:hover { color: #64748b; }
+.item-drag-handle:active { cursor: grabbing; }
+
+.item-text {
+  flex: 1;
+  font-size: 0.845rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+  cursor: text;
+}
+.item-text-input {
+  flex: 1;
+  font-size: 0.845rem;
+  line-height: 1.55;
+  border: 1.5px solid #3b82f6;
+  border-radius: 5px;
+  padding: 3px 7px;
+  outline: none;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+  resize: vertical;
+  min-height: 30px;
+}
+.item-actions {
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.item-edit-btn, .delete-item-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.item-edit-btn { color: #475569; }
+.item-edit-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.1); }
+.delete-item-btn { color: #475569; }
+.delete-item-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+
+/* ── Add Item ── */
+.add-item-area {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #1e293b;
+}
+.add-item-input {
+  flex: 1;
+  border: 1px solid #334155;
+  border-radius: 7px;
+  padding: 6px 11px;
+  font-size: 0.835rem;
+  font-family: inherit;
+  background: #0f172a;
+  color: #e2e8f0;
+  transition: border-color 0.15s;
+}
+.add-item-input::placeholder { color: #475569; }
+.add-item-input:focus { outline: none; border-color: #3b82f6; background: #0a0f1e; }
+.add-item-btn {
+  background: rgba(37,99,235,0.15);
+  border: 1px solid #2563eb;
+  color: #60a5fa;
+  padding: 6px 13px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.add-item-btn:hover { background: rgba(37,99,235,0.3); border-color: #3b82f6; }
+
+/* ── Sortable ── */
+.sortable-ghost { opacity: 0.25; background: rgba(59,130,246,0.15) !important; border-radius: 8px; }
+.sortable-drag { box-shadow: 0 16px 40px rgba(0,0,0,0.6) !important; transform: rotate(0.8deg) !important; }
+
+/* ── ADO commit (Phase 1: Deciding) ── */
+/* The "committed" whisper: a faint, non-interactive link chip — decided vs still-thinking at a glance */
+.ado-chip {
+  display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  font-size: 0.66rem; font-weight: 700; font-family: 'Courier New', monospace;
+  color: #34d399; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
+  padding: 1px 6px; border-radius: 10px; white-space: nowrap; user-select: none;
+  text-decoration: none; opacity: 0.75; transition: opacity 0.12s;
+}
+.ado-chip:hover { opacity: 1; }
+.ado-chip .ado-dot { font-size: 0.5rem; line-height: 1; margin: 0 1px; }
+/* Per-state colours, mirroring ADO's state categories:
+   New/Proposed=grey · Active/InProgress=blue · Resolved=amber · Done/Closed=green · Removed=red */
+.ado-chip-new      { color: #94a3b8; background: rgba(148,163,184,0.10); border-color: rgba(148,163,184,0.30); }
+.ado-chip-active   { color: #38bdf8; background: rgba(56,189,248,0.10);  border-color: rgba(56,189,248,0.32); }
+.ado-chip-resolved { color: #fbbf24; background: rgba(251,191,36,0.10);  border-color: rgba(251,191,36,0.30); }
+.ado-chip-done     { color: #34d399; background: rgba(16,185,129,0.10);  border-color: rgba(16,185,129,0.30); }
+.ado-chip-removed  { color: #f87171; background: rgba(239,68,68,0.10);   border-color: rgba(239,68,68,0.30); }
+/* Same palette for the review-panel state transition text */
+.ados-new,.ados-active,.ados-resolved,.ados-done,.ados-removed { font-weight: 700; }
+.ados-new { color: #94a3b8; } .ados-active { color: #38bdf8; } .ados-resolved { color: #fbbf24; }
+.ados-done { color: #34d399; } .ados-removed { color: #f87171; }
+.pv-item .ado-chip { margin-left: 4px; }
+
+/* Selection checkbox — hidden until selection mode is on */
+.item-select { display: none; flex-shrink: 0; margin-top: 3px; accent-color: #10b981; cursor: pointer; width: 15px; height: 15px; }
+body.ado-selecting .item-select { display: inline-block; }
+body.ado-selecting .item-row.ado-selected { background: rgba(16,185,129,0.08); }
+/* Already committed or explicitly local: not selectable */
+.item-row.ado-committed .item-select,
+.item-row.ado-excluded .item-select { visibility: hidden; }
+.item-row.ado-excluded { opacity: 0.5; }
+.ado-local-chip {
+  display: inline-flex; align-items: center; flex-shrink: 0;
+  font-size: 0.62rem; font-weight: 700; font-family: 'Courier New', monospace;
+  color: #64748b; background: #0f172a; border: 1px dashed #334155;
+  padding: 1px 6px; border-radius: 10px; white-space: nowrap; user-select: none;
+}
+
+.btn-ado { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.35); }
+.btn-ado:hover { background: rgba(16,185,129,0.22); border-color: #10b981; }
+.btn-ado.active { background: #10b981; color: #05271c; border-color: #10b981; }
+
+/* Floating commit bar */
+.ado-commit-bar {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(140%);
+  display: flex; align-items: center; gap: 14px;
+  background: #0b1220; border: 1px solid #164e40; border-radius: 12px;
+  padding: 10px 16px; box-shadow: 0 18px 50px rgba(0,0,0,0.6); z-index: 60;
+  transition: transform 0.22s cubic-bezier(0.2,0.8,0.2,1);
+}
+.ado-commit-bar.show { transform: translateX(-50%) translateY(0); }
+.ado-commit-count { font-size: 0.85rem; color: #cbd5e1; font-weight: 600; }
+.ado-commit-count strong { color: #34d399; }
+.ado-commit-bar .btn { padding: 6px 14px; }
+.ado-commit-cancel { background: none; border: none; color: #64748b; cursor: pointer; font-size: 0.8rem; }
+.ado-commit-cancel:hover { color: #cbd5e1; }
+
+/* Preview modal */
+.ado-modal-overlay {
+  position: fixed; inset: 0; background: rgba(2,6,16,0.72); backdrop-filter: blur(2px);
+  display: none; align-items: center; justify-content: center; z-index: 70;
+}
+.ado-modal-overlay.show { display: flex; }
+.ado-modal {
+  width: min(560px, 92vw); max-height: 84vh; overflow: auto;
+  background: #0b1220; border: 1px solid #1e293b; border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.7);
+}
+.ado-modal-head { padding: 18px 20px 8px; }
+.ado-modal-head h2 { font-size: 1.02rem; color: #e2e8f0; font-weight: 700; }
+.ado-modal-head p { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+.ado-modal-body { padding: 6px 20px 4px; }
+.ado-field-label { display: block; font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin: 10px 0 5px; }
+.ado-select {
+  width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+  border-radius: 8px; padding: 8px 10px; font-size: 0.84rem; font-family: inherit; outline: none;
+}
+.ado-select:focus { border-color: #10b981; }
+.ado-preview-list { list-style: none; margin: 8px 0 4px; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+.ado-preview-list li {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; font-size: 0.82rem; color: #cbd5e1;
+  border-bottom: 1px solid #131c2e;
+}
+.ado-preview-list li:last-child { border-bottom: none; }
+.ado-preview-type { flex-shrink: 0; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #34d399; background: rgba(16,185,129,0.1); border-radius: 6px; padding: 2px 6px; margin-top: 1px; white-space: nowrap; }
+.ado-preview-type-b { color: #7dd3fc; background: rgba(56,189,248,0.1); }
+.ado-preview-brow { background: rgba(56,189,248,0.04); font-weight: 600; }
+.ado-preview-btitle { color: #e2e8f0; }
+.ado-preview-item { padding-left: 30px !important; }
+.ado-preview-item::before { content: '└'; color: #334155; margin-right: -2px; margin-top: 1px; }
+.ado-preview-bucket { flex-shrink: 0; font-size: 0.62rem; color: #475569; margin-left: auto; white-space: nowrap; align-self: center; }
+.ado-preview-new { color: #34d399; }
+.ado-field-row { display: flex; gap: 12px; }
+.ado-field-col-level { flex: 0 0 38%; }
+.ado-field-col-parent { flex: 1; min-width: 0; }
+.ado-field-col-parent .ado-select { width: 100%; }
+.ado-map-hint { font-size: 0.76rem; color: #64748b; margin: 8px 2px 2px; }
+.ado-map-hint strong { color: #94a3b8; font-weight: 700; }
+.ado-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px 18px; }
+.ado-pull-idrow { display: flex; gap: 8px; align-items: stretch; }
+.ado-pull-idrow .ado-select { flex: 1; }
+.ado-pull-idrow .btn { flex-shrink: 0; }
+.ado-pull-parent { margin-top: 14px; padding: 11px 13px; border: 1px solid #1e293b; border-radius: 10px; background: rgba(56,189,248,0.05); }
+.ado-pull-parent-type { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #7dd3fc; background: rgba(56,189,248,0.12); border-radius: 6px; padding: 2px 6px; }
+.ado-pull-parent-title { color: #e2e8f0; font-weight: 600; margin: 6px 0 2px; font-size: 0.9rem; }
+.ado-pull-parent-sub { font-size: 0.74rem; color: #64748b; }
+.ado-pull-children { list-style: none; margin: 12px 0 0; }
+.ado-pull-children-label { display: flex; align-items: center; justify-content: space-between; margin: 14px 2px 6px; }
+.ado-pull-children-label .ado-field-label { margin: 0; }
+.ado-pull-selall { font-size: 0.74rem; color: #38bdf8; cursor: pointer; background: none; border: none; font-family: inherit; }
+.ado-pull-child { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #131c2e; cursor: pointer; }
+.ado-pull-child:last-child { border-bottom: none; }
+.ado-pull-child input { accent-color: #10b981; width: 15px; height: 15px; flex-shrink: 0; }
+.ado-pull-child-title { color: #cbd5e1; font-size: 0.84rem; flex: 1; }
+.ado-pull-child-id { font-size: 0.7rem; color: #475569; }
+.ado-pull-child.linked { opacity: 0.5; }
+.ado-pull-child.linked .ado-pull-child-title::after { content: ' · already linked'; color: #475569; font-size: 0.72rem; }
+.ado-pull-empty { margin-top: 10px; font-size: 0.8rem; color: #64748b; }
+.ado-pull-error { margin-top: 12px; font-size: 0.84rem; color: #f87171; }
+.ado-newscope-opt { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; margin-top: 10px; border: 1px solid #1e293b; border-radius: 10px; cursor: pointer; }
+.ado-newscope-opt:hover { border-color: #334155; background: rgba(148,163,184,0.04); }
+.ado-newscope-opt input { accent-color: #10b981; width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; }
+.ado-newscope-opt strong { color: #e2e8f0; font-size: 0.88rem; }
+.ado-newscope-sub { font-size: 0.76rem; color: #64748b; }
+.ado-newscope-parentbox { display: none; margin: 6px 2px 2px 39px; }
+.ado-newscope-parentbox.show { display: block; }
+.ado-status { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.01em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; align-self: center; }
+.ado-status.live { color: #34d399; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
+.ado-status.mock { color: #94a3b8; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.22); }
+
+/* Check-ADO ghost button */
+.btn-ado-ghost { background: none; color: #64748b; border: 1px solid #334155; }
+.btn-ado-ghost:hover { color: #34d399; border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.06); transform: none; box-shadow: none; }
+
+/* Pull-diff review panel (slides in from the right) */
+.ado-review {
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(480px, 96vw);
+  background: #0a0f1c; border-left: 1px solid #1e293b; box-shadow: -18px 0 50px rgba(0,0,0,0.5);
+  transform: translateX(102%); transition: transform 0.26s cubic-bezier(0.2,0.8,0.2,1);
+  z-index: 200; display: flex; flex-direction: column;
+}
+.ado-review.open { transform: translateX(0); }
+.ado-review-headbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 20px 14px; border-bottom: 1px solid #1e293b; }
+.ado-review-headbar h2 { font-size: 1.15rem; color: #f1f5f9; font-weight: 700; }
+.ado-review-headbar p { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+.ado-review-count { display: inline-flex; min-width: 22px; height: 22px; padding: 0 6px; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 700; color: #05271c; background: #34d399; border-radius: 11px; margin-left: 6px; }
+.ado-review-count:empty { display: none; }
+.ado-review-close { background: none; border: none; color: #475569; font-size: 1.25rem; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.ado-review-close:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+.ado-review-body { flex: 1; overflow-y: auto; padding: 6px 16px 28px; }
+.ado-review-empty { text-align: center; color: #475569; font-size: 0.9rem; padding: 60px 20px; }
+.ado-rev-section { margin-top: 20px; }
+.ado-rev-head { display: flex; align-items: baseline; gap: 8px; padding: 10px 4px 10px; cursor: pointer; user-select: none; border-radius: 8px; }
+.ado-rev-head:hover { background: rgba(148,163,184,0.06); }
+.ado-rev-chevron { font-size: 0.8rem; color: #64748b; transition: transform 0.15s ease; align-self: center; }
+.ado-rev-section.open .ado-rev-chevron { transform: rotate(90deg); }
+.ado-rev-rows { display: none; }
+.ado-rev-section.open .ado-rev-rows { display: block; }
+.ado-rev-icon { font-size: 1.05rem; }
+.ado-rev-title { font-size: 0.98rem; font-weight: 700; color: #e2e8f0; }
+.ado-rev-sub { font-size: 0.76rem; color: #64748b; }
+.ado-rev-row {
+  display: flex; align-items: flex-start; gap: 12px; padding: 13px 14px 13px 15px; margin-bottom: 9px;
+  background: #0f172a; border: 1px solid #1e293b; border-left-width: 4px; border-radius: 10px;
+}
+.ado-rev-row[data-kind="closed"] { border-left-color: #10b981; background: rgba(16,185,129,0.06); }
+.ado-rev-row[data-kind="modified"] { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
+.ado-rev-row[data-kind="new"] { border-left-color: #38bdf8; background: rgba(56,189,248,0.05); }
+.ado-rev-main { flex: 1; min-width: 0; }
+.ado-rev-tag { display: inline-block; font-size: 0.66rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-bottom: 5px; letter-spacing: 0.02em; }
+.ado-rev-tag.shipped { color: #34d399; background: rgba(16,185,129,0.14); }
+.ado-rev-tag.cut { color: #fca5a5; background: rgba(239,68,68,0.15); }
+.ado-rev-text { font-size: 0.94rem; color: #f1f5f9; line-height: 1.45; font-weight: 500; }
+.ado-rev-meta { font-size: 0.74rem; color: #64748b; margin-top: 5px; font-family: 'Courier New', monospace; }
+.ado-rev-meta strong { color: #cbd5e1; }
+.ado-rev-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.ado-rev-accept, .ado-rev-ignore { border: 1px solid; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 7px; white-space: nowrap; transition: all 0.12s; font-family: inherit; }
+.ado-rev-accept { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(16,185,129,0.4); }
+.ado-rev-accept:hover { background: rgba(16,185,129,0.25); }
+.ado-rev-ignore { background: none; color: #64748b; border-color: #334155; }
+.ado-rev-ignore:hover { color: #cbd5e1; border-color: #475569; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  padding: 11px 20px;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Timeline View ─────────────────────────────────────────────────────────── */
+.tl-view {
+  background: #0a1628;
+  min-height: calc(100vh - 140px);
+  padding: 36px 40px 60px;
+}
+.tl-title-h2 {
+  font-size: 2.4rem; font-weight: 800; color: #ffffff;
+  cursor: pointer; line-height: 1.1; margin-bottom: 40px;
+  user-select: none; display: inline-block;
+}
+.tl-title-h2:hover { opacity: 0.85; }
+.tl-title-h2 .tl-t-light { font-weight: 300; color: #94a3b8; }
+.tl-title-input {
+  font-size: 2.4rem; font-weight: 800; color: #fff;
+  background: transparent; border: none; border-bottom: 2px solid #3b82f6;
+  outline: none; font-family: inherit; margin-bottom: 40px; display: block;
+}
+.tl-scroll-wrap { overflow-x: auto; overflow-y: visible; padding-bottom: 40px; -webkit-overflow-scrolling: touch; }
+.tl-cols-row { display: inline-flex; min-width: 100%; position: relative; }
+/* Horizontal timeline line — centre at meta(50px) + half-dot(9px) = 59px */
+.tl-cols-row::before {
+  content: ''; position: absolute; top: 59px;
+  left: 60px; right: 60px; height: 2px;
+  background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 50%, #7dd3fc 100%);
+  z-index: 0; pointer-events: none;
+}
+.tl-col-unit { flex: 1 0 220px; max-width: 320px; display: flex; flex-direction: column; align-items: stretch; padding: 0 6px; }
+/* ── Milestone header ── */
+.tl-ms-header { display: flex; flex-direction: column; align-items: center; }
+.tl-ms-meta { min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 6px; gap: 2px; text-align: center; }
+.tl-ms-version { font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; cursor: pointer; transition: color 0.12s; }
+.tl-ms-version:hover { color: #e2e8f0; }
+.tl-ms-date { font-size: 0.72rem; color: #475569; cursor: pointer; transition: color 0.12s; }
+.tl-ms-date:hover { color: #e2e8f0; }
+.tl-ms-date.shipped { color: #4ade80; font-weight: 600; }
+.tl-dot-row { height: 18px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
+.tl-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 3px solid #7dd3fc; background: #0a1628;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; position: relative; z-index: 2;
+}
+.tl-dot:hover { transform: scale(1.35); box-shadow: 0 0 12px rgba(125,211,252,0.6); }
+.tl-dot.shipped { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,0.5); }
+.tl-dot.shipped:hover { box-shadow: 0 0 16px rgba(74,222,128,0.8); }
+.tl-dot.inflight { background: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 8px rgba(56,189,248,0.4); }
+.tl-dot.inflight:hover { box-shadow: 0 0 14px rgba(56,189,248,0.8); }
+.tl-dot.planned { background: #0a1628; border-color: #7dd3fc; }
+.tl-ms-label { min-height: 44px; padding: 8px 4px 0; font-size: 0.75rem; color: #64748b; text-align: center; line-height: 1.35; cursor: pointer; transition: color 0.12s; }
+.tl-ms-label:hover { color: #e2e8f0; }
+.tl-ms-label.shipped { color: #4ade80; }
+.tl-ms-label.inflight { color: #38bdf8; }
+.tl-pointer { width: 0; height: 0; margin: 0 auto; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 9px solid transparent; border-bottom: 9px solid #071829; }
+.tl-pointer.shipped { border-bottom-color: #041d0d; }
+.tl-pointer.planned { border-bottom-color: #0b1c32; }
+/* ── Column card ── */
+.tl-card { flex: 1; padding: 14px 16px 18px; border: 1px solid #1e3a5f; border-top: 3px solid #38bdf8; }
+.tl-card.shipped { background: #041d0d; border-color: #0d3321; border-top-color: #4ade80; }
+.tl-card.inflight { background: #071829; border-color: #1e3a5f; border-top-color: #38bdf8; }
+.tl-card.planned  { background: #0b1c32; border-color: #1a3050; border-top-color: #7dd3fc; }
+.tl-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.1em; padding: 3px 9px; border-radius: 4px; margin-bottom: 11px;
+  cursor: pointer; user-select: none; transition: opacity 0.15s;
+}
+.tl-badge:hover { opacity: 0.7; }
+.tl-badge.shipped { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.6); color: #4ade80; }
+.tl-badge.inflight { background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.6); color: #38bdf8; }
+.tl-badge.planned  { background: rgba(125,211,252,0.06); border: 1px solid rgba(125,211,252,0.4); color: #7dd3fc; }
+.tl-card-title { font-size: 0.95rem; font-weight: 700; color: #f0f4f8; margin-bottom: 12px; line-height: 1.35; cursor: pointer; }
+.tl-card-title:hover { color: #ffffff; }
+.tl-card-title-input {
+  font-size: 0.95rem; font-weight: 700; color: #f0f4f8;
+  background: rgba(255,255,255,0.06); border: 1px solid #38bdf8; border-radius: 4px;
+  padding: 3px 8px; outline: none; width: 100%; font-family: inherit; margin-bottom: 12px; display: block;
+}
+.tl-card-divider { height: 1px; background: #1e3a5f; margin: 0 -16px 10px; }
+.tl-card-divider.shipped { background: #0d3321; }
+.tl-card-divider.planned { background: #1a3050; }
+.tl-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; font-size: 0.82rem; line-height: 1.4; }
+.tl-icon { flex-shrink: 0; width: 12px; margin-top: 2px; font-size: 0.68rem; font-weight: 800; }
+.tl-icon.ok   { color: #4ade80; }
+.tl-icon.go   { color: #38bdf8; }
+.tl-icon.soft { color: #475569; }
+.tl-icon.na   { color: #334155; }
+.tl-itext { color: #cbd5e1; flex: 1; }
+.tl-itext.bold { color: #f0f4f8; font-weight: 600; }
+.tl-itext.dim  { color: #4b5873; }
+.tl-itext.strike { color: #334155; text-decoration: line-through; }
+.tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; }
+.tl-empty { color: #2a3f5e; font-size: 0.78rem; padding: 4px 0; font-style: italic; }
+.tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
+.tl-add-ms-btn {
+  background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
+  color: #334155; cursor: pointer; font-size: 0.78rem; padding: 14px; text-align: center;
+  width: 100%; transition: all 0.15s; min-height: 70px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; margin-top: 120px;
+}
+.tl-add-ms-btn:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.07); }
+.tl-meta-inline-input {
+  background: rgba(14,31,56,0.95); border: 1px solid #38bdf8; border-radius: 4px;
+  color: #e2e8f0; padding: 2px 7px; outline: none; font-family: inherit;
+  font-size: inherit; font-weight: inherit; max-width: 180px; box-sizing: border-box;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📋 Backlog Editor</h1>
+  <p id="editor-subtitle">Drag to reorder · Double-click to edit · Save exports Markdown</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="saveAsMarkdown()">💾 Save</button>
+  <button class="btn btn-secondary" onclick="saveAsNewFile()" title="Save to a different file">Save As…</button>
+  <button class="btn btn-secondary" onclick="loadMarkdownFile()">📂 Load</button>
+  <button class="btn btn-secondary" onclick="addBucket()">＋ Add Bucket</button>
+  <button class="btn btn-secondary" onclick="exportSnapshot()" title="Export a read-only HTML snapshot for sharing">📤 Share snapshot</button>
+  <button id="btn-ado" class="btn btn-ado" onclick="toggleAdoSelect()" title="Commit selected items to Azure DevOps as Deliverables">🔗 Commit to ADO</button>
+  <button id="btn-ado-check" class="btn btn-ado-ghost" onclick="checkAdoUpdates()" title="Safe: check ADO for state changes on items already in the backlog">⟳ Check updates</button>
+  <button id="btn-ado-new" class="btn btn-ado-ghost" onclick="checkAdoNew()" title="Check ADO for new items under your committed buckets">🆕 Check for new</button>
+  <button id="btn-ado-pull" class="btn btn-ado-ghost" onclick="openAdoPull()" title="Pull an existing ADO item into the backlog by ID">⇩ Pull by ID</button>
+  <span id="ado-status" class="ado-status" title="ADO backend">● ADO: …</span>
+  <span class="toolbar-sep"></span>
+  <div class="view-toggle">
+    <button id="btn-view-buckets" class="btn-view active" onclick="setView('buckets')" title="Group by bucket">☰ Buckets</button>
+    <button id="btn-view-priority" class="btn-view" onclick="setView('priority')" title="Flat list ranked by priority">≡ Priority</button>
+    <button id="btn-view-timeline" class="btn-view" onclick="setView('timeline')" title="Roadmap timeline by tag">◼ Timeline</button>
+  </div>
+  <span class="toolbar-sep"></span>
+  <button class="btn btn-ghost" onclick="expandAll()" title="Expand all">▾ Expand all</button>
+  <button class="btn btn-ghost" onclick="collapseAll()" title="Collapse all">▸ Collapse all</button>
+  <span class="toolbar-sep"></span>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input id="search-input" class="search-input" type="text" placeholder="Search items…" oninput="onSearchInput(this.value)" onkeydown="if(event.key==='Escape'){clearSearch()}">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Clear search">✕</button>
+  </div>
+  <span class="toolbar-hint">Drag ⠿ to reorder · Click ✏ or double-click title to rename · Double-click item to edit · Hover item for actions</span>
+</div>
+
+<div id="buckets-container"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ADO commit UI (Phase 1: Deciding) -->
+<div class="ado-commit-bar" id="ado-commit-bar">
+  <span class="ado-commit-count"><strong id="ado-sel-count">0</strong> selected</span>
+  <button class="btn btn-ado" onclick="openAdoPreview()">🔗 Commit to ADO…</button>
+  <button class="ado-commit-cancel" onclick="toggleAdoSelect()">Done</button>
+</div>
+
+<div class="ado-modal-overlay" id="ado-modal-overlay" onclick="if(event.target===this)closeAdoPreview()">
+  <div class="ado-modal">
+    <div class="ado-modal-head">
+      <h2>Commit to Azure DevOps</h2>
+      <p>Mirrors your backlog into ADO under the parent you choose: buckets become one
+         level below the parent, items the level below that. The backlog keeps ownership
+         of wording &amp; priority — ADO owns state.</p>
+    </div>
+    <div class="ado-modal-body">
+      <div class="ado-field-row">
+        <div class="ado-field-col-level">
+          <label class="ado-field-label" for="ado-parent-level">Parent level</label>
+          <select class="ado-select" id="ado-parent-level"></select>
+        </div>
+        <div class="ado-field-col-parent">
+          <label class="ado-field-label" for="ado-parent">Parent</label>
+          <select class="ado-select" id="ado-parent"></select>
+        </div>
+      </div>
+      <p class="ado-map-hint" id="ado-map-hint"></p>
+      <label class="ado-field-label">Will create</label>
+      <ul class="ado-preview-list" id="ado-preview-list"></ul>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeAdoPreview()">Cancel</button>
+      <button class="btn btn-ado" onclick="confirmAdoCommit()">Create <span id="ado-confirm-count"></span> in ADO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADO pull-by-ID modal -->
+<div class="ado-modal-overlay" id="ado-pull-overlay" onclick="if(event.target===this)closeAdoPull()">
+  <div class="ado-modal">
+    <div class="ado-modal-head">
+      <h2>Pull from Azure DevOps</h2>
+      <p>Bring an existing ADO item into the backlog. The item becomes a bucket; pick
+         which of its children come along as items. Anything already linked is skipped.</p>
+    </div>
+    <div class="ado-modal-body">
+      <label class="ado-field-label" for="ado-pull-id">Work item ID</label>
+      <div class="ado-pull-idrow">
+        <input class="ado-select" id="ado-pull-id" type="number" placeholder="e.g. 1200500"
+               onkeydown="if(event.key==='Enter')adoPullLookup()">
+        <button class="btn btn-ado-ghost" onclick="adoPullLookup()">Look up</button>
+      </div>
+      <div id="ado-pull-result"></div>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeAdoPull()">Cancel</button>
+      <button class="btn btn-ado" id="ado-pull-confirm" onclick="confirmAdoPull()" disabled>Pull into backlog</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADO "check for new" scope picker -->
+<div class="ado-modal-overlay" id="ado-newscope-overlay" onclick="if(event.target===this)closeAdoNewScope()">
+  <div class="ado-modal">
+    <div class="ado-modal-head">
+      <h2>Check ADO for new items</h2>
+      <p>Where should I look? This only ever <em>shows</em> new items — nothing is
+         imported until you opt in.</p>
+    </div>
+    <div class="ado-modal-body">
+      <label class="ado-newscope-opt">
+        <input type="radio" name="ado-newscope" value="committed" onchange="onAdoNewScopeChange()">
+        <span><strong>Under my committed buckets</strong><br>
+          <span class="ado-newscope-sub" id="ado-newscope-committed-sub"></span></span>
+      </label>
+      <label class="ado-newscope-opt">
+        <input type="radio" name="ado-newscope" value="parent" onchange="onAdoNewScopeChange()">
+        <span><strong>Under a specific parent</strong><br>
+          <span class="ado-newscope-sub">Pick a parent and see its direct children.</span></span>
+      </label>
+      <div id="ado-newscope-parent" class="ado-newscope-parentbox">
+        <div class="ado-field-row">
+          <div class="ado-field-col-level">
+            <label class="ado-field-label" for="ado-newscope-level">Parent level</label>
+            <select class="ado-select" id="ado-newscope-level" onchange="onAdoNewScopeLevel()"></select>
+          </div>
+          <div class="ado-field-col-parent">
+            <label class="ado-field-label" for="ado-newscope-parent-sel">Parent</label>
+            <select class="ado-select" id="ado-newscope-parent-sel"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeAdoNewScope()">Cancel</button>
+      <button class="btn btn-ado" onclick="applyAdoNewScope()">Check for new</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADO pull-diff review panel (Phase 3: Tracking-lite) -->
+<div class="ado-review" id="ado-review">
+  <div class="ado-review-headbar">
+    <div>
+      <h2 id="ado-review-title">ADO changes <span class="ado-review-count" id="ado-review-count"></span></h2>
+      <p id="ado-review-sub">Nothing is applied automatically — accept or ignore each row.</p>
+    </div>
+    <button class="ado-review-close" onclick="closeAdoReview()" title="Close">✕</button>
+  </div>
+  <div class="ado-review-body" id="ado-review-body"></div>
+</div>
+
+<script>
+// ─── Data ─────────────────────────────────────────────────────────────────────
+let _id = 1000;
+function uid() { return 's' + (++_id); }
+
+let buckets = [];
+let tagMeta = {};         // { tagId: { status, label, date, sublabel, colTitle, order } }
+let roadmapTitle = 'Backlog';
+
+// ─── ADO integration (Phase 1: Deciding) ──────────────────────────────────────
+// Mock adapter for now — a tiny local Node proxy will replace AdoMock later (see
+// docs/ado-integration-design.md §6). The push flow, data model, and markdown
+// round-trip are real; only the network call is faked.
+const ADO_ORG = 'msdyneng';
+const ADO_PROJECT = 'FinOps';
+
+// ADO work-item ladder (top → bottom). You pick a "parent" at one of these levels;
+// buckets are created one level below the parent, and items one level below buckets —
+// mirroring the backlog's own Bucket → Item shape into the ADO hierarchy.
+// (Parent IDs from docs/ado-integration-design.md §3.)
+const ADO_LADDER = ['Scenario Group', 'Scenario', 'Deliverable', 'Task'];
+const ADO_PARENTS = [
+  { level: 'Scenario Group', id: 1052319, title: 'Rental Management — Private Preview 2 Phase III', note: '10.0.49' },
+  { level: 'Scenario Group', id: 1052320, title: 'Rental Management — Public Preview Phase IV',      note: '10.0.50' },
+  { level: 'Scenario Group', id: 1057270, title: 'Rental Management — GA',                            note: 'TBD' },
+  { level: 'Scenario',       id: 1084288, title: 'Misc improvements incl. CAT requirements',          parentGroup: 1052319 },
+  { level: 'Scenario',       id: 1134484, title: 'Private Preview 10.0.48 Feedback',                  parentGroup: 1052319 },
+  { level: 'Scenario',       id: 1127509, title: 'Misc improvements incl. CAT requirements — Public Preview', parentGroup: 1052320 },
+  { level: 'Scenario',       id: 1140645, title: 'Private Preview 10.0.48 and 10.0.49 Feedback',       parentGroup: 1052320 },
+];
+
+// A parent level is valid only if it leaves room for two levels below (bucket + item),
+// and has at least one candidate parent.
+function adoValidParentLevels() {
+  return ADO_LADDER.filter((lvl, i) => i + 2 < ADO_LADDER.length && ADO_PARENTS.some(p => p.level === lvl));
+}
+function adoLevelIndex(level)      { return ADO_LADDER.indexOf(level); }
+function adoBucketType(parentLvl)  { return ADO_LADDER[adoLevelIndex(parentLvl) + 1]; }
+function adoItemType(parentLvl)    { return ADO_LADDER[adoLevelIndex(parentLvl) + 2]; }
+function adoChildType(type)        { return ADO_LADDER[adoLevelIndex(type) + 1]; }
+function adoParentsForLevel(level) { return ADO_PARENTS.filter(p => p.level === level); }
+function adoParent(id)             { return ADO_PARENTS.find(p => p.id === id); }
+
+let adoParentLevel = adoValidParentLevels()[0];                 // default: Scenario Group
+let adoParentId    = adoParentsForLevel(adoParentLevel)[0].id;  // default: first parent at that level
+
+let adoSelecting = false;
+const adoSelected = new Set();             // item ids checked for commit
+const adoIgnoredNew = new Set();           // ADO ids of "New" rows the user dismissed
+const adoSectionOpen = { closed: false, modified: false, created: false }; // review-panel section expand state
+let adoReviewMode = 'updates';             // review panel focus: 'updates' (existing items) | 'new' (discovery)
+let adoNewScope = { mode: 'committed', parentId: null }; // where "Check for new" looks: committed buckets, or one picked parent
+let _adoNewRows = {};                      // srv.id -> created row, so the Add button can resolve its target
+let _adoMockId = 1130000;                  // fake work-item id seed
+const ADO_CLOSED_STATES = ['Done', 'Removed', 'Closed', 'Resolved', 'Completed'];
+
+// Mock ADO client — same shape a real proxy-backed client will expose.
+// It keeps a `store` of work items so we can simulate ADO drifting after a commit.
+const AdoMock = {
+  store: {},           // id -> { id, type, title, parentId, state, kind }
+  _step: 0,
+  async createWorkItem(type, title, parentId, kind) {
+    await new Promise(r => setTimeout(r, 60)); // simulate network latency
+    const id = ++_adoMockId;
+    this.store[id] = { id, type, title, parentId, state: 'New', kind };
+    return { ...this.store[id] };
+  },
+  fetch(id)          { const w = this.store[id]; return w ? { ...w } : null; },
+  childrenOf(parentId) { return Object.values(this.store).filter(w => w.parentId === parentId); },
+  _addChild(bucketWi, title) {
+    if (!bucketWi) return;
+    const id = ++_adoMockId;
+    this.store[id] = { id, type: adoChildType(bucketWi.type), parentId: bucketWi.id, title, state: 'New', kind: 'item' };
+  },
+  // Demo only: seed a couple of existing ADO items (not yet in the backlog) so the
+  // "Pull from ADO by ID" flow has something real to fetch. A real client hits ADO.
+  seedPullDemo() {
+    const seed = (id, type, title, parentId, state, kind) => {
+      this.store[id] = { id, type, title, parentId, state, kind };
+    };
+    // A parent chain so "Check for new → specific parent" has something to show:
+    // Scenario Group → Scenario → Deliverables (below).
+    seed(1052319, 'Scenario Group', 'Rental Management — Private Preview 2 Phase III', null, 'Active', 'group');
+    seed(1084288, 'Scenario', 'Misc improvements incl. CAT requirements', 1052319, 'Active', 'scenario');
+    // A Deliverable with three child Tasks — pull the parent to get a bucket + items.
+    seed(1200500, 'Deliverable', 'Serialized rental returns', 1084288, 'Active', 'bucket');
+    seed(1200501, 'Task', 'Scan serial on return', 1200500, 'Active', 'item');
+    seed(1200502, 'Task', 'Auto-close reservation on full return', 1200500, 'New', 'item');
+    seed(1200503, 'Task', 'Damage assessment hook', 1200500, 'New', 'item');
+    // A childless Deliverable — pull becomes a bucket with a note.
+    seed(1200600, 'Deliverable', 'Rental pricing tiers', 1084288, 'New', 'bucket');
+    if (_adoMockId < 1200999) _adoMockId = 1200999; // keep commit ids clear of seeds
+  },
+  // Demo only: nudge ADO forward so a pull has something to show. The first pull
+  // deliberately surfaces every category at once — Closed (shipped + cut),
+  // Modified, and New — then later pulls keep the story moving.
+  simulateDrift() {
+    const items   = Object.values(this.store).filter(w => w.kind === 'item');
+    const bucketWi = Object.values(this.store).find(w => w.kind === 'bucket');
+    const firstIn = (...states) => items.find(w => states.includes(w.state));
+    this._step++;
+
+    if (this._step === 1) {
+      const a = firstIn('New'); if (a) a.state = 'Active';   // 🟡 Modified — work started
+      const b = firstIn('New'); if (b) b.state = 'Done';     // 🟢 Closed — shipped
+      const c = firstIn('New'); if (c) c.state = 'Removed';  // 🟢 Closed — cut from scope
+      this._addChild(bucketWi, 'Telemetry: surface rental utilization to ops'); // 🆕 New
+    } else if (this._step === 2) {
+      const a = firstIn('Active'); if (a) a.state = 'Resolved'; // 🟢 Closed — resolved
+      const b = firstIn('New');    if (b) b.state = 'Active';   // 🟡 Modified
+      this._addChild(bucketWi, 'Add audit log for status changes'); // 🆕 New
+    } else {
+      const a = firstIn('Active'); if (a) a.state = 'Done';   // close the in-progress one
+      const b = firstIn('New');    if (b) b.state = 'Active'; // start the next one
+    }
+  },
+  // The mock's store is always fully in memory, so refreshes are no-ops. They exist
+  // so the app can call `ado.refreshItems(...)` uniformly across both backends.
+  async refreshItems() {},
+  async refreshChildren() {},
+};
+
+// Real ADO backend — talks to the local proxy (ado-proxy.js), which holds the PAT and
+// forwards REST calls. Mirrors AdoMock's surface: sync fetch/childrenOf read from a
+// local cache that the async refresh* methods populate, so computeAdoDiff stays sync.
+const AdoClient = {
+  base: (window.localStorage && localStorage.getItem('adoProxyUrl')) || 'http://localhost:7777',
+  connected: false, org: null, project: null,
+  store: {},        // id -> { id, type, title, state, parentId }
+  _children: {},    // parentId -> [childId]
+  async _get(pathq) {
+    const r = await window.fetch(this.base + pathq);
+    if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
+    return r.json();
+  },
+  async _post(pathq, body) {
+    const r = await window.fetch(this.base + pathq, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    if (!r.ok) { let m = 'HTTP ' + r.status; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
+    return r.json();
+  },
+  async health() {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 1500);
+    try {
+      const r = await window.fetch(this.base + '/health', { signal: ctl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const h = await r.json();
+      this.connected = !!h.ok; this.org = h.org; this.project = h.project;
+      return h;
+    } finally { clearTimeout(t); }
+  },
+  async refreshItems(ids) {
+    ids = [...ids].filter(Boolean);
+    if (!ids.length) return;
+    (await this._get('/workitems?ids=' + ids.join(','))).forEach(w => { this.store[w.id] = w; });
+  },
+  async refreshChildren(parentId) {
+    const items = await this._get('/children/' + parentId);
+    this._children[parentId] = items.map(w => w.id);
+    items.forEach(w => { this.store[w.id] = w; });
+  },
+  fetch(id) { const w = this.store[id]; return w ? { ...w } : null; },
+  childrenOf(parentId) { return (this._children[parentId] || []).map(id => this.store[id]).filter(Boolean); },
+  async createWorkItem(type, title, parentId, kind) {
+    const w = await this._post('/workitem', { type, title, parentId: parentId || null });
+    this.store[w.id] = w;
+    if (parentId) { (this._children[parentId] = this._children[parentId] || []).push(w.id); }
+    return { ...w, kind };
+  },
+};
+
+// Active ADO backend. Defaults to the mock; init swaps in AdoClient if the proxy
+// answers on load (see initAdoBackend). Everything else calls `ado.*`.
+let ado = AdoMock;
+
+// ── ADO helpers ──
+// An item is excluded from any push if tagged [no-ado].
+function isNoAdo(item) {
+  return (item.tags || []).some(t => t.toLowerCase() === 'no-ado');
+}
+function adoUrl(id) {
+  return `https://dev.azure.com/${ADO_ORG}/${encodeURIComponent(ADO_PROJECT)}/_workitems/edit/${id}`;
+}
+// Map an ADO state name to one of five category keys used for colour-coding,
+// mirroring ADO's own state categories (Proposed/InProgress/Resolved/Completed/Removed).
+function adoStateCategory(state) {
+  const s = (state || '').toLowerCase();
+  if (['done', 'closed', 'completed'].includes(s)) return 'done';
+  if (['removed', 'cut'].includes(s)) return 'removed';
+  if (s === 'resolved') return 'resolved';
+  if (['active', 'committed', 'in progress', 'doing', 'approved', 'design', 'development'].includes(s)) return 'active';
+  return 'new'; // New, Proposed, To Do, and any unknown state
+}
+// A colour-coded state name for the review panel's transition text.
+function adoStateSpan(state) {
+  return `<span class="ados-${adoStateCategory(state)}">${esc(state)}</span>`;
+}
+// The committed "whisper" (linked) for a bucket or item, or the "local" marker.
+// isItem=false suppresses the [no-ado] marker (buckets can't be tagged no-ado).
+function adoChipHTML(obj, isItem = true) {
+  if (obj.ado && obj.ado.id) {
+    const state = obj.ado.state || '';
+    const cat = adoStateCategory(state);
+    const st = state ? ` <span class="ado-dot">●</span> ${esc(state)}` : '';
+    const ty = obj.ado.type ? esc(obj.ado.type) : 'work item';
+    return `<a class="ado-chip ado-chip-${cat}" href="${adoUrl(obj.ado.id)}" target="_blank" rel="noopener"
+              title="Committed to ADO as ${ty}${state ? ' · ' + esc(state) : ''} — click to open #${obj.ado.id}"
+              onclick="event.stopPropagation()">🔗 #${obj.ado.id}${st}</a>`;
+  }
+  if (isItem && isNoAdo(obj)) {
+    return `<span class="ado-local-chip" title="Marked [no-ado] — stays in the backlog only">local</span>`;
+  }
+  return '';
+}
+
+// ── Selection mode ──
+function toggleAdoSelect() {
+  if (!buckets.length) { showToast('Load a backlog first'); return; }
+  adoSelecting = !adoSelecting;
+  adoSelected.clear();
+  document.body.classList.toggle('ado-selecting', adoSelecting);
+  document.getElementById('btn-ado').classList.toggle('active', adoSelecting);
+  document.querySelectorAll('.item-row.ado-selected').forEach(r => r.classList.remove('ado-selected'));
+  document.querySelectorAll('.item-select:checked').forEach(cb => { cb.checked = false; });
+  if (adoSelecting && currentView !== 'buckets') setView('buckets');
+  updateAdoBar();
+  if (adoSelecting) showToast('Select items, then commit to ADO');
+}
+
+function onAdoSelectToggle(cb) {
+  const id = cb.dataset.itemId;
+  const row = cb.closest('.item-row');
+  if (cb.checked) { adoSelected.add(id); row && row.classList.add('ado-selected'); }
+  else            { adoSelected.delete(id); row && row.classList.remove('ado-selected'); }
+  updateAdoBar();
+}
+
+function updateAdoBar() {
+  const bar = document.getElementById('ado-commit-bar');
+  document.getElementById('ado-sel-count').textContent = adoSelected.size;
+  bar.classList.toggle('show', adoSelecting);
+}
+
+// Resolve selected ids to { bucket, item } pairs, skipping committed/excluded.
+function selectedAdoItems() {
+  const out = [];
+  buckets.forEach(b => b.items.forEach(item => {
+    if (adoSelected.has(item.id) && !(item.ado && item.ado.id) && !isNoAdo(item)) {
+      out.push({ bucket: b, item });
+    }
+  }));
+  return out;
+}
+
+// ── Preview modal ──
+function openAdoPreview() {
+  const picks = selectedAdoItems();
+  if (!picks.length) { showToast('Nothing selected'); return; }
+
+  // Parent level — only levels that leave room for a bucket + item below.
+  const levelSel = document.getElementById('ado-parent-level');
+  levelSel.innerHTML = adoValidParentLevels().map(l =>
+    `<option value="${esc(l)}" ${l === adoParentLevel ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  levelSel.onchange = () => {
+    adoParentLevel = levelSel.value;
+    const first = adoParentsForLevel(adoParentLevel)[0];
+    adoParentId = first ? first.id : null;
+    fillAdoParentSelect();
+    renderAdoPreviewBody();
+  };
+
+  fillAdoParentSelect();
+  renderAdoPreviewBody();
+  document.getElementById('ado-modal-overlay').classList.add('show');
+}
+
+function fillAdoParentSelect() {
+  const sel = document.getElementById('ado-parent');
+  const parents = adoParentsForLevel(adoParentLevel);
+  if (!parents.some(p => p.id === adoParentId)) adoParentId = parents[0] ? parents[0].id : null;
+  sel.innerHTML = parents.map(p =>
+    `<option value="${p.id}" ${p.id === adoParentId ? 'selected' : ''}>#${p.id} · ${esc(p.title)}${p.note ? ' (' + esc(p.note) + ')' : ''}</option>`).join('');
+  sel.onchange = () => { adoParentId = parseInt(sel.value, 10); renderAdoPreviewBody(); };
+}
+
+// Group the current selection by bucket, preserving encounter order.
+function groupPicksByBucket(picks) {
+  const order = [], map = new Map();
+  picks.forEach(({ bucket, item }) => {
+    if (!map.has(bucket.id)) { map.set(bucket.id, { bucket, items: [] }); order.push(bucket.id); }
+    map.get(bucket.id).items.push(item);
+  });
+  return order.map(id => map.get(id));
+}
+
+function renderAdoPreviewBody() {
+  const picks  = selectedAdoItems();
+  const parent = adoParent(adoParentId);
+  const bType  = adoBucketType(adoParentLevel);
+  const iType  = adoItemType(adoParentLevel);
+
+  document.getElementById('ado-map-hint').innerHTML =
+    `Under <strong>${esc(parent ? parent.level : adoParentLevel)}</strong>${parent ? ' #' + parent.id : ''} — ` +
+    `buckets → <strong>${esc(bType)}</strong>, items → <strong>${esc(iType)}</strong>`;
+
+  const groups = groupPicksByBucket(picks);
+  let newBuckets = 0;
+  document.getElementById('ado-preview-list').innerHTML = groups.map(({ bucket, items }) => {
+    const existing = bucket.ado && bucket.ado.id;
+    if (!existing) newBuckets++;
+    const badge = existing
+      ? `<span class="ado-preview-bucket">existing #${bucket.ado.id}</span>`
+      : `<span class="ado-preview-bucket ado-preview-new">new</span>`;
+    const rows = items.map(it => `
+      <li class="ado-preview-item">
+        <span class="ado-preview-type">${esc(iType)}</span>
+        <span>${esc(it.text)}</span>
+      </li>`).join('');
+    return `
+      <li class="ado-preview-brow">
+        <span class="ado-preview-type ado-preview-type-b">${esc(bType)}</span>
+        <span class="ado-preview-btitle">${esc(bucket.title)}</span>
+        ${badge}
+      </li>${rows}`;
+  }).join('');
+
+  const parts = [`${picks.length} ${iType}${picks.length === 1 ? '' : 's'}`];
+  if (newBuckets) parts.push(`${newBuckets} ${bType}${newBuckets === 1 ? '' : 's'}`);
+  document.getElementById('ado-confirm-count').textContent = parts.join(' + ');
+}
+
+function closeAdoPreview() {
+  document.getElementById('ado-modal-overlay').classList.remove('show');
+}
+
+async function confirmAdoCommit() {
+  const picks = selectedAdoItems();
+  if (!picks.length) { closeAdoPreview(); return; }
+  const parent = adoParent(adoParentId);
+  if (!parent) { showToast('Pick a parent first'); return; }
+  const bType = adoBucketType(adoParentLevel);
+  const iType = adoItemType(adoParentLevel);
+
+  const btn = document.querySelector('.ado-modal-foot .btn-ado');
+  const prevHtml = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    let nItems = 0, nBuckets = 0;
+    for (const { bucket, items } of groupPicksByBucket(picks)) {
+      // Materialize the bucket once, one level below the parent.
+      if (!(bucket.ado && bucket.ado.id)) {
+        const w = await ado.createWorkItem(bType, bucket.title, parent.id, 'bucket');
+        bucket.ado = { id: w.id, type: bType, state: w.state, parent: { level: parent.level, id: parent.id } };
+        nBuckets++;
+      }
+      // Create each item one level below its bucket.
+      for (const item of items) {
+        const w = await ado.createWorkItem(iType, item.text, bucket.ado.id, 'item');
+        item.ado = { id: w.id, type: iType, state: w.state, parent: { level: bType, id: bucket.ado.id } };
+        nItems++;
+      }
+    }
+    closeAdoPreview();
+    toggleAdoSelect();                       // exit selection mode
+    reRender();
+    showToast(`Committed ${nItems} ${iType}${nItems === 1 ? '' : 's'}` +
+      (nBuckets ? ` under ${nBuckets} new ${bType}${nBuckets === 1 ? '' : 's'}` : ''));
+  } catch (e) {
+    showToast('ADO commit failed — see console');
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.innerHTML = prevHtml;
+  }
+}
+
+// Re-render whichever view is active (keeps chips/state in sync after a commit).
+function reRender() {
+  if (currentView === 'priority') renderPriorityView();
+  else if (currentView === 'timeline') renderTimelineView();
+  else renderAll();
+}
+
+// ─── ADO pull-diff (Phase 3: Tracking-lite) ───────────────────────────────────
+// Clarity = subtraction: Closed is the star (shrink the backlog), Modified is a
+// whisper, New defaults to ignored (shown, never auto-imported).
+
+// Does the backlog have anything linked to ADO?
+function hasAdoLinks() {
+  return buckets.some(b => (b.ado && b.ado.id) || b.items.some(i => i.ado && i.ado.id));
+}
+
+// Compare cached ADO state (on the backlog) against current ADO state (the mock store).
+function computeAdoDiff() {
+  const linkedIds = new Set();
+  const linkedItems = [];
+  buckets.forEach(b => {
+    if (b.ado && b.ado.id) linkedIds.add(b.ado.id);
+    b.items.forEach(it => { if (it.ado && it.ado.id) { linkedIds.add(it.ado.id); linkedItems.push({ item: it, bucket: b }); } });
+  });
+
+  const closed = [], modified = [];
+  linkedItems.forEach(({ item, bucket }) => {
+    const srv = ado.fetch(item.ado.id);
+    if (!srv || srv.state === item.ado.state) return;
+    const row = { item, bucket, from: item.ado.state, to: srv.state };
+    (ADO_CLOSED_STATES.includes(srv.state) ? closed : modified).push(row);
+  });
+
+  // New: direct children (one level below) of the chosen scope that aren't linked
+  // here and weren't dismissed. Scope is either every committed bucket, or a single
+  // parent the user picks (adoNewScope).
+  const created = [];
+  const addChildrenOf = (parentAdoId, target) => {
+    ado.childrenOf(parentAdoId).forEach(w => {
+      if (!linkedIds.has(w.id) && !adoIgnoredNew.has(w.id)) created.push({ srv: w, ...target });
+    });
+  };
+  if (adoNewScope.mode === 'parent' && adoNewScope.parentId) {
+    const p = ado.fetch(adoNewScope.parentId) || adoParent(adoNewScope.parentId);
+    const parentWi = p ? { id: p.id, title: p.title, type: p.type || p.level } : null;
+    if (parentWi) addChildrenOf(parentWi.id, { parentWi });
+  } else {
+    buckets.forEach(bucket => {
+      if (bucket.ado && bucket.ado.id) addChildrenOf(bucket.ado.id, { bucketId: bucket.id });
+    });
+  }
+
+  return { closed, modified, created };
+}
+
+function adoDiffCount(d) { return d.closed.length + d.modified.length + d.created.length; }
+// Count only the categories the given review mode surfaces.
+function adoModeCount(d, mode) {
+  return mode === 'new' ? d.created.length : d.closed.length + d.modified.length;
+}
+
+// Two deliberately separate checks (clarity = subtraction):
+//  • "Check updates" is the safe, everyday one — only state changes on items you
+//    already track. It never adds anything, so you can run it without worry.
+//  • "Check for new" is the discovery one — surfaces ADO items not in the backlog,
+//    strictly opt-in.
+async function checkAdoUpdates() {
+  if (adoSelecting) toggleAdoSelect();
+  if (!hasAdoLinks()) { showToast('Commit something to ADO first'); return; }
+  if (ado.simulateDrift) ado.simulateDrift();    // demo backend only
+  adoReviewMode = 'updates';
+  try {
+    await ado.refreshItems(linkedAdoIds());       // pull current ADO state for tracked items
+  } catch (e) { showToast('ADO check failed: ' + e.message); return; }
+  const diff = computeAdoDiff();
+  if (!adoModeCount(diff, 'updates')) { showToast('✓ No updates — tracked items match ADO'); return; }
+  openAdoReview();
+}
+
+function checkAdoNew() {
+  if (adoSelecting) toggleAdoSelect();
+  openAdoNewScope();
+}
+
+// Run the "new" check once a scope has been chosen.
+async function runAdoNewCheck() {
+  if (adoNewScope.mode === 'committed' && !hasAdoLinks()) { showToast('Commit something to ADO first'); return; }
+  if (ado.simulateDrift) ado.simulateDrift();     // demo backend only: nudge ADO so there's something new
+  adoReviewMode = 'new';
+  try {
+    if (adoNewScope.mode === 'parent') {
+      await ado.refreshItems([adoNewScope.parentId]);
+      await ado.refreshChildren(adoNewScope.parentId);
+    } else {
+      const committed = buckets.filter(b => b.ado && b.ado.id).map(b => b.ado.id);
+      for (const id of committed) await ado.refreshChildren(id);
+    }
+  } catch (e) { showToast('ADO check failed: ' + e.message); return; }
+  const diff = computeAdoDiff();
+  if (!adoModeCount(diff, 'new')) {
+    showToast(adoNewScope.mode === 'parent'
+      ? '✓ No new items under that parent'
+      : '✓ No new items under your committed buckets');
+    return;
+  }
+  openAdoReview();
+}
+
+function openAdoReview() {
+  renderAdoReview();
+  document.getElementById('ado-review').classList.add('open');
+}
+
+// ── "Check for new" scope picker ──
+function openAdoNewScope() {
+  const committed = buckets.filter(b => b.ado && b.ado.id);
+  const sub = document.getElementById('ado-newscope-committed-sub');
+  sub.textContent = committed.length
+    ? `${committed.length} committed bucket${committed.length === 1 ? '' : 's'} — direct children only.`
+    : 'No committed buckets yet — commit some, or pick a parent below.';
+
+  // Populate the level + parent selects from the known ADO parents.
+  const levels = [...new Set(ADO_PARENTS.map(p => p.level))];
+  const levelSel = document.getElementById('ado-newscope-level');
+  levelSel.innerHTML = levels.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+  populateAdoNewScopeParents();
+
+  // Default to whichever scope makes sense.
+  const mode = committed.length ? 'committed' : 'parent';
+  document.querySelector(`input[name="ado-newscope"][value="${mode}"]`).checked = true;
+  onAdoNewScopeChange();
+  document.getElementById('ado-newscope-overlay').classList.add('show');
+}
+
+function closeAdoNewScope() {
+  document.getElementById('ado-newscope-overlay').classList.remove('show');
+}
+
+function onAdoNewScopeChange() {
+  const mode = document.querySelector('input[name="ado-newscope"]:checked').value;
+  document.getElementById('ado-newscope-parent').classList.toggle('show', mode === 'parent');
+}
+
+function onAdoNewScopeLevel() { populateAdoNewScopeParents(); }
+
+function populateAdoNewScopeParents() {
+  const level = document.getElementById('ado-newscope-level').value;
+  const parents = ADO_PARENTS.filter(p => p.level === level);
+  document.getElementById('ado-newscope-parent-sel').innerHTML =
+    parents.map(p => `<option value="${p.id}">${esc(p.title)}${p.note ? ` (${esc(p.note)})` : ''}</option>`).join('');
+}
+
+function applyAdoNewScope() {
+  const mode = document.querySelector('input[name="ado-newscope"]:checked').value;
+  if (mode === 'parent') {
+    const parentId = parseInt(document.getElementById('ado-newscope-parent-sel').value, 10);
+    adoNewScope = { mode: 'parent', parentId };
+  } else {
+    adoNewScope = { mode: 'committed', parentId: null };
+  }
+  closeAdoNewScope();
+  runAdoNewCheck();
+}
+
+function closeAdoReview() {
+  document.getElementById('ado-review').classList.remove('open');
+}
+
+function renderAdoReview() {
+  const d = computeAdoDiff();
+  const body = document.getElementById('ado-review-body');
+  const isNew = adoReviewMode === 'new';
+  const count = adoModeCount(d, adoReviewMode);
+
+  document.getElementById('ado-review-title').innerHTML =
+    (isNew ? 'New in ADO ' : 'Updates from ADO ') +
+    `<span class="ado-review-count" id="ado-review-count">${count || ''}</span>`;
+  document.getElementById('ado-review-sub').textContent = isNew
+    ? 'Items not in the backlog — strictly opt-in, nothing imports on its own.'
+    : 'State changes on items you already track — safe to review anytime.';
+
+  if (!count) {
+    body.innerHTML = `<div class="ado-review-empty">${isNew
+      ? '✓ No new items under your committed buckets.'
+      : '✓ All caught up — tracked items match ADO.'}</div>`;
+    return;
+  }
+
+  const sections = [];
+
+  // 🟢 Closed — the star. Offer to strike from the backlog.
+  if (!isNew && d.closed.length) {
+    sections.push(section('🟢', 'Closed', 'Resolved in ADO — safe to clear out', 'closed', d.closed.map(r => {
+      const cut = (r.to === 'Removed');
+      return `
+      <div class="ado-rev-row" data-kind="closed" data-item="${r.item.id}">
+        <div class="ado-rev-main">
+          <span class="ado-rev-tag ${cut ? 'cut' : 'shipped'}">${cut ? '✂ Cut from scope' : '✓ Shipped'}</span>
+          <div class="ado-rev-text">${esc(r.item.text)}</div>
+          <div class="ado-rev-meta">#${r.item.ado.id} · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)} · ${esc(r.bucket.title)}</div>
+        </div>
+        <div class="ado-rev-actions">
+          <button class="ado-rev-accept" onclick="adoRevClosedStrike('${r.item.id}')">Strike ✓</button>
+          <button class="ado-rev-ignore" onclick="adoRevAcknowledge('${r.item.id}')">Keep</button>
+        </div>
+      </div>`; }).join('')));
+  }
+
+  // 🟡 Modified — a whisper. Just refresh the cached state.
+  if (!isNew && d.modified.length) {
+    sections.push(section('🟡', 'Modified', 'State changed in ADO', 'modified', d.modified.map(r => `
+      <div class="ado-rev-row" data-kind="modified" data-item="${r.item.id}">
+        <div class="ado-rev-main">
+          <div class="ado-rev-text">${esc(r.item.text)}</div>
+          <div class="ado-rev-meta">#${r.item.ado.id} · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)} · ${esc(r.bucket.title)}</div>
+        </div>
+        <div class="ado-rev-actions">
+          <button class="ado-rev-ignore" onclick="adoRevAcknowledge('${r.item.id}')">Got it</button>
+        </div>
+      </div>`).join('')));
+  }
+
+  // 🆕 New — default-ignored. Opt in to add; never auto-imports.
+  if (isNew && d.created.length) {
+    _adoNewRows = {};
+    d.created.forEach(r => { _adoNewRows[r.srv.id] = r; });
+    const sub = adoNewScope.mode === 'parent'
+      ? 'Direct children of the parent you picked — opt in if you want them'
+      : 'Under your committed buckets — opt in if you want them';
+    sections.push(section('🆕', 'New in ADO', sub, 'created', d.created.map(r => {
+      const target = adoNewTargetLabel(r);
+      return `
+      <div class="ado-rev-row" data-kind="new" data-ado="${r.srv.id}">
+        <div class="ado-rev-main">
+          <div class="ado-rev-text">${esc(r.srv.title)}</div>
+          <div class="ado-rev-meta">#${r.srv.id} · ${esc(r.srv.type)} · → ${esc(target)}</div>
+        </div>
+        <div class="ado-rev-actions">
+          <button class="ado-rev-accept" onclick="adoRevAddNew(${r.srv.id})">Add here</button>
+          <button class="ado-rev-ignore" onclick="adoRevIgnoreNew(${r.srv.id})">Ignore</button>
+        </div>
+      </div>`; }).join('')));
+  }
+
+  body.innerHTML = sections.join('');
+  body.scrollTop = 0;
+
+  function section(icon, title, sub, kind, rows) {
+    const n = (rows.match(/class="ado-rev-row"/g) || []).length;
+    const open = adoSectionOpen[kind] ? ' open' : '';
+    return `<div class="ado-rev-section${open}" data-section="${kind}">
+      <div class="ado-rev-head" onclick="toggleAdoSection('${kind}')">
+        <span class="ado-rev-chevron">▸</span>
+        <span class="ado-rev-icon">${icon}</span>
+        <span class="ado-rev-title">${title} · ${n}</span><span class="ado-rev-sub">${sub}</span></div>
+      <div class="ado-rev-rows">${rows}</div></div>`;
+  }
+}
+
+// Expand/collapse a review section without a full re-render (keeps it snappy and
+// preserves scroll). State is tracked so re-renders after row actions remember it.
+function toggleAdoSection(kind) {
+  adoSectionOpen[kind] = !adoSectionOpen[kind];
+  const el = document.querySelector(`.ado-rev-section[data-section="${kind}"]`);
+  if (el) el.classList.toggle('open', adoSectionOpen[kind]);
+}
+
+// Find a linked item by its backlog id.
+function findLinkedItem(itemId) {
+  for (const b of buckets) { const it = b.items.find(x => x.id === itemId); if (it) return { item: it, bucket: b }; }
+  return null;
+}
+
+// Closed → strike from the backlog (mark N/A) and acknowledge the new state.
+function adoRevClosedStrike(itemId) {
+  const hit = findLinkedItem(itemId);
+  if (!hit) return;
+  const srv = ado.fetch(hit.item.ado.id);
+  hit.item.priority = 'na';
+  if (srv) hit.item.ado.state = srv.state;
+  reRender(); renderAdoReview();
+  showToast('Struck from backlog');
+}
+
+// Accept the ADO state as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
+function adoRevAcknowledge(itemId) {
+  const hit = findLinkedItem(itemId);
+  if (!hit) return;
+  const srv = ado.fetch(hit.item.ado.id);
+  if (srv) hit.item.ado.state = srv.state;
+  reRender(); renderAdoReview();
+}
+
+// Display label for a "new" row's destination bucket.
+function adoNewTargetLabel(r) {
+  if (r.bucketId) { const b = getBucket(r.bucketId); return b ? b.title : '(bucket)'; }
+  if (r.parentWi) {
+    const existing = buckets.find(b => b.ado && b.ado.id === r.parentWi.id);
+    return existing ? existing.title : `${r.parentWi.title} (new bucket)`;
+  }
+  return '(bucket)';
+}
+
+// Find the backlog bucket linked to an ADO work item, creating+linking one if needed.
+function ensureBucketForWi(wi) {
+  let bucket = buckets.find(b => b.ado && b.ado.id === wi.id);
+  if (!bucket) {
+    bucket = {
+      id: uid(), priority: 'medium', expanded: true, title: wi.title, items: [], tags: [],
+      ado: { id: wi.id, type: wi.type, state: wi.state || 'New' },
+    };
+    buckets.push(bucket);
+  }
+  return bucket;
+}
+
+// New → add the ADO work item as an item under its target bucket, carrying its link.
+// Target is either a committed bucket (committed scope) or the picked parent
+// materialized as a bucket (parent scope).
+function adoRevAddNew(adoId) {
+  const row = _adoNewRows[adoId];
+  const srv = ado.fetch(adoId);
+  if (!row || !srv) return;
+  const bucket = row.bucketId ? getBucket(row.bucketId) : (row.parentWi ? ensureBucketForWi(row.parentWi) : null);
+  if (!bucket) return;
+  bucket.items.push({
+    id: uid(), text: srv.title, priority: 'medium', tags: [],
+    ado: { id: srv.id, type: srv.type, state: srv.state, parent: { level: bucket.ado.type, id: bucket.ado.id } },
+  });
+  reRender(); renderAdoReview();
+  showToast('Added to backlog');
+}
+
+function adoRevIgnoreNew(adoId) {
+  adoIgnoredNew.add(adoId);
+  renderAdoReview();
+}
+
+// ─── Pull from ADO by ID (opt-in import of an existing work item) ──────────────
+// Set of every ADO id already linked in the backlog — used to skip duplicates.
+function linkedAdoIds() {
+  const ids = new Set();
+  buckets.forEach(b => {
+    if (b.ado && b.ado.id) ids.add(b.ado.id);
+    b.items.forEach(it => { if (it.ado && it.ado.id) ids.add(it.ado.id); });
+  });
+  return ids;
+}
+
+function openAdoPull() {
+  if (adoSelecting) toggleAdoSelect();
+  document.getElementById('ado-pull-id').value = '';
+  document.getElementById('ado-pull-result').innerHTML = '';
+  document.getElementById('ado-pull-confirm').disabled = true;
+  document.getElementById('ado-pull-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('ado-pull-id').focus(), 30);
+}
+
+function closeAdoPull() {
+  document.getElementById('ado-pull-overlay').classList.remove('show');
+}
+
+async function adoPullLookup() {
+  const raw = document.getElementById('ado-pull-id').value.trim();
+  const result = document.getElementById('ado-pull-result');
+  const confirmBtn = document.getElementById('ado-pull-confirm');
+  confirmBtn.disabled = true;
+  if (!raw) { result.innerHTML = ''; return; }
+  const id = parseInt(raw, 10);
+  result.innerHTML = `<div class="ado-pull-empty">Looking up #${esc(raw)}…</div>`;
+  try {
+    await ado.refreshItems([id]);
+    await ado.refreshChildren(id);
+  } catch (e) {
+    result.innerHTML = `<div class="ado-pull-error">Lookup failed: ${esc(e.message)}</div>`;
+    return;
+  }
+  const wi = ado.fetch(id);
+  if (!wi) {
+    result.innerHTML = `<div class="ado-pull-error">No ADO work item found with ID #${esc(raw)}.</div>`;
+    return;
+  }
+  const linked = linkedAdoIds();
+  if (linked.has(id)) {
+    result.innerHTML = `<div class="ado-pull-error">#${id} “${esc(wi.title)}” is already in the backlog.</div>`;
+    return;
+  }
+  const kids = ado.childrenOf(id);
+  let html = `<div class="ado-pull-parent">
+      <span class="ado-pull-parent-type">${esc(wi.type)}</span>
+      <div class="ado-pull-parent-title">${esc(wi.title)}</div>
+      <div class="ado-pull-parent-sub">#${wi.id} · ${adoStateSpan(wi.state)} → becomes a bucket</div>
+    </div>`;
+  if (kids.length) {
+    html += `<div class="ado-pull-children-label">
+        <label class="ado-field-label">Bring child items (${kids.length})</label>
+        <button class="ado-pull-selall" onclick="adoPullToggleAll()">Toggle all</button>
+      </div><ul class="ado-pull-children">`;
+    kids.forEach(k => {
+      const isLinked = linked.has(k.id);
+      html += `<li class="ado-pull-child${isLinked ? ' linked' : ''}">
+          <input type="checkbox" data-child="${k.id}" ${isLinked ? 'disabled' : 'checked'}>
+          <span class="ado-pull-child-title">${esc(k.title)}</span>
+          <span class="ado-pull-child-id">#${k.id} · ${esc(k.type)}</span>
+        </li>`;
+    });
+    html += `</ul>`;
+  } else {
+    html += `<div class="ado-pull-empty">No child items — this will create an empty bucket you can fill in.</div>`;
+  }
+  result.innerHTML = html;
+  result.dataset.parentId = id;
+  confirmBtn.disabled = false;
+}
+
+function adoPullToggleAll() {
+  const boxes = document.querySelectorAll('#ado-pull-result .ado-pull-child input:not([disabled])');
+  const anyUnchecked = [...boxes].some(b => !b.checked);
+  boxes.forEach(b => { b.checked = anyUnchecked; });
+}
+
+function confirmAdoPull() {
+  const result = document.getElementById('ado-pull-result');
+  const id = parseInt(result.dataset.parentId, 10);
+  const wi = ado.fetch(id);
+  if (!wi) { closeAdoPull(); return; }
+  const linked = linkedAdoIds();
+  if (linked.has(id)) { closeAdoPull(); return; }
+
+  const childIds = [...document.querySelectorAll('#ado-pull-result .ado-pull-child input:checked')]
+    .map(b => parseInt(b.dataset.child, 10));
+
+  const bucket = {
+    id: uid(), priority: 'medium', expanded: true, title: wi.title, items: [], tags: [],
+    ado: { id: wi.id, type: wi.type, state: wi.state },
+  };
+  let nItems = 0;
+  childIds.forEach(cid => {
+    if (linked.has(cid)) return;
+    const c = ado.fetch(cid);
+    if (!c) return;
+    bucket.items.push({
+      id: uid(), text: c.title, priority: 'medium', tags: [],
+      ado: { id: c.id, type: c.type, state: c.state, parent: { level: wi.type, id: wi.id } },
+    });
+    nItems++;
+  });
+  buckets.push(bucket);
+  closeAdoPull();
+  reRender();
+  showToast(`Pulled #${id} as a bucket` + (nItems ? ` with ${nItems} item${nItems === 1 ? '' : 's'}` : ''));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtItemText(text) {
+  const idx = text.indexOf(':');
+  if (idx < 1) return esc(text);
+  return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
+}
+
+function highlightText(text, q) {
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx < 0) return fmtItemText(text);
+  const before = text.slice(0, idx);
+  const match  = text.slice(idx, idx + q.length);
+  const after  = text.slice(idx + q.length);
+  // Apply bold-colon formatting around the highlighted span
+  const full = before + '\x01' + match + '\x02' + after;
+  const colonIdx = full.indexOf(':');
+  if (colonIdx > 0 && colonIdx < full.indexOf('\x01')) {
+    return `<strong>${esc(before.slice(0, colonIdx))}</strong>${esc(before.slice(colonIdx))}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+  }
+  return `${esc(before)}<mark class="hl">${esc(match)}</mark>${esc(after)}`;
+}
+function getBucket(id) { return buckets.find(b => b.id === id); }
+function getCard(id) { return document.querySelector(`.bucket-card[data-id="${id}"]`); }
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── View State ───────────────────────────────────────────────────────────────
+let currentView = 'buckets';
+let searchQuery = '';
+
+function onSearchInput(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('search-clear').classList.toggle('visible', searchQuery !== '');
+  if (currentView === 'timeline') return;
+  if (currentView === 'buckets') applyBucketSearch();
+  else renderPriorityView();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  const inp = document.getElementById('search-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+  document.getElementById('search-clear').classList.remove('visible');
+  if (currentView === 'timeline') return;
+  if (currentView === 'buckets') applyBucketSearch();
+  else renderPriorityView();
+}
+
+function applyBucketSearch() {
+  const q = searchQuery;
+  const isTagSearch = q.startsWith('#');
+  const tagQ = isTagSearch ? q.slice(1).toLowerCase() : null;
+  document.querySelectorAll('.bucket-card').forEach(card => {
+    const bid = card.dataset.id;
+    const bucket = getBucket(bid);
+    let visibleCount = 0;
+    card.querySelectorAll('.item-row').forEach(row => {
+      const textEl = row.querySelector('.item-text');
+      if (!textEl) return;
+      const raw = textEl.dataset.raw || textEl.textContent;
+      textEl.dataset.raw = raw;
+      const item = bucket ? bucket.items.find(i => i.id === row.dataset.id) : null;
+      let match;
+      if (!q) {
+        match = true;
+      } else if (isTagSearch) {
+        match = !!(item && (item.tags || []).some(t => t.toLowerCase().includes(tagQ)));
+      } else {
+        match = raw.toLowerCase().includes(q) || !!(item && (item.tags || []).some(t => t.toLowerCase().includes(q)));
+      }
+      row.style.display = match ? '' : 'none';
+      if (match) {
+        textEl.innerHTML = q && !isTagSearch && raw.toLowerCase().includes(q) ? highlightText(raw, q) : fmtItemText(raw);
+        visibleCount++;
+      }
+    });
+    const bucketTagMatch = !!(q && isTagSearch && bucket && (bucket.tags || []).some(t => t.toLowerCase().includes(tagQ)));
+    if (q) {
+      const show = visibleCount > 0 || bucketTagMatch;
+      card.style.display = show ? '' : 'none';
+      if (show) {
+        const body = card.querySelector('.bucket-body');
+        if (body) body.style.display = '';
+        card.classList.remove('collapsed');
+        if (bucketTagMatch && visibleCount === 0) {
+          card.querySelectorAll('.item-row').forEach(r => r.style.display = '');
+        }
+      }
+    } else {
+      card.style.display = '';
+    }
+  });
+}
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('btn-view-buckets').classList.toggle('active', view === 'buckets');
+  document.getElementById('btn-view-priority').classList.toggle('active', view === 'priority');
+  document.getElementById('btn-view-timeline').classList.toggle('active', view === 'timeline');
+  const cont = document.getElementById('buckets-container');
+  if (view === 'timeline') {
+    cont.style.maxWidth = 'none';
+    cont.style.margin = '0';
+    cont.style.padding = '0';
+    renderTimelineView();
+  } else {
+    cont.style.maxWidth = '880px';
+    cont.style.margin = '22px auto';
+    cont.style.padding = '0 20px 80px';
+    if (view === 'buckets') renderAll();
+    else renderPriorityView();
+  }
+}
+
+// ─── Priority View ────────────────────────────────────────────────────────────
+function renderPriorityView() {
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+  if (!buckets.length) { renderAll(); return; }
+
+  const ORDER = ['critical', 'medium', 'low', 'na'];
+  const LABEL = { critical: '🔴 Critical', medium: '🟡 Medium', low: '🔵 Low', na: '⬜ N/A' };
+  const BORDER = { critical: '#ef4444', medium: '#f59e0b', low: '#3b82f6', na: '#334155' };
+
+  // Flatten all items, attaching bucket title
+  const q = searchQuery;
+  const isTagSearch = q.startsWith('#');
+  const tagQ = isTagSearch ? q.slice(1).toLowerCase() : null;
+  const flat = [];
+  buckets.forEach(b => b.items.forEach(item => flat.push({ ...item, bucketTitle: b.title })));
+
+  const grouped = {};
+  ORDER.forEach(p => grouped[p] = flat.filter(i => {
+    if (i.priority !== p) return false;
+    if (!q) return true;
+    if (isTagSearch) return (i.tags || []).some(t => t.toLowerCase().includes(tagQ));
+    return i.text.toLowerCase().includes(q) || (i.tags || []).some(t => t.toLowerCase().includes(q));
+  }));
+
+  ORDER.forEach(p => {
+    const items = grouped[p];
+    if (!items.length) return;
+
+    const group = document.createElement('div');
+    group.className = 'pv-group open';
+    group.dataset.pv = p;
+
+    group.innerHTML = `
+      <div class="pv-group-header" style="border-left:4px solid ${BORDER[p]}" onclick="this.parentElement.classList.toggle('open')">
+        <span class="pv-group-title">${LABEL[p]}</span>
+        <span class="pv-group-count">${items.length}</span>
+        <span class="pv-group-chevron">▶</span>
+      </div>
+      <div class="pv-items">
+        ${items.map(item => `
+          <div class="pv-item${item.priority === 'na' ? ' na-item' : ''}">
+            <span class="pv-item-text">${q && !isTagSearch && item.text.toLowerCase().includes(q) ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
+            ${item.tags && item.tags.length ? `<span class="pv-item-tags">${item.tags.map(t => `<span class="tag-chip" data-tag="${esc(t)}" onclick="onTagChipClick(this)">#${esc(t)}</span>`).join('')}</span>` : ''}
+            <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>${adoChipHTML(item)}
+          </div>`).join('')}
+      </div>`;
+
+    container.appendChild(group);
+  });
+}
+
+// ─── Initial Render ───────────────────────────────────────────────────────────
+function renderAll() {
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+  if (!buckets.length) {
+    container.innerHTML = `<div style="text-align:center;padding:80px 20px;color:#334155;">
+      <div style="font-size:2.5rem;margin-bottom:16px">📂</div>
+      <div style="font-size:1rem;font-weight:600;color:#475569;margin-bottom:8px">No backlog loaded</div>
+      <div style="font-size:0.82rem;color:#334155">Click <strong style="color:#60a5fa">📂 Load</strong> to open a markdown file</div>
+    </div>`;
+    return;
+  }
+  buckets.forEach((b, i) => container.appendChild(createBucketCard(b, i)));
+  initSortables();
+  if (searchQuery) applyBucketSearch();
+}
+
+function createBucketCard(bucket, idx) {
+  const card = document.createElement('div');
+  card.className = `bucket-card priority-${bucket.priority}${bucket.expanded ? ' expanded' : ''}`;
+  card.dataset.id = bucket.id;
+
+  card.innerHTML = `
+    <div class="bucket-header">
+      <span class="bucket-drag-handle" title="Drag to reorder">⠿</span>
+      <span class="bucket-number">#${idx + 1}</span>
+      <select class="priority-select" title="Change priority">
+        <option value="critical" ${bucket.priority === 'critical' ? 'selected' : ''}>🔴 Critical</option>
+        <option value="medium"   ${bucket.priority === 'medium'   ? 'selected' : ''}>🟡 Medium</option>
+        <option value="low"      ${bucket.priority === 'low'      ? 'selected' : ''}>🔵 Low</option>
+      </select>
+      <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
+      <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
+      ${adoChipHTML(bucket, false)}
+      <button class="rename-bucket-btn" title="Rename bucket">✏</button>
+      <span class="item-count-badge">${bucket.items.length}</span>
+      <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="bucket-body">
+      <ul class="items-list" data-bucket-id="${bucket.id}">
+        ${bucket.items.map(makeItemLI).join('')}
+      </ul>
+      <div class="add-item-area">
+        <input type="text" class="add-item-input" placeholder="New item — press Enter or click Add">
+        <button class="add-item-btn">＋ Add</button>
+      </div>
+    </div>
+  `;
+
+  // header: toggle on click (except interactive controls)
+  card.querySelector('.bucket-header').addEventListener('click', (e) => {
+    if (e.target.closest('.priority-select, .delete-bucket-btn, .rename-bucket-btn, .bucket-drag-handle, .bucket-tags, input, button')) return;
+    toggleBucket(bucket.id);
+  });
+
+  // priority change
+  card.querySelector('.priority-select').addEventListener('change', (e) => {
+    changePriority(bucket.id, e.target.value);
+    e.stopPropagation();
+  });
+
+  // rename bucket button
+  card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    editBucketTitle(bucket.id);
+  });
+
+  // rename title on double-click
+  card.querySelector('.bucket-title').addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    editBucketTitle(bucket.id);
+  });
+
+  // delete bucket
+  card.querySelector('.delete-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete bucket "${bucket.title}"?\nThis cannot be undone.`)) deleteBucket(bucket.id);
+  });
+
+  // item actions
+  wireItemEvents(card, bucket.id);
+
+  // add item
+  const input = card.querySelector('.add-item-input');
+  card.querySelector('.add-item-btn').addEventListener('click', () => {
+    const t = input.value.trim();
+    if (t) { addItem(bucket.id, t); input.value = ''; } else input.focus();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      addItem(bucket.id, input.value.trim());
+      input.value = '';
+    }
+  });
+
+  return card;
+}
+
+function makeItemLI(item) {
+  const p = item.priority || 'medium';
+  const naClass = p === 'na' ? ' na-item' : '';
+  const excluded = isNoAdo(item);
+  const committed = !!(item.ado && item.ado.id);
+  const stateClass = committed ? ' ado-committed' : (excluded ? ' ado-excluded' : '');
+  return `
+    <li class="item-row${naClass}${stateClass}" data-id="${item.id}">
+      <input type="checkbox" class="item-select" data-item-id="${item.id}" title="Select for ADO commit">
+      <span class="item-drag-handle" title="Drag to reorder">⠿</span>
+      <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
+        <option value="critical" ${p === 'critical' ? 'selected' : ''}>🔴 Critical</option>
+        <option value="medium"   ${p === 'medium'   ? 'selected' : ''}>🟡 Medium</option>
+        <option value="low"      ${p === 'low'      ? 'selected' : ''}>🔵 Low</option>
+        <option value="na"       ${p === 'na'       ? 'selected' : ''}>⬜ N/A</option>
+      </select>
+      <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+      <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
+      ${adoChipHTML(item)}
+      <div class="item-actions">
+        <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
+        <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
+      </div>
+    </li>`;
+}
+
+function wireItemEvents(card, bucketId) {
+  card.querySelectorAll('.delete-item-btn').forEach(btn =>
+    btn.addEventListener('click', () => deleteItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-edit-btn').forEach(btn =>
+    btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-text').forEach(span =>
+    span.addEventListener('dblclick', () => editItem(bucketId, span.dataset.itemId)));
+  card.querySelectorAll('.item-priority-select').forEach(sel =>
+    sel.addEventListener('change', () => {
+      const b = getBucket(bucketId);
+      const item = b && b.items.find(i => i.id === sel.dataset.itemId);
+      if (item) {
+        item.priority = sel.value;
+        sel.closest('.item-row').classList.toggle('na-item', sel.value === 'na');
+      }
+    }));
+  card.querySelectorAll('.item-select').forEach(cb =>
+    cb.addEventListener('change', () => onAdoSelectToggle(cb)));
+}
+
+
+// ─── Sortables ────────────────────────────────────────────────────────────────
+let _bucketSort = null;
+const _itemSorts = new Map();
+
+function initSortables() {
+  const container = document.getElementById('buckets-container');
+  if (_bucketSort) _bucketSort.destroy();
+  _bucketSort = Sortable.create(container, {
+    handle: '.bucket-drag-handle',
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd(e) {
+      if (e.oldIndex !== e.newIndex) {
+        const [m] = buckets.splice(e.oldIndex, 1);
+        buckets.splice(e.newIndex, 0, m);
+        updateNumbers();
+      }
+    }
+  });
+  initItemSortables();
+}
+
+function makeItemSortable(list) {
+  const bid = list.dataset.bucketId;
+  if (_itemSorts.has(bid)) _itemSorts.get(bid).destroy();
+  const s = Sortable.create(list, {
+    group: 'shared-items',
+    handle: '.item-drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd(e) {
+      const fromId = e.from.dataset.bucketId;
+      const toId   = e.to.dataset.bucketId;
+      const fromB  = getBucket(fromId);
+      const toB    = getBucket(toId);
+      if (!fromB || !toB) return;
+
+      if (fromId === toId) {
+        // same bucket reorder
+        if (e.oldIndex !== e.newIndex) {
+          const [m] = fromB.items.splice(e.oldIndex, 1);
+          fromB.items.splice(e.newIndex, 0, m);
+        }
+      } else {
+        // cross-bucket move — move item in data model
+        const [m] = fromB.items.splice(e.oldIndex, 1);
+        toB.items.splice(e.newIndex, 0, m);
+        // re-wire action buttons on the moved <li> so its bucketId is correct
+        const li = e.item;
+        const itemId = li.dataset.id;
+        li.querySelector('.delete-item-btn').onclick = () => deleteItem(toId, itemId);
+        li.querySelector('.item-edit-btn').onclick   = () => editItem(toId, itemId);
+        li.querySelector('.item-text').ondblclick    = () => editItem(toId, itemId);
+        li.querySelector('.item-priority-select').onchange = (e) => {
+          const bTo = getBucket(toId);
+          const itm = bTo && bTo.items.find(i => i.id === itemId);
+          if (itm) {
+            itm.priority = e.target.value;
+            li.classList.toggle('na-item', e.target.value === 'na');
+          }
+        };
+        // update count badges
+        updateCount(fromId);
+        updateCount(toId);
+      }
+    }
+  });
+  _itemSorts.set(bid, s);
+  return s;
+}
+
+function initItemSortables() {
+  document.querySelectorAll('.items-list').forEach(list => makeItemSortable(list));
+}
+
+function updateNumbers() {
+  document.querySelectorAll('.bucket-card').forEach((card, i) => {
+    card.querySelector('.bucket-number').textContent = `#${i + 1}`;
+  });
+}
+
+// ─── Bucket Actions ───────────────────────────────────────────────────────────
+function expandAll() {
+  if (currentView === 'priority') {
+    document.querySelectorAll('.pv-group').forEach(g => g.classList.add('open'));
+  } else {
+    buckets.forEach(b => { b.expanded = true; getCard(b.id)?.classList.add('expanded'); });
+  }
+}
+
+function collapseAll() {
+  if (currentView === 'priority') {
+    document.querySelectorAll('.pv-group').forEach(g => g.classList.remove('open'));
+  } else {
+    buckets.forEach(b => { b.expanded = false; getCard(b.id)?.classList.remove('expanded'); });
+  }
+}
+
+function toggleBucket(id) {
+  const b = getBucket(id);
+  if (!b) return;
+  b.expanded = !b.expanded;
+  getCard(id).classList.toggle('expanded', b.expanded);
+}
+
+function changePriority(id, priority) {
+  const b = getBucket(id);
+  if (!b) return;
+  b.priority = priority;
+  const card = getCard(id);
+  card.classList.remove('priority-critical', 'priority-medium', 'priority-low');
+  card.classList.add('priority-' + priority);
+}
+
+function deleteBucket(id) {
+  const idx = buckets.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  buckets.splice(idx, 1);
+  const card = getCard(id);
+  card.style.transition = 'all 0.2s';
+  card.style.opacity = '0';
+  card.style.marginBottom = '0';
+  card.style.maxHeight = '0';
+  setTimeout(() => { card.remove(); updateNumbers(); }, 210);
+  showToast('Bucket deleted');
+}
+
+function addBucket() {
+  const b = { id: uid(), priority: 'medium', expanded: true, title: 'New Bucket', items: [], tags: [] };
+  buckets.push(b);
+  const card = createBucketCard(b, buckets.length - 1);
+  document.getElementById('buckets-container').appendChild(card);
+  // wire item sortable for new bucket
+  const list = card.querySelector('.items-list');
+  makeItemSortable(list);
+  updateNumbers();
+  setTimeout(() => editBucketTitle(b.id), 60);
+}
+
+function editBucketTitle(id) {
+  const b = getBucket(id);
+  if (!b) return;
+  const card = getCard(id);
+  const span = card.querySelector('.bucket-title');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'bucket-title-input';
+  input.value = b.title;
+  span.replaceWith(input);
+  input.focus(); input.select();
+  const save = () => {
+    b.title = input.value.trim() || b.title;
+    const s = document.createElement('span');
+    s.className = 'bucket-title'; s.title = 'Double-click to rename'; s.textContent = b.title;
+    s.addEventListener('dblclick', (e) => { e.stopPropagation(); editBucketTitle(id); });
+    input.replaceWith(s);
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') {
+      const s = document.createElement('span');
+      s.className = 'bucket-title'; s.title = 'Double-click to rename'; s.textContent = b.title;
+      s.addEventListener('dblclick', (e2) => { e2.stopPropagation(); editBucketTitle(id); });
+      input.replaceWith(s);
+    }
+  });
+}
+
+// ─── Item Actions ─────────────────────────────────────────────────────────────
+function addItem(bucketId, text, priority = 'medium') {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const item = { id: uid(), text, priority, tags: [] };
+  b.items.push(item);
+  const card = getCard(bucketId);
+  const list = card.querySelector('.items-list');
+  const li = document.createElement('li');
+  li.className = 'item-row'; li.dataset.id = item.id;
+  li.innerHTML = `
+    <span class="item-drag-handle" title="Drag to reorder">⠿</span>
+    <select class="item-priority-select" data-item-id="${item.id}" title="Item priority">
+      <option value="critical">🔴 Critical</option>
+      <option value="medium" selected>🟡 Medium</option>
+      <option value="low">🔵 Low</option>
+      <option value="na">⬜ N/A</option>
+    </select>
+    <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+    <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML([], 'item', item.id)}</div>
+    <div class="item-actions">
+      <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit">✎</button>
+      <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
+    </div>`;
+  li.querySelector('.item-priority-select').addEventListener('change', (e) => {
+    item.priority = e.target.value;
+    li.classList.toggle('na-item', e.target.value === 'na');
+  });
+  li.querySelector('.delete-item-btn').addEventListener('click', () => deleteItem(bucketId, item.id));
+  li.querySelector('.item-edit-btn').addEventListener('click', () => editItem(bucketId, item.id));
+  li.querySelector('.item-text').addEventListener('dblclick', () => editItem(bucketId, item.id));
+  list.appendChild(li);
+  updateCount(bucketId);
+}
+
+function deleteItem(bucketId, itemId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const idx = b.items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  b.items.splice(idx, 1);
+  const li = document.querySelector(`.item-row[data-id="${itemId}"]`);
+  if (li) {
+    li.style.transition = 'all 0.15s';
+    li.style.opacity = '0'; li.style.height = '0'; li.style.padding = '0'; li.style.overflow = 'hidden';
+    setTimeout(() => li.remove(), 160);
+  }
+  updateCount(bucketId);
+}
+
+function editItem(bucketId, itemId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const item = b.items.find(i => i.id === itemId);
+  if (!item) return;
+  const li = document.querySelector(`.item-row[data-id="${itemId}"]`);
+  const span = li.querySelector('.item-text');
+  const ta = document.createElement('textarea');
+  ta.className = 'item-text-input';
+  ta.value = item.text;
+  ta.rows = Math.max(2, Math.ceil(item.text.length / 90));
+  span.replaceWith(ta);
+  ta.focus();
+  const save = () => {
+    item.text = ta.value.trim() || item.text;
+    const s = document.createElement('span');
+    s.className = 'item-text'; s.dataset.itemId = itemId; s.innerHTML = fmtItemText(item.text);
+    s.addEventListener('dblclick', () => editItem(bucketId, itemId));
+    ta.replaceWith(s);
+  };
+  ta.addEventListener('blur', save);
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+    if (e.key === 'Escape') {
+      const s = document.createElement('span');
+      s.className = 'item-text'; s.dataset.itemId = itemId; s.innerHTML = fmtItemText(item.text);
+      s.addEventListener('dblclick', () => editItem(bucketId, itemId));
+      ta.replaceWith(s);
+    }
+  });
+}
+
+function updateCount(bucketId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  const badge = getCard(bucketId)?.querySelector('.item-count-badge');
+  if (badge) badge.textContent = b.items.length;
+}
+
+// ─── Tag Helpers ──────────────────────────────────────────────────────────────
+function tagChipHtml(tag, type, ownerId) {
+  return `<span class="tag-chip" data-tag="${esc(tag)}" onclick="onTagChipClick(this)">#${esc(tag)}<span class="tag-remove" onclick="event.stopPropagation();onTagRemoveClick('${type}','${ownerId}','${esc(tag)}')">✕</span></span>`;
+}
+function tagAddBtnHtml(type, ownerId) {
+  return `<button class="tag-add-btn" onclick="showTagInput('${type}','${ownerId}',this)" title="Add tag">＋</button>`;
+}
+function tagsInnerHTML(tags, type, ownerId) {
+  const chips = (tags || []).map(t => tagChipHtml(t, type, ownerId)).join('');
+  return chips + tagAddBtnHtml(type, ownerId);
+}
+function onTagChipClick(el) {
+  const tag = el.dataset.tag;
+  const inp = document.getElementById('searchInput');
+  if (inp) { inp.value = '#' + tag; inp.dispatchEvent(new Event('input')); }
+}
+function onTagRemoveClick(type, ownerId, tag) {
+  removeTag(type, ownerId, tag);
+}
+function showTagInput(type, ownerId, btn) {
+  const container = btn.closest('.item-tags, .bucket-tags');
+  if (!container) return;
+  const existing = container.querySelector('.tag-input-inline');
+  if (existing) { existing.focus(); return; }
+  const inp = document.createElement('input');
+  inp.className = 'tag-input-inline';
+  inp.placeholder = 'tag…';
+  inp.maxLength = 30;
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag(type, ownerId, inp.value.trim()); inp.remove(); }
+    if (e.key === 'Escape') inp.remove();
+  };
+  inp.onblur = () => { if (inp.value.trim()) addTag(type, ownerId, inp.value.trim()); inp.remove(); };
+  btn.before(inp);
+  inp.focus();
+}
+function addTag(type, ownerId, tag) {
+  if (!tag) return;
+  tag = tag.replace(/\s+/g, '-').replace(/[^\w\-\.]/g, '');
+  if (!tag) return;
+  if (type === 'bucket') {
+    const b = getBucket(ownerId);
+    if (!b) return;
+    if (!b.tags) b.tags = [];
+    if (!b.tags.includes(tag)) b.tags.push(tag);
+    refreshTagsEl('bucket', ownerId, b.tags);
+  } else {
+    const item = findItemById(ownerId);
+    if (!item) return;
+    if (!item.tags) item.tags = [];
+    if (!item.tags.includes(tag)) item.tags.push(tag);
+    refreshTagsEl('item', ownerId, item.tags);
+  }
+}
+function removeTag(type, ownerId, tag) {
+  if (type === 'bucket') {
+    const b = getBucket(ownerId);
+    if (!b || !b.tags) return;
+    b.tags = b.tags.filter(t => t !== tag);
+    refreshTagsEl('bucket', ownerId, b.tags);
+  } else {
+    const item = findItemById(ownerId);
+    if (!item || !item.tags) return;
+    item.tags = item.tags.filter(t => t !== tag);
+    refreshTagsEl('item', ownerId, item.tags);
+  }
+}
+function findItemById(id) {
+  for (const b of buckets) {
+    const item = b.items.find(i => i.id === id);
+    if (item) return item;
+  }
+  return null;
+}
+function refreshTagsEl(type, ownerId, tags) {
+  const el = document.querySelector(`.${type}-tags[data-owner="${ownerId}"]`);
+  if (el) el.innerHTML = tagsInnerHTML(tags, type, ownerId);
+}
+
+// ─── Timeline View ────────────────────────────────────────────────────────────
+function getTagMeta(tag) {
+  if (!tagMeta[tag]) tagMeta[tag] = {};
+  const m = tagMeta[tag];
+  return {
+    status:   m.status   || 'planned',
+    label:    m.label    !== undefined ? m.label    : tag,
+    date:     m.date     || '',
+    sublabel: m.sublabel || '',
+    colTitle: m.colTitle !== undefined ? m.colTitle : (m.label !== undefined ? m.label : tag),
+    order:    m.order    != null ? m.order : null,
+  };
+}
+function setTagMetaField(tag, patch) {
+  if (!tagMeta[tag]) tagMeta[tag] = {};
+  Object.assign(tagMeta[tag], patch);
+}
+function parseVersionTag(s) {
+  if (/^\d+(\.\d+)+$/.test(s)) return s.split('.').map(Number);
+  return null;
+}
+function sortedTagIds() {
+  const seen = new Set();
+  buckets.forEach(b => {
+    (b.tags || []).forEach(t => seen.add(t));
+    b.items.forEach(i => (i.tags || []).forEach(t => seen.add(t)));
+  });
+  Object.keys(tagMeta).forEach(t => seen.add(t));
+  return [...seen].sort((a, b) => {
+    const ma = tagMeta[a] || {}, mb = tagMeta[b] || {};
+    const oa = ma.order != null ? ma.order : Infinity;
+    const ob = mb.order != null ? mb.order : Infinity;
+    if (oa !== Infinity || ob !== Infinity) { if (oa !== ob) return oa - ob; }
+    const va = parseVersionTag(a), vb = parseVersionTag(b);
+    if (va && vb) {
+      for (let i = 0; i < Math.max(va.length, vb.length); i++) { const d = (va[i]||0)-(vb[i]||0); if (d) return d; }
+      return 0;
+    }
+    if (va) return -1; if (vb) return 1;
+    return a.localeCompare(b);
+  });
+}
+function itemsForTag(tag) {
+  const result = [];
+  buckets.forEach(b => b.items.forEach(i => {
+    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
+  }));
+  return result;
+}
+function tlStatusLabel(s) {
+  if (s === 'shipped') return '✓ SHIPPED';
+  if (s === 'inflight') return '● IN FLIGHT';
+  return '○ PLANNED';
+}
+function cycleStatus(tag) {
+  const m = getTagMeta(tag);
+  const order = ['planned','inflight','shipped'];
+  const next = order[(order.indexOf(m.status) + 1) % 3];
+  setTagMetaField(tag, { status: next });
+  renderTimelineView();
+}
+function tlStartInlineEdit(el, currentVal, onSave) {
+  const inp = document.createElement('input');
+  inp.className = 'tl-meta-inline-input';
+  inp.value = currentVal;
+  inp.onblur = () => onSave(inp.value.trim());
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { onSave(currentVal); }
+  };
+  el.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+function editRoadmapTitle(el) {
+  const inp = document.createElement('input');
+  inp.className = 'tl-title-input';
+  inp.value = roadmapTitle;
+  inp.onblur = () => { roadmapTitle = inp.value.trim() || roadmapTitle; renderTimelineView(); };
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { roadmapTitle = roadmapTitle; inp.blur(); }
+  };
+  el.replaceWith(inp);
+  inp.focus(); inp.select();
+}
+function renderTimelineView() {
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+  const tags = sortedTagIds();
+  const view = document.createElement('div');
+  view.className = 'tl-view';
+
+  // Title
+  const titleEl = document.createElement('div');
+  titleEl.className = 'tl-title-h2';
+  titleEl.title = 'Click to edit title';
+  titleEl.innerHTML = `<strong>${esc(roadmapTitle)}</strong> <span class="tl-t-light">Roadmap</span>`;
+  titleEl.onclick = () => editRoadmapTitle(titleEl);
+  view.appendChild(titleEl);
+
+  if (!tags.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#2a3f5e;text-align:center;padding:80px 0;font-size:1rem;';
+    empty.innerHTML = 'No tags yet.<br><span style="font-size:0.85rem;color:#1e3a5f">Add <code style="color:#38bdf8;background:rgba(56,189,248,0.08);padding:1px 5px;border-radius:3px;">[version]</code> tags to items in the Buckets view to build your roadmap.</span>';
+    view.appendChild(empty);
+    container.appendChild(view);
+    return;
+  }
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'tl-scroll-wrap';
+  const colsRow = document.createElement('div');
+  colsRow.className = 'tl-cols-row';
+
+  tags.forEach(tag => {
+    const m = getTagMeta(tag);
+    const s = m.status;
+    const unit = document.createElement('div');
+    unit.className = 'tl-col-unit';
+
+    // ── Milestone header ──
+    const msHeader = document.createElement('div');
+    msHeader.className = 'tl-ms-header';
+
+    const msMeta = document.createElement('div');
+    msMeta.className = 'tl-ms-meta';
+
+    const msVersion = document.createElement('span');
+    msVersion.className = 'tl-ms-version';
+    msVersion.textContent = m.label || tag;
+    msVersion.title = 'Click to rename version/name';
+    msVersion.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msVersion, m.label || tag, v => { setTagMetaField(tag, {label: v || tag}); renderTimelineView(); }); };
+
+    const msDate = document.createElement('span');
+    msDate.className = 'tl-ms-date' + (s === 'shipped' ? ' shipped' : '');
+    if (m.date) {
+      msDate.textContent = m.date;
+    } else {
+      msDate.textContent = 'Set date…';
+      msDate.style.opacity = '0.3'; msDate.style.fontStyle = 'italic';
+    }
+    msDate.title = 'Click to edit date (e.g. April 2026)';
+    msDate.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msDate, m.date || '', v => { setTagMetaField(tag, {date: v}); renderTimelineView(); }); };
+
+    msMeta.appendChild(msVersion);
+    msMeta.appendChild(msDate);
+    msHeader.appendChild(msMeta);
+
+    const dotRow = document.createElement('div');
+    dotRow.className = 'tl-dot-row';
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot ' + s;
+    dot.title = 'Click to cycle: planned → in flight → shipped';
+    dot.onclick = () => cycleStatus(tag);
+    dotRow.appendChild(dot);
+    msHeader.appendChild(dotRow);
+
+    const msLabel = document.createElement('div');
+    msLabel.className = 'tl-ms-label' + (s === 'shipped' ? ' shipped' : s === 'inflight' ? ' inflight' : '');
+    if (m.sublabel) {
+      msLabel.textContent = m.sublabel;
+    } else {
+      msLabel.textContent = 'Set label…';
+      msLabel.style.opacity = '0.2'; msLabel.style.fontStyle = 'italic';
+    }
+    msLabel.title = 'Click to set milestone label';
+    msLabel.onclick = e => { e.stopPropagation(); tlStartInlineEdit(msLabel, m.sublabel || '', v => { setTagMetaField(tag, {sublabel: v}); renderTimelineView(); }); };
+    msHeader.appendChild(msLabel);
+
+    const ptr = document.createElement('div');
+    ptr.className = 'tl-pointer' + (s === 'shipped' ? ' shipped' : s === 'planned' ? ' planned' : '');
+    msHeader.appendChild(ptr);
+
+    unit.appendChild(msHeader);
+
+    // ── Column card ──
+    const card = document.createElement('div');
+    card.className = 'tl-card ' + s;
+
+    const badge = document.createElement('div');
+    badge.className = 'tl-badge ' + s;
+    badge.textContent = tlStatusLabel(s);
+    badge.title = 'Click to cycle status';
+    badge.onclick = () => cycleStatus(tag);
+    card.appendChild(badge);
+
+    const cardTitle = document.createElement('div');
+    cardTitle.className = 'tl-card-title';
+    cardTitle.textContent = m.colTitle || m.label || tag;
+    cardTitle.title = 'Click to edit column title';
+    cardTitle.onclick = e => { e.stopPropagation(); tlStartInlineEdit(cardTitle, m.colTitle || m.label || tag, v => { setTagMetaField(tag, {colTitle: v}); renderTimelineView(); }); };
+    card.appendChild(cardTitle);
+
+    const divider = document.createElement('div');
+    divider.className = 'tl-card-divider ' + s;
+    card.appendChild(divider);
+
+    const items = itemsForTag(tag);
+    if (items.length) {
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'tl-item';
+        let iconClass, textClass, icon;
+        if (s === 'shipped') {
+          icon = '✓'; iconClass = 'ok'; textClass = 'bold';
+        } else if (item.priority === 'na') {
+          icon = '–'; iconClass = 'na'; textClass = 'strike';
+        } else if (item.priority === 'critical') {
+          icon = '›'; iconClass = 'go'; textClass = 'bold';
+        } else if (item.priority === 'low') {
+          icon = '›'; iconClass = 'soft'; textClass = 'dim';
+        } else {
+          icon = '›'; iconClass = 'soft'; textClass = '';
+        }
+        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(item.text)}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
+        card.appendChild(row);
+      });
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'tl-empty';
+      empty.textContent = `No items tagged [${tag}]`;
+      card.appendChild(empty);
+    }
+
+    unit.appendChild(card);
+    colsRow.appendChild(unit);
+  });
+
+  // Add-milestone placeholder
+  const addUnit = document.createElement('div');
+  addUnit.className = 'tl-add-ms';
+  const addBtn = document.createElement('div');
+  addBtn.className = 'tl-add-ms-btn';
+  addBtn.innerHTML = '＋<br><span style="font-size:0.68rem;opacity:0.5">Tag items in<br>Buckets view</span>';
+  addBtn.title = 'Switch to Buckets view to tag items';
+  addBtn.onclick = () => setView('buckets');
+  addUnit.appendChild(addBtn);
+  colsRow.appendChild(addUnit);
+
+  scrollWrap.appendChild(colsRow);
+  view.appendChild(scrollWrap);
+  container.appendChild(view);
+}
+
+// ─── Markdown Export ──────────────────────────────────────────────────────────
+function generateMarkdown() {
+  const label = { critical: '🔴 CRITICAL PRIORITY', medium: '🟡 MEDIUM PRIORITY', low: '🔵 LOW PRIORITY' };
+  const emoji = { critical: '🔴', medium: '🟡', low: '🔵' };
+  const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const lines = [
+    '# Backlog Editor',
+    `**Updated: ${now}**`,
+    '',
+    '---',
+    '',
+  ];
+  const ie = { critical: '🔴', medium: '🟡', low: '🔵', na: '⬜' };
+  function tagsStr(tags) {
+    if (!tags || !tags.length) return '';
+    return ' ' + tags.map(t => `[${t}]`).join('');
+  }
+  // Invisible ADO link — survives edits on both sides (design §4). Only the id is
+  // stored in markdown; ADO-owned state lives in the (future) JSON sidecar.
+  function adoComment(item) {
+    return (item.ado && item.ado.id) ? ` <!-- ado:${item.ado.id} -->` : '';
+  }
+  buckets.forEach((b, i) => {
+    lines.push(`## ${emoji[b.priority]} BUCKET ${i + 1}: ${b.title}${tagsStr(b.tags)}${adoComment(b)}`);
+    lines.push('');
+    if (b.items.length === 0) {
+      lines.push('*No items*');
+    } else {
+      b.items.forEach(item => lines.push(`- ${ie[item.priority || 'medium']} ${item.text}${tagsStr(item.tags)}${adoComment(item)}`));
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  });
+  // Serialize tag metadata for timeline view
+  const metaObj = { _title: roadmapTitle };
+  Object.entries(tagMeta).forEach(([k, v]) => { metaObj[k] = v; });
+  if (Object.keys(tagMeta).length || roadmapTitle !== 'Backlog') {
+    lines.push('');
+    lines.push(`<!-- tag-meta: ${JSON.stringify(metaObj)} -->`);
+  }
+  // Serialize the ADO sync watermark: last-acknowledged state per linked id + the
+  // "New" rows the user dismissed, so re-checks don't re-surface old updates.
+  const adoAcked = {};
+  buckets.forEach(b => {
+    if (b.ado && b.ado.id) adoAcked[b.ado.id] = b.ado.state || 'New';
+    b.items.forEach(it => { if (it.ado && it.ado.id) adoAcked[it.ado.id] = it.ado.state || 'New'; });
+  });
+  if (Object.keys(adoAcked).length || adoIgnoredNew.size) {
+    lines.push('');
+    lines.push(`<!-- ado-meta: ${JSON.stringify({ acked: adoAcked, ignoredNew: [...adoIgnoredNew] })} -->`);
+  }
+  return lines.join('\n');
+}
+
+let _loadedFileHandle = null;
+let _loadedFileName   = 'backlog.md';
+
+async function saveAsMarkdown() {
+  const md = generateMarkdown();
+  if (window.showSaveFilePicker) {
+    try {
+      if (_loadedFileHandle) {
+        const w = await _loadedFileHandle.createWritable();
+        await w.write(md); await w.close();
+        showToast(`✓ Saved to ${_loadedFileName}`);
+        return;
+      }
+      const handle = await window.showSaveFilePicker({
+        suggestedName: _loadedFileName,
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md'] } }]
+      });
+      const w = await handle.createWritable();
+      await w.write(md); await w.close();
+      _loadedFileHandle = handle;
+      _loadedFileName   = handle.name;
+      showToast(`✓ Saved to ${handle.name}`);
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = _loadedFileName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ Downloaded!');
+}
+
+async function saveAsNewFile() {
+  if (!window.showSaveFilePicker) { saveAsMarkdown(); return; }
+  const md = generateMarkdown();
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: _loadedFileName,
+      types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md'] } }]
+    });
+    const w = await handle.createWritable();
+    await w.write(md); await w.close();
+    _loadedFileHandle = handle;
+    _loadedFileName   = handle.name;
+    showToast(`✓ Saved to ${handle.name}`);
+  } catch (e) { /* cancelled */ }
+}
+
+// ─── Snapshot Export ──────────────────────────────────────────────────────────
+function exportSnapshot() {
+  if (!buckets.length) { showToast('⚠ Nothing to export — load a backlog first'); return; }
+
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const PCOLOR = { critical: '#ef4444', medium: '#f59e0b', low: '#3b82f6', na: '#334155', '': '#334155' };
+  const PEMOJI = { critical: '🔴', medium: '🟡', low: '🔵', na: '⬜' };
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function fmt(text) {
+    const idx = text.indexOf(':');
+    if (idx < 1) return esc(text);
+    return `<strong>${esc(text.slice(0, idx))}</strong>${esc(text.slice(idx))}`;
+  }
+
+  // ── Buckets view ──
+  const bucketsHtml = buckets.map((b, i) => {
+    const bColor = PCOLOR[b.priority] || '#334155';
+    const itemsHtml = b.items.map(item => {
+      const dim = item.priority === 'na' ? 'opacity:0.5;text-decoration:line-through;' : '';
+      return `<li style="display:flex;gap:8px;padding:6px 2px;align-items:flex-start;">
+        <span style="font-size:0.75rem;flex-shrink:0;padding-top:2px;color:${PCOLOR[item.priority]||'#475569'}">${PEMOJI[item.priority]||'⬜'}</span>
+        <span style="font-size:0.92rem;line-height:1.6;color:#cbd5e1;${dim}">${fmt(item.text)}</span>
+      </li>`;
+    }).join('');
+    return `<div class="bc" style="background:#1a1f2e;border-radius:10px;margin-bottom:9px;border-left:5px solid ${bColor};box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;">
+      <div class="bh" onclick="var b=this.parentElement;b.classList.toggle('open')" style="display:flex;align-items:center;gap:9px;padding:12px 14px;cursor:pointer;user-select:none;">
+        <span style="font-size:0.78rem;color:#475569;font-weight:700;font-family:monospace;min-width:22px">#${i+1}</span>
+        <span style="flex:1;font-weight:600;font-size:0.9rem;color:#e2e8f0">${esc(b.title)}</span>
+        <span style="font-size:0.7rem;color:#64748b;background:#0f172a;padding:2px 8px;border-radius:10px;font-weight:700">${b.items.length}</span>
+        <span class="chev" style="color:#475569;font-size:0.65rem;transition:transform 0.2s">▶</span>
+      </div>
+      <div class="bb" style="display:none;padding:0 14px 12px;">
+        <ul style="list-style:none">${itemsHtml||'<li style="font-size:0.82rem;color:#334155;padding:4px 0;font-style:italic">No items</li>'}</ul>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Priority view ──
+  const ORDER = ['critical','medium','low','na'];
+  const PLABEL = { critical:'🔴 Critical', medium:'🟡 Medium', low:'🔵 Low', na:'⬜ N/A' };
+  const flat = [];
+  buckets.forEach(b => b.items.forEach(item => flat.push({...item, bucketTitle: b.title})));
+  const priorityHtml = ORDER.map(p => {
+    const items = flat.filter(i => i.priority === p);
+    if (!items.length) return '';
+    const rows = items.map(item => {
+      const dim = p === 'na' ? 'opacity:0.5;text-decoration:line-through;' : '';
+      return `<div class="pi" style="display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:7px;background:#1a1f2e;border:1px solid #1e293b;margin-bottom:4px;">
+        <span style="flex:1;font-size:0.92rem;line-height:1.6;color:#cbd5e1;${dim}">${fmt(item.text)}</span>
+        <span style="font-size:0.75rem;color:#94a3b8;background:#0f172a;border:1px solid #334155;padding:3px 10px;border-radius:8px;white-space:nowrap;flex-shrink:0;margin-top:2px">${esc(item.bucketTitle)}</span>
+      </div>`;
+    }).join('');
+    return `<div class="pg open">
+      <div class="ph" onclick="this.parentElement.classList.toggle('open')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#151821;border-radius:8px;cursor:pointer;user-select:none;margin-bottom:4px;border:1px solid #1e293b;border-left:4px solid ${PCOLOR[p]}">
+        <span style="font-size:0.85rem;font-weight:700;color:#e2e8f0;flex:1">${PLABEL[p]}</span>
+        <span style="font-size:0.7rem;color:#64748b;background:#0f172a;padding:2px 8px;border-radius:10px;font-weight:700">${items.length}</span>
+        <span class="chev" style="color:#475569;font-size:0.65rem;transition:transform 0.2s">▶</span>
+      </div>
+      <div class="pb" style="display:block;padding:4px 0 8px">${rows}</div>
+    </div>`;
+  }).join('');
+
+  const totalItems = buckets.reduce((n,b)=>n+b.items.length,0);
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backlog — ${esc(_loadedFileName.replace('.md',''))}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+.bh:hover, .ph:hover { background: rgba(255,255,255,0.04); }
+.bc.open .bb, .pg.open .pb { display: block !important; }
+.bc.open .chev, .pg.open .chev { transform: rotate(90deg); }
+.view { display: none; }
+.view.active { display: block; }
+.tab { background: none; border: none; color: #64748b; font-size: 0.82rem; font-weight: 600; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.tab.active { background: #1e293b; color: #e2e8f0; }
+.tab:hover:not(.active) { color: #94a3b8; }
+.tbtn { background: none; border: 1px solid #334155; color: #64748b; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 0.76rem; font-family: inherit; }
+.tbtn:hover { color: #94a3b8; border-color: #475569; }
+</style>
+</head>
+<body>
+<div style="background:linear-gradient(135deg,#0a0a14,#0f172a);padding:18px 32px;border-bottom:1px solid #1e293b;">
+  <h1 style="font-size:1.25rem;font-weight:700">📋 ${esc(_loadedFileName.replace('.md',''))}</h1>
+  <p style="font-size:0.78rem;opacity:0.4;margin-top:3px">Read-only snapshot · Generated ${date} · ${buckets.length} buckets · ${totalItems} items</p>
+</div>
+<div style="background:#151821;padding:8px 32px;border-bottom:1px solid #1e293b;display:flex;gap:8px;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.4)">
+  <div style="display:flex;gap:2px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:2px;">
+    <button class="tab active" id="tab-b" onclick="switchView('b')">☰ Buckets</button>
+    <button class="tab" id="tab-p" onclick="switchView('p')">≡ Priority</button>
+  </div>
+  <span style="width:1px;height:20px;background:#1e293b;margin:0 2px"></span>
+  <button class="tbtn" onclick="expandAll()">▾ Expand all</button>
+  <button class="tbtn" onclick="collapseAll()">▸ Collapse all</button>
+</div>
+<div style="max-width:880px;margin:22px auto;padding:0 20px 80px">
+  <div id="view-b" class="view active">${bucketsHtml}</div>
+  <div id="view-p" class="view">${priorityHtml}</div>
+</div>
+<script>
+var cv = 'b';
+function switchView(v) {
+  cv = v;
+  document.getElementById('view-b').classList.toggle('active', v==='b');
+  document.getElementById('view-p').classList.toggle('active', v==='p');
+  document.getElementById('tab-b').classList.toggle('active', v==='b');
+  document.getElementById('tab-p').classList.toggle('active', v==='p');
+}
+function expandAll() {
+  if (cv==='b') { document.querySelectorAll('.bc').forEach(e=>e.classList.add('open')); }
+  else { document.querySelectorAll('.pg').forEach(e=>e.classList.add('open')); }
+}
+function collapseAll() {
+  if (cv==='b') { document.querySelectorAll('.bc').forEach(e=>e.classList.remove('open')); }
+  else { document.querySelectorAll('.pg').forEach(e=>e.classList.remove('open')); }
+}
+<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const snapName = _loadedFileName.replace(/\.md$/i, '') + '-snapshot.html';
+  a.href = url; a.download = snapName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`✓ Snapshot exported as ${snapName}`);
+}
+
+// ─── Markdown Import ──────────────────────────────────────────────────────────
+async function loadMarkdownFile() {
+  try {
+    let file, handle;
+    if (window.showOpenFilePicker) {
+      [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md', '.txt'] } }]
+      });
+      file = await handle.getFile();
+    } else {
+      // Fallback for browsers without File System Access API
+      file = await new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.md,.txt';
+        input.onchange = (e) => resolve(e.target.files[0]);
+        input.click();
+      });
+      if (!file) return;
+    }
+    const text = await file.text();
+    const parsed = parseMarkdown(text);
+    if (!parsed.length) { showToast('⚠ No buckets found in file'); return; }
+    if (buckets.length && !confirm(`Load "${file.name}"?\nThis will replace the current ${buckets.length} bucket(s) with ${parsed.length} bucket(s).`)) return;
+    buckets = parsed;
+    _loadedFileName   = file.name;
+    _loadedFileHandle = handle || null;
+    renderAll();
+    document.getElementById('editor-subtitle').textContent = `Loaded: ${file.name}`;
+    showToast(`✓ Loaded ${parsed.length} buckets`);
+  } catch (e) {
+    if (e.name !== 'AbortError') showToast('⚠ Could not load file');
+  }
+}
+
+function extractTags(str) {
+  const m = str.match(/^(.*?)(\s*(?:\[[^\]]+\])+)\s*$/);
+  if (!m) return { text: str.trim(), tags: [] };
+  const text = m[1].trim();
+  const tagStr = m[2];
+  const tags = [];
+  let t;
+  const re = /\[([^\]]+)\]/g;
+  while ((t = re.exec(tagStr)) !== null) tags.push(t[1]);
+  return { text, tags };
+}
+
+function parseMarkdown(text) {
+  // Extract and restore tag metadata (timeline view)
+  const metaMatch = text.match(/<!--\s*tag-meta:\s*(\{[\s\S]*?\})\s*-->/);
+  if (metaMatch) {
+    try {
+      const m = JSON.parse(metaMatch[1]);
+      if (m._title) roadmapTitle = m._title;
+      tagMeta = {};
+      Object.entries(m).forEach(([k, v]) => { if (k !== '_title') tagMeta[k] = v; });
+    } catch(e) {}
+    text = text.replace(/<!--\s*tag-meta:[\s\S]*?-->/, '');
+  }
+  // Extract the ADO sync watermark: last-acknowledged state per linked id, plus
+  // the ids of "New" rows the user dismissed. Lets a re-check show only what has
+  // changed since you last looked (design §4a).
+  let adoAcked = {};
+  const adoMetaMatch = text.match(/<!--\s*ado-meta:\s*(\{[\s\S]*?\})\s*-->/);
+  adoIgnoredNew.clear();
+  if (adoMetaMatch) {
+    try {
+      const m = JSON.parse(adoMetaMatch[1]);
+      adoAcked = m.acked || {};
+      (m.ignoredNew || []).forEach(id => adoIgnoredNew.add(Number(id)));
+    } catch(e) {}
+    text = text.replace(/<!--\s*ado-meta:[\s\S]*?-->/, '');
+  }
+  const lines = text.split('\n');
+  const result = [];
+  let current = null;
+
+  const priorityMap = {
+    '🔴': 'critical', 'CRITICAL': 'critical',
+    '🟡': 'medium',   'MEDIUM': 'medium',
+    '🟢': 'low',      '🔵': 'low',      'LOW': 'low'
+  };
+
+  function detectPriority(line) {
+    if (line.includes('🔴') || /CRITICAL/i.test(line)) return 'critical';
+    if (line.includes('🟢') || line.includes('🔵') || /LOW/i.test(line)) return 'low';
+    return 'medium';
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim();
+
+    // Bucket heading: ## ... BUCKET N: Title — PRIORITY  OR  ## Title
+    if (line.startsWith('## ')) {
+      if (current) result.push(current);
+      let title = line.replace(/^##\s+/, '');
+      // Pull out the invisible ADO link, if present, before any other parsing.
+      let bAdo = null;
+      const bAdoM = title.match(/\s*<!--\s*ado:(\d+)\s*-->\s*$/i);
+      if (bAdoM) { const _id = parseInt(bAdoM[1], 10); bAdo = { id: _id, state: adoAcked[_id] || 'New' }; title = title.slice(0, bAdoM.index).trim(); }
+      // Strip leading emoji (any Unicode emoji / symbol chars) and non-word chars
+      title = title.replace(/^[\p{Emoji}\p{S}\p{So}]+\s*/u, '');
+      // Also nuke any remaining leading non-alphanumeric junk (rendering artifacts like ◆ ◇ ▶)
+      title = title.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+      // Strip "BUCKET N: " prefix
+      title = title.replace(/^BUCKET\s+\d+:\s*/i, '');
+      // Strip trailing " — PRIORITY LABEL" (handles —, –, -)
+      title = title.replace(/\s*[—–\-]\s*(?:🔴|🟡|🟢|🔵)?\s*(?:CRITICAL|MEDIUM|LOW)?\s*(?:PRIORITY)?$/i, '').trim();
+      const { text: bucketTitle, tags: bucketTags } = extractTags(title);
+      current = { id: uid(), priority: detectPriority(line), expanded: false, title: bucketTitle, items: [], tags: bucketTags };
+      if (bAdo) current.ado = bAdo;
+      continue;
+    }
+
+    if (!current) continue;
+
+    // Item bullet
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      let text = line.slice(2).trim();
+      // Pull out the invisible ADO link, if present, before priority/tag parsing.
+      let adoLink = null;
+      const adoM = text.match(/\s*<!--\s*ado:(\d+)\s*-->\s*$/i);
+      if (adoM) { const _id = parseInt(adoM[1], 10); adoLink = { id: _id, state: adoAcked[_id] || 'New' }; text = text.slice(0, adoM.index).trim(); }
+      let itemPriority = 'medium';
+      if (text.startsWith('🔴 '))      { itemPriority = 'critical'; text = text.slice('🔴 '.length); }
+      else if (text.startsWith('🟡 ')) { itemPriority = 'medium';   text = text.slice('🟡 '.length); }
+      else if (text.startsWith('🟢 ')) { itemPriority = 'low';      text = text.slice('🟢 '.length); }
+      else if (text.startsWith('🔵 ')) { itemPriority = 'low';      text = text.slice('🔵 '.length); }
+      else if (text.startsWith('⬜ ')) { itemPriority = 'na';       text = text.slice('⬜ '.length); }
+      const { text: itemText, tags: itemTags } = extractTags(text);
+      const item = { id: uid(), text: itemText, priority: itemPriority, tags: itemTags };
+      if (adoLink) item.ado = adoLink;
+      current.items.push(item);
+      continue;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+// Pick the ADO backend: if the local proxy answers, use the real client; otherwise
+// fall back to the in-memory mock (and seed it so the demo flows still work).
+async function initAdoBackend() {
+  const pill = document.getElementById('ado-status');
+  try {
+    const h = await AdoClient.health();
+    if (h && h.ok) {
+      ado = AdoClient;
+      if (pill) { pill.textContent = `● ADO: ${h.org}/${h.project}`; pill.className = 'ado-status live'; pill.title = 'Connected to the ADO proxy'; }
+      return;
+    }
+  } catch (e) { /* proxy not running — fall through to mock */ }
+  ado = AdoMock;
+  AdoMock.seedPullDemo();
+  if (pill) { pill.textContent = '● ADO: demo (mock)'; pill.className = 'ado-status mock'; pill.title = 'Proxy offline — using the in-memory mock. Run `node ado-proxy.js` to go live.'; }
+}
+
+(function () {
+  renderAll();
+  initAdoBackend();
+  return;
+  const _md = `# Backlog Editor
+**Updated: 17 June 2026**
+
+---
+
+## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item"
+
+- 🔴 Update labels: Makes users align to new terminology. Makes data model discussions easier.
+- 🔴 Update tables, objects, etc.: Important for long-term alignment.
+
+---
+
+## 🔴 BUCKET 2: Brownfield / Adoption Blockers
+
+- 🔴 Batch tracking: Make batch tracking optional.
+- 🔴 Consolidate fleet location and inventory location/warehouse: incl. on-hand availability across fleets and inventory/rental
+- 🔴 Existing inventory: Create fleet item from existing inventory.
+- 🔴 Existing Fixed Asset: Associate an existing Fixed Asset with a fleet item.
+- 🔴 Existing Fixed Asset: Create new fleet item from existing Fixed Asset.
+- 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt.
+- 🟡 S/N: Make S/N optional.
+- 🟡 Standard FA-from-PO-line conflicts with transfer process: If customer uses standard D365 FA creation on PO line, the rental transfer process tries to create a duplicate FA.
+- 🟡 FA creation timing must be configurable: Some companies want FA at receipt; others at invoice. Current transfer-to-FA process is fixed.
+
+---
+
+## 🔴 BUCKET 3: Configurability (incl. configurable fleet types)
+
+- 🔴 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets.
+- 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology.
+
+---
+
+## 🔴 BUCKET 4: Bulk Items
+
+- 🔴 Allow bulk item quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc).
+- 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity,
+- 🔴 FA process for bulk: One FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo
+- 🟡 Allow bulk partial returns: cannot return 3 of 5 units on a single line
+- ⬜ qty=2 on quote allowed for pricing, but on activation throws "only one rental item per contract line"
+- ⬜ PO for bulk: qty > 1 on PO line not allowed when item is a rental item — system overwrites to 1
+- ⬜ "FROM" error on contract activation with bulk items (system doesn't know location)
+- ⬜ No qty tracking in movements — bulk items move as a group, not unit-by-unit
+- ⬜ No bulk availability view — no way to see how many units are available for a class
+- ⬜ No split-load support for bulk items across different drop-point addresses
+
+---
+
+## 🔴 BUCKET 5: AI skills & Rental UX outside of F&O
+
+- 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc.
+
+---
+
+## 🟡 BUCKET 6: Intercompany
+
+- 🟡 Intercompany rental processes: Needed for multi-entity deployments.
+- 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
+- 🟡 Global descriptions, manufacturer info, model specs: Need to exist once and flow to all LEs. LE-specific rental details possible
+- ⬜ Asset maintenance (inspection intervals, service schedules, warranty templates) should be at the global/model level
+
+---
+
+## 🟡 BUCKET 7: Re-Rents
+
+- 🔴 Preview build broken (WIP per Benjamin)
+- 🟡 Intercompany re-rent process: (renting from a sister entity)
+- 🟡 Internal re-rent: financial dimensions not available on RentalLocation (only on InventSite — which was removed)
+- 🟡 External re-rent: process unclear; PO-to-contract workaround only
+- 🟡 Damage responsibility on return from external re-rent: no defined process
+
+---
+
+## 🟡 BUCKET 8: Automation Gaps
+
+- 🟡 Enable item movements for purchases and sales: Inspections, etc.
+- 🟡 (Auto-) create work order from item movement: For prep, etc. work flows
+- 🟡 Automatically change service status through item movement processes: For preparation, etc.
+- 🟡 Movement → service location → auto-create WO: Moving a rental item to a service location should optionally auto-create a Field Service work order.
+- 🟡 Damage decision code workflow: When a damage decision code is set on a movement, it should trigger automated follow-on actions (e.g., move to service location, create WO, set service status).
+- 🔵 Missing accessories auto-charge: When movement return lacks tracked accessories, system should auto-flag for charges.
+- ⬜ Batch = New auto-set: When creating a rental item via PO flow, batch status should default to "New" automatically. Users missing this causes downstream failures.
+- ⬜ Service status on item creation: When a new rental item arrives, service status should auto-default to "Preparation needed" (or configurable) — not rely on manual set. **Potentially handled by enablement of item movements for POs and SOs**
+- ⬜ Work order for new equipment prep: Auto-trigger a WO when a new rental item's service status indicates preparation needed. Currently no way to create a WO without a customer.
+- ⬜ Work order from movement record: Should be able to create/link a work order directly from a movement record (currently only from contract line).
+- ⬜ WO completion → rental availability update: When FS work order is completed, rental item availability should automatically update (remove service block).
+
+---
+
+## 🟡 BUCKET 9: Field Service Integration Gaps
+
+- 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
+- 🟡 Insurance & Warranty not linked to rental item: FS warranty only links to FA, not rental item. Cost allocation (covered vs. uncovered labor/parts) not tracked against per-item P&L.
+- 🟡 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported.
+- 🟡 ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.
+- 🔵 Inspection checklists ↔ FS inspection integration: Rental model-based inspection checklists should optionally trigger FS inspection templates. Regulatory inspection audit trails required for large customers.
+- 🔵 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision.
+
+---
+
+## 🟡 BUCKET 10: Kitting / Packages
+
+- 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
+- 🟡 Pricing at package class level only; no association of specific items to a package
+- 🟡 Movement must track individual kit components (for scanning at dispatch and return)
+- 🟡 Damage tracking must work at component level within a kit
+- 🟡 Package is currently tied to a Class, not specific items — unclear kit membership at runtime
+
+---
+
+## 🔵 BUCKET 11: Transportation Management
+
+- 🟡 Blanket PO for carrier vs. per-load PO — blanket approach not supported
+- 🟡 No mobile app for driver or external carrier (scan/count at point of delivery)
+- 🔵 No paperwork generated from system: no waybill, no hazmat documentation, no delivery receipt
+- 🔵 No weight/dimensions on rental item record (should come from released product)
+- 🔵 No routing/dispatch solution (ISV partner recommendation needed — acknowledge gap proactively)
+
+---
+
+## 🔵 BUCKET 12: Pricing Gaps
+
+- 🟡 Stepped pricing broken: Can only configure 1 period code per rate type — cannot configure tiered steps across period codes
+- 🟡 No item-level pricing (only class-level): Workaround is unique class per item — causes class fragmentation at scale
+- 🟡 Discount groups only work at class level: Individual item discounts not supported
+- 🟡 BRC doesn't handle stepped pricing: Best Rate Calculation doesn't correctly evaluate stepped rate tiers
+
+---
+
+## 🔵 BUCKET 13: UX / Usability Polish
+
+- 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
+- 🔵 Inspection checkbox hidden: Completing inspection on a movement is buried in line details — not discoverable. Robert had to search to find it. Needs to be front-and-center.
+- 🔵 Fleet transfer not launchable from Rental Item form: Robert wants to start fleet transfer directly from the rental item — not from a separate menu form.
+
+---
+
+## 🔵 BUCKET 14: Accessory Packs
+
+- 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
+- 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
+- 🟡 Missing accessories on return should auto-flag and trigger charges
+- 🟡 Distinct from bulk attachments: accessories are per-model standards, not separately purchased items
+
+---
+
+## 🔴 BUCKET 15: Core Bugs / PP2 Quality Issues
+
+- 🟡 [Bug 1143337 · P1] Inventory not updated + asset shows "not acquired" on New→Rental fleet transfer
+- 🟡 [Bug 1141073 · P1] Error when transferring Rental → Used Fleet
+- 🟡 [Bug 1141005 · P1] Hardcoded number sequence assumption on fleet transfer
+- 🟡 [Bug 1142657 · P1] Physical status = "Ordered" (not "In stock") after PO receipt
+- 🟡 [Bug 1143366 · P1] "Rental item availability" ≠ "Rental Item Availability summary" (inconsistency)
+- 🟡 [Bug 1143411 · P1] Serial number doesn't appear on Rental Item forms even though it exists in inventory
+- 🟡 [Bug 1143235 · P2] Fixed assets default view doesn't show rental items
+- 🟡 [Bug 1143309 · P2] Default filter bug when assigning rental item to contract line
+- 🟡 [Bug 1143343 · P2] Period codes error message misleading when >5 periods w/ Simulate Utilization
+- 🟡 [Bug 1143346 · P3] UX: Rental Item tab confusing when creating a released product
+- 🟡 [N/A · P1] Re-rents broken in current preview build (Benjamin confirmed WIP)
+- 🟡 Date/time override model: Operations teams frequently enter data after-the-fact. System defaults to current time — SMU reading timestamp, movement record time, and return date all use system clock at entry. Needs configurable override.
+
+---
+`;
+  const _parsed = parseMarkdown(_md);
+  if (_parsed && _parsed.length) buckets = _parsed;
+  renderAll();
+})();
+
+// Ctrl+F / Cmd+F → focus search
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    const inp = document.getElementById('search-input');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+});
+</script>
+</body>
+</html>
