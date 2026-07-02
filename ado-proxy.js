@@ -23,6 +23,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const { execSync } = require('child_process');
 
 // ── Config & secret loading ───────────────────────────────────────────────────
 function loadDotEnv() {
@@ -67,6 +68,12 @@ const DEFAULT_RELEASE = cfg('ADO_DEFAULT_RELEASE', '');
 const AREA_FIELD = cfg('ADO_AREA_FIELD', 'System.AreaPath');
 // Fields new work items inherit from their parent when not set explicitly.
 const INHERIT_FIELDS = [RELEASE_FIELD, AREA_FIELD].filter(Boolean);
+
+// AI (description authoring) config. We call GitHub Models with the user's `gh`
+// token — no separate key to manage. Override the model or token via .env / env.
+const AI_MODEL = cfg('AI_MODEL', 'openai/gpt-4o');
+const AI_HOST = cfg('AI_HOST', 'models.github.ai');
+const AI_PATH = cfg('AI_PATH', '/inference/chat/completions');
 
 if (!PAT) {
   console.error('\n[ado-proxy] No PAT found. Create a git-ignored `.ado-pat` file');
@@ -128,6 +135,8 @@ function normalize(item) {
     title: f['System.Title'] || '',
     state: f['System.State'] || null,
     parentId: parentIdFromRelations(item.relations),
+    description: f['System.Description'] || null,
+    acceptanceCriteria: f['Microsoft.VSTS.Common.AcceptanceCriteria'] || null,
   };
 }
 
@@ -191,13 +200,136 @@ async function createWorkItem(type, title, parentId, fields) {
   return normalize(created);
 }
 
+// Update fields on an existing work item (e.g. System.Description). Only the fields
+// passed in are touched — everything else is left as-is. No create, no delete.
+async function updateWorkItem(id, fields) {
+  const ops = Object.entries(fields || {})
+    .filter(([, v]) => v != null)
+    .map(([ref, value]) => ({ op: 'add', path: `/fields/${ref}`, value }));
+  if (!ops.length) { const items = await getWorkItems([id]); return items[0] || null; }
+  const url = `${ORG_URL}/${encodeURIComponent(PROJECT)}/_apis/wit/workitems/${id}` +
+    `?api-version=${API_VERSION}`;
+  const updated = await adoRequest('PATCH', url, ops);
+  return normalize(updated);
+}
+
+// ── AI description authoring (GitHub Models) ──────────────────────────────────
+let _ghToken = null;
+function ghToken() {
+  if (_ghToken != null) return _ghToken;
+  const fromEnv = cfg('GITHUB_TOKEN', '') || cfg('GH_TOKEN', '');
+  if (fromEnv) return (_ghToken = fromEnv.trim());
+  try { _ghToken = execSync('gh auth token', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  catch (e) { _ghToken = ''; }
+  return _ghToken;
+}
+
+// Call a chat model and return the assistant message text.
+function aiChat(messages) {
+  return new Promise((resolve, reject) => {
+    const tok = ghToken();
+    if (!tok) return reject({ status: 500, message: 'No GitHub token for AI. Run `gh auth login` or set GITHUB_TOKEN.' });
+    const payload = Buffer.from(JSON.stringify({ model: AI_MODEL, messages, temperature: 0.3 }));
+    const headers = {
+      Authorization: 'Bearer ' + tok, Accept: 'application/json',
+      'Content-Type': 'application/json', 'Content-Length': payload.length,
+    };
+    const req = https.request({ method: 'POST', hostname: AI_HOST, path: AI_PATH, headers }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try { resolve(JSON.parse(text).choices[0].message.content); }
+          catch (e) { reject({ status: 502, message: 'Unexpected AI response shape' }); }
+        } else {
+          let msg = text;
+          try { const j = JSON.parse(text); msg = (j.error && j.error.message) || j.message || text; } catch (e) {}
+          reject({ status: res.statusCode, message: 'AI error: ' + msg });
+        }
+      });
+    });
+    req.on('error', e => reject({ status: 502, message: e.message }));
+    req.write(payload);
+    req.end();
+  });
+}
+
+// Strip a stray ```html ... ``` fence if the model wraps its output.
+function stripFences(s) {
+  return String(s || '').replace(/^\s*```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
+}
+
+const DESCRIBE_SYSTEM = [
+  'You are a product owner writing an Azure DevOps work-item description whose only job is CLARITY.',
+  'Write for an engineer or PM who has never seen this item. Be concrete and concise; no filler, no ceremony.',
+  '',
+  'Structure the description with these sections, in this order (omit a section only if there is genuinely nothing to say):',
+  '1. Problem  - the gap or pain today, and why it matters.',
+  '2. Goal     - the clear outcome this delivers.',
+  '3. In scope - a bulleted list of what is covered.',
+  '4. Known issues - bulleted current symptoms/blockers, ONLY if the context implies them.',
+  '5. Related  - bulleted references to related items, ONLY if the context provides them.',
+  '6. Acceptance criteria - a bulleted list of specific, testable conditions.',
+  '',
+  'Output rules:',
+  '- Output ONLY an HTML fragment (no <html>/<body>, no markdown, no code fences).',
+  '- Use only these tags: <p>, <b>, <i>, <br>, <ul>, <li>.',
+  '- Each section header is <p><b>Header</b></p> (for lists) or <p><b>Header</b><br>text</p> (for prose).',
+  '- Never use the wide em-dash (\u2014); use a normal hyphen (-) instead.',
+  '- Do not invent facts not supported by the provided context; where detail is missing, keep the point general rather than fabricating specifics.',
+].join('\n');
+
+function buildDescribeUser(ado, context) {
+  const c = context || {};
+  const lines = [];
+  lines.push('Write the description for this backlog item.');
+  lines.push('');
+  if (ado && ado.id) {
+    lines.push('ADO work item: #' + ado.id + ' [' + (ado.type || '?') + '] "' + (ado.title || '') + '" (state: ' + (ado.state || '?') + ')');
+    if (ado.description) lines.push('Existing description (may be empty or rough): ' + String(ado.description).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 800));
+  }
+  lines.push('Kind: ' + (c.kind || 'item'));
+  if (c.title) lines.push('Title / summary: ' + c.title);
+  if (c.bucketTitle && c.bucketTitle !== c.title) lines.push('Parent theme (bucket): ' + c.bucketTitle);
+  if (c.priority) lines.push('Priority: ' + c.priority);
+  if (c.text && c.text !== c.title) lines.push('Backlog note: ' + c.text);
+  if (Array.isArray(c.items) && c.items.length) {
+    lines.push('Child items (these define the scope):');
+    c.items.forEach(i => lines.push('  - ' + (typeof i === 'string' ? i : (i.text || ''))));
+  }
+  if (Array.isArray(c.siblings) && c.siblings.length) {
+    lines.push('Sibling items in the same bucket (for context only):');
+    c.siblings.forEach(s => lines.push('  - ' + s));
+  }
+  if (c.guidance && String(c.guidance).trim()) {
+    lines.push('');
+    lines.push('Author guidance - follow these instructions strictly, they override the defaults above:');
+    lines.push(String(c.guidance).trim());
+  }
+  return lines.join('\n');
+}
+
+// Generate a description (HTML fragment) for a work item / backlog entry.
+async function describeWorkItem(adoId, context) {
+  let ado = {};
+  if (adoId) {
+    try { const items = await getWorkItems([adoId]); if (items[0]) ado = items[0]; } catch (e) { /* draft from context alone */ }
+  }
+  const raw = await aiChat([
+    { role: 'system', content: DESCRIBE_SYSTEM },
+    { role: 'user', content: buildDescribeUser(ado, context) },
+  ]);
+  return { html: stripFences(raw), model: AI_MODEL };
+}
+
 // ── HTTP server (the whitelist the page is allowed to call) ───────────────────
 function sendJson(res, status, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(body);
@@ -237,6 +369,18 @@ const server = http.createServer(async (req, res) => {
     // GET /children/:id
     if (req.method === 'GET' && parts[0] === 'children' && parts[1]) {
       return sendJson(res, 200, await getChildren(parseInt(parts[1], 10)));
+    }
+    // PATCH /workitem/:id  { fields: { "System.Description": "<html>" } }
+    if ((req.method === 'PATCH' || req.method === 'POST') && parts[0] === 'workitem' && parts[1]) {
+      const b = await readBody(req);
+      if (!b.fields || typeof b.fields !== 'object') return sendJson(res, 400, { message: 'fields object is required' });
+      return sendJson(res, 200, await updateWorkItem(parseInt(parts[1], 10), b.fields));
+    }
+    // POST /describe  { adoId?, context }  -> { html, model }
+    if (req.method === 'POST' && parts[0] === 'describe') {
+      const b = await readBody(req);
+      const adoId = b.adoId ? parseInt(b.adoId, 10) : null;
+      return sendJson(res, 200, await describeWorkItem(adoId, b.context || {}));
     }
     // POST /workitem  { type, title, parentId }
     if (req.method === 'POST' && parts[0] === 'workitem') {

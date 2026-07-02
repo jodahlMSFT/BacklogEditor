@@ -234,6 +234,13 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   transition: all 0.12s;
   flex-shrink: 0;
 }
+.desc-bucket-btn {
+  background: none; border: none; cursor: pointer; font-size: 0.85rem;
+  padding: 3px 6px; border-radius: 5px; transition: all 0.12s; flex-shrink: 0;
+  filter: grayscale(1) opacity(0.55);
+}
+.desc-bucket-btn:hover { filter: none; background: rgba(167,139,250,0.16); }
+.bucket-card.ado-linked .desc-bucket-btn { filter: none; }
 .rename-bucket-btn { color: #334155; }
 .rename-bucket-btn:hover { color: #60a5fa; background: rgba(96,165,250,0.12); }
 .link-bucket-btn { filter: grayscale(1) opacity(0.55); }
@@ -322,6 +329,9 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .item-link-btn { color: #475569; filter: grayscale(1) opacity(0.7); }
 .item-link-btn:hover { filter: none; background: rgba(56,189,248,0.12); }
 .item-row.ado-committed .item-link-btn { filter: none; }
+.item-desc-btn { color: #475569; filter: grayscale(1) opacity(0.7); }
+.item-desc-btn:hover { filter: none; background: rgba(167,139,250,0.16); }
+.item-row.ado-committed .item-desc-btn { filter: none; }
 .delete-item-btn { color: #475569; }
 .delete-item-btn:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
 
@@ -438,7 +448,7 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 /* Preview modal */
 .ado-modal-overlay {
   position: fixed; inset: 0; background: rgba(2,6,16,0.72); backdrop-filter: blur(2px);
-  display: none; align-items: center; justify-content: center; z-index: 70;
+  display: none; align-items: center; justify-content: center; z-index: 150;
 }
 .ado-modal-overlay.show { display: flex; }
 .ado-modal {
@@ -477,6 +487,43 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .ado-map-hint { font-size: 0.76rem; color: #64748b; margin: 8px 2px 2px; }
 .ado-map-hint strong { color: #94a3b8; font-weight: 700; }
 .ado-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px 18px; }
+/* Describe (AI description) modal */
+.ado-desc-modal { width: min(760px, 94vw); }
+.ado-desc-status { font-size: 0.8rem; color: #94a3b8; margin: 4px 0 10px; min-height: 18px; display: flex; align-items: center; gap: 7px; }
+.ado-desc-status.err { color: #f87171; }
+.ado-desc-guide { margin: 2px 0 10px; }
+.ado-desc-guide > summary {
+  cursor: pointer; font-size: 0.74rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: #a78bfa; list-style: none; user-select: none; padding: 2px 0;
+}
+.ado-desc-guide > summary::-webkit-details-marker { display: none; }
+.ado-desc-guide > summary::before { content: '▸ '; color: #64748b; }
+.ado-desc-guide[open] > summary::before { content: '▾ '; }
+.ado-desc-guide-hint { color: #64748b; font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+.ado-desc-guidance {
+  width: 100%; margin-top: 6px; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+  border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; font-family: inherit; line-height: 1.45;
+  outline: none; resize: vertical; box-sizing: border-box;
+}
+.ado-desc-guidance:focus { border-color: #a78bfa; }
+.ado-desc-status .spin { width: 12px; height: 12px; border: 2px solid #334155; border-top-color: #a78bfa; border-radius: 50%; animation: adospin 0.7s linear infinite; }
+@keyframes adospin { to { transform: rotate(360deg); } }
+.ado-desc-editor {
+  min-height: 240px; max-height: 52vh; overflow-y: auto;
+  background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+  padding: 14px 16px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.55;
+}
+.ado-desc-editor:focus { outline: none; border-color: #a78bfa; }
+.ado-desc-editor p { margin: 0 0 10px; }
+.ado-desc-editor b { color: #e2e8f0; }
+.ado-desc-editor ul { margin: 4px 0 12px; padding-left: 22px; }
+.ado-desc-editor li { margin: 2px 0; }
+.pv-desc-btn {
+  background: none; border: none; cursor: pointer; font-size: 0.8rem; line-height: 1;
+  padding: 2px 5px; border-radius: 4px; color: #475569; flex-shrink: 0;
+  filter: grayscale(1) opacity(0.6); transition: all 0.12s; align-self: center;
+}
+.pv-desc-btn:hover { filter: none; background: rgba(167,139,250,0.16); }
 .ado-pull-idrow { display: flex; gap: 8px; align-items: stretch; }
 .ado-pull-idrow .ado-select { flex: 1; }
 .ado-pull-idrow .btn { flex-shrink: 0; }
@@ -815,6 +862,31 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   </div>
 </div>
 
+<!-- AI-written description: draft, edit, then push to ADO -->
+<div class="ado-modal-overlay" id="ado-desc-overlay" onclick="if(event.target===this)closeAdoDescribe()">
+  <div class="ado-modal ado-desc-modal">
+    <div class="ado-modal-head">
+      <h2 id="ado-desc-title">Write description</h2>
+      <p id="ado-desc-sub">An AI draft in the clarity format. Edit freely, then push to ADO.</p>
+    </div>
+    <div class="ado-modal-body">
+      <details class="ado-desc-guide" id="ado-desc-guide">
+        <summary>Guidance for the AI <span class="ado-desc-guide-hint">applied to every draft</span></summary>
+        <textarea id="ado-desc-guidance" class="ado-desc-guidance" rows="2"
+          oninput="adoDescSaveGuidance(this.value)"
+          placeholder="e.g. Skip testing and documentation - they're part of our definition of done. Keep it under 6 bullets."></textarea>
+      </details>
+      <div id="ado-desc-status" class="ado-desc-status"></div>
+      <div id="ado-desc-editor" class="ado-desc-editor" contenteditable="true" spellcheck="true"></div>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeAdoDescribe()">Cancel</button>
+      <button class="btn btn-ado-ghost" id="ado-desc-regen" onclick="adoDescGenerate()">↻ Regenerate</button>
+      <button class="btn btn-ado" id="ado-desc-push" onclick="adoDescPush()" disabled>Push to ADO</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADO "check for new" scope picker -->
 <div class="ado-modal-overlay" id="ado-newscope-overlay" onclick="if(event.target===this)closeAdoNewScope()">
   <div class="ado-modal">
@@ -915,6 +987,7 @@ let adoParentId    = adoParentsForLevel(adoParentLevel)[0].id;  // default: firs
 let adoSelecting = false;
 const adoSelected = new Set();             // item ids checked for commit
 const adoIgnoredNew = new Set();           // ADO ids of "New" rows the user dismissed
+let adoDescGuidance = '';                   // light AI-description guidance, persisted in backlog.md
 const adoSectionOpen = { closed: false, modified: false, created: false }; // review-panel section expand state
 let adoReviewMode = 'updates';             // review panel focus: 'updates' (existing items) | 'new' (discovery)
 let adoNewScope = { mode: 'committed', parentId: null }; // where "Check for new" looks: committed buckets, or one picked parent
@@ -986,7 +1059,33 @@ const AdoMock = {
   // so the app can call `ado.refreshItems(...)` uniformly across both backends.
   async refreshItems() {},
   async refreshChildren() {},
+  // Demo only: without the proxy there is no AI, so return a scaffold in the same
+  // clarity format so the Describe flow is still explorable offline.
+  async generateDescription(adoId, context) {
+    await new Promise(r => setTimeout(r, 250));
+    return { html: mockDescribeHtml(context), model: 'template (offline)', mock: true };
+  },
+  async updateDescription(id, html) {
+    await new Promise(r => setTimeout(r, 80));
+    if (this.store[id]) this.store[id].description = html;
+    return { id, description: html };
+  },
 };
+
+// Offline scaffold used by AdoMock.generateDescription (no LLM available).
+function mockDescribeHtml(ctx) {
+  ctx = ctx || {};
+  const title = esc(ctx.title || ctx.text || 'this item');
+  const scope = (Array.isArray(ctx.items) && ctx.items.length)
+    ? ctx.items.map(i => (typeof i === 'string' ? i : (i.text || '')))
+    : (ctx.siblings || []);
+  const scopeLis = scope.filter(Boolean).slice(0, 8).map(s => `<li>${esc(String(s))}</li>`).join('')
+    || '<li><i>(add the units of scope)</i></li>';
+  return `<p><b>Problem</b><br>Describe the gap today that makes &ldquo;${title}&rdquo; necessary, and why it matters.</p>`
+    + `<p><b>Goal</b><br>State the clear outcome this delivers.</p>`
+    + `<p><b>In scope</b></p><ul>${scopeLis}</ul>`
+    + `<p><b>Acceptance criteria</b></p><ul><li>Specific, testable condition</li><li>Another testable condition</li></ul>`;
+}
 
 // Real ADO backend — talks to the local proxy (ado-proxy.js), which holds the PAT and
 // forwards REST calls. Mirrors AdoMock's surface: sync fetch/childrenOf read from a
@@ -1036,6 +1135,14 @@ const AdoClient = {
     this.store[w.id] = w;
     if (parentId) { (this._children[parentId] = this._children[parentId] || []).push(w.id); }
     return { ...w, kind };
+  },
+  async generateDescription(adoId, context) {
+    return this._post('/describe', { adoId: adoId || null, context: context || {} });
+  },
+  async updateDescription(id, html) {
+    const w = await this._post('/workitem/' + id, { fields: { 'System.Description': html } });
+    if (w && w.id) this.store[w.id] = { ...this.store[w.id], ...w };
+    return w;
   },
 };
 
@@ -1898,6 +2005,129 @@ function adoLinkUnlink() {
   if (had) showToast(`Unlinked from #${had}`);
 }
 
+// ─── AI-written descriptions ──────────────────────────────────────────────────
+// Draft a work-item description with AI, edit it in a modal, then push to ADO.
+let _adoDescTarget = null;   // { kind, objId, bucketId }
+
+// Guidance lives in the backlog document (adoDescGuidance), serialized into the
+// ado-meta block, so it travels with the file rather than the browser.
+function adoDescLoadGuidance() { return adoDescGuidance || ''; }
+function adoDescSaveGuidance(v) { adoDescGuidance = v || ''; }
+
+function adoDescResolve() {
+  if (!_adoDescTarget) return null;
+  if (_adoDescTarget.kind === 'bucket') {
+    const b = getBucket(_adoDescTarget.objId);
+    return b ? { obj: b, bucket: b } : null;
+  }
+  const hit = findLinkedItem(_adoDescTarget.objId);
+  return hit ? { obj: hit.item, bucket: hit.bucket } : null;
+}
+
+// Gather the backlog context we hand to the model so the draft reflects our clarity,
+// not just the sparse ADO fields.
+function adoDescBuildContext(res) {
+  const isBucket = _adoDescTarget.kind === 'bucket';
+  const obj = res.obj, bucket = res.bucket;
+  const ctx = { kind: isBucket ? 'bucket' : 'item', priority: obj.priority || bucket.priority || null };
+  if (isBucket) {
+    ctx.title = bucket.title;
+    ctx.bucketTitle = bucket.title;
+    ctx.items = (bucket.items || []).filter(i => !isNoAdo(i)).map(i => ({ text: i.text, priority: i.priority }));
+  } else {
+    ctx.title = obj.text || '';
+    ctx.text = obj.text || '';
+    ctx.bucketTitle = bucket ? bucket.title : null;
+    ctx.siblings = bucket ? (bucket.items || []).filter(i => i.id !== obj.id && !isNoAdo(i)).map(i => i.text).slice(0, 12) : [];
+  }
+  if (obj.ado && obj.ado.id) {
+    ctx.adoId = obj.ado.id; ctx.adoType = obj.ado.type; ctx.adoTitle = obj.ado.title; ctx.adoState = obj.ado.state;
+  }
+  const g = document.getElementById('ado-desc-guidance');
+  if (g && g.value.trim()) ctx.guidance = g.value.trim();
+  return ctx;
+}
+
+function openAdoDescribe(kind, objId, bucketId) {
+  _adoDescTarget = { kind, objId, bucketId };
+  const res = adoDescResolve();
+  if (!res) { _adoDescTarget = null; return; }
+  const linked = !!(res.obj.ado && res.obj.ado.id);
+  const name = res.obj.title || res.obj.text || (kind === 'bucket' ? 'this bucket' : 'this item');
+  document.getElementById('ado-desc-title').textContent = 'Write description' + (linked ? ` for #${res.obj.ado.id}` : '');
+  document.getElementById('ado-desc-sub').textContent = linked
+    ? `AI draft in the clarity format for “${String(name).slice(0, 90)}”. Edit freely, then push to ADO.`
+    : `This ${kind} isn't linked to an ADO item yet — draft one below, but link it first to push.`;
+  const editor = document.getElementById('ado-desc-editor');
+  editor.innerHTML = '';
+  const guidance = document.getElementById('ado-desc-guidance');
+  const saved = adoDescLoadGuidance();
+  guidance.value = saved;
+  document.getElementById('ado-desc-guide').open = !!saved.trim();
+  const pushBtn = document.getElementById('ado-desc-push');
+  pushBtn.disabled = true;
+  pushBtn.title = linked ? '' : 'Link this to an ADO item first';
+  document.getElementById('ado-desc-overlay').classList.add('show');
+  adoDescGenerate();
+}
+
+function closeAdoDescribe() {
+  document.getElementById('ado-desc-overlay').classList.remove('show');
+  _adoDescTarget = null;
+}
+
+async function adoDescGenerate() {
+  const res = adoDescResolve();
+  if (!res) return;
+  const status = document.getElementById('ado-desc-status');
+  const editor = document.getElementById('ado-desc-editor');
+  const regen = document.getElementById('ado-desc-regen');
+  const pushBtn = document.getElementById('ado-desc-push');
+  status.className = 'ado-desc-status';
+  status.innerHTML = '<span class="spin"></span> Writing a draft with AI…';
+  regen.disabled = true; pushBtn.disabled = true;
+  try {
+    const ctx = adoDescBuildContext(res);
+    adoDescSaveGuidance(ctx.guidance || '');
+    const out = await ado.generateDescription(ctx.adoId || null, ctx);
+    editor.innerHTML = (out && out.html) || '<p></p>';
+    const linked = !!(res.obj.ado && res.obj.ado.id);
+    status.textContent = out && out.mock
+      ? 'Offline scaffold (proxy/AI not connected). Edit and push once linked.'
+      : `Draft ready${out && out.model ? ' · ' + out.model : ''}. Edit freely, then push to ADO.`;
+    pushBtn.disabled = !linked;
+  } catch (e) {
+    status.className = 'ado-desc-status err';
+    status.textContent = 'Could not generate: ' + e.message;
+    editor.innerHTML = '';
+  } finally {
+    regen.disabled = false;
+  }
+}
+
+async function adoDescPush() {
+  const res = adoDescResolve();
+  if (!res) return;
+  if (!(res.obj.ado && res.obj.ado.id)) { showToast('Link to an ADO item first'); return; }
+  const html = document.getElementById('ado-desc-editor').innerHTML.trim();
+  if (!html || html === '<p></p>' || html === '<br>') { showToast('Nothing to push'); return; }
+  const status = document.getElementById('ado-desc-status');
+  const pushBtn = document.getElementById('ado-desc-push');
+  const id = res.obj.ado.id;
+  status.className = 'ado-desc-status';
+  status.innerHTML = `<span class="spin"></span> Pushing to #${id}…`;
+  pushBtn.disabled = true;
+  try {
+    await ado.updateDescription(id, html);
+    closeAdoDescribe();
+    showToast(`Description pushed to #${id}`);
+  } catch (e) {
+    status.className = 'ado-desc-status err';
+    status.textContent = 'Push failed: ' + e.message;
+    pushBtn.disabled = false;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function esc(str) {
   return String(str)
@@ -2084,6 +2314,7 @@ function renderPriorityView() {
             <span class="pv-item-text">${q && !isTagSearch && item.text.toLowerCase().includes(q) ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
             ${item.tags && item.tags.length ? `<span class="pv-item-tags">${item.tags.map(t => `<span class="tag-chip" data-tag="${esc(t)}" onclick="onTagChipClick(this)">#${esc(t)}</span>`).join('')}</span>` : ''}
             <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>${adoChipHTML(item)}
+            ${excluded ? '' : `<button class="pv-desc-btn" title="${committed ? 'Write ADO description' : 'Draft a description (link to push)'}" onclick="openAdoDescribe('item','${item.id}')">✍</button>`}
           </div>`;
         }).join('')}
       </div>`;
@@ -2111,7 +2342,7 @@ function renderAll() {
 
 function createBucketCard(bucket, idx) {
   const card = document.createElement('div');
-  card.className = `bucket-card priority-${bucket.priority}${bucket.expanded ? ' expanded' : ''}`;
+  card.className = `bucket-card priority-${bucket.priority}${bucket.expanded ? ' expanded' : ''}${bucket.ado && bucket.ado.id ? ' ado-linked' : ''}`;
   card.dataset.id = bucket.id;
 
   card.innerHTML = `
@@ -2127,6 +2358,7 @@ function createBucketCard(bucket, idx) {
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
+      <button class="desc-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>
       <button class="rename-bucket-btn" title="Rename bucket">✏</button>
       <span class="item-count-badge">${bucket.items.length}</span>
       <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
@@ -2165,6 +2397,12 @@ function createBucketCard(bucket, idx) {
   card.querySelector('.link-bucket-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     openAdoLink('bucket', bucket.id);
+  });
+
+  // write an AI description for this bucket
+  card.querySelector('.desc-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAdoDescribe('bucket', bucket.id);
   });
 
   // rename title on double-click
@@ -2219,6 +2457,7 @@ function makeItemLI(item) {
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
       ${adoChipHTML(item)}
       <div class="item-actions">
+        ${excluded ? '' : `<button class="item-desc-btn" data-item-id="${item.id}" title="${committed ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>`}
         ${excluded ? '' : `<button class="item-link-btn" data-item-id="${item.id}" title="${committed ? 'Manage ADO link (#' + item.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>`}
         <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
         <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
@@ -2233,6 +2472,8 @@ function wireItemEvents(card, bucketId) {
     btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
   card.querySelectorAll('.item-link-btn').forEach(btn =>
     btn.addEventListener('click', () => openAdoLink('item', btn.dataset.itemId, bucketId)));
+  card.querySelectorAll('.item-desc-btn').forEach(btn =>
+    btn.addEventListener('click', () => openAdoDescribe('item', btn.dataset.itemId, bucketId)));
   card.querySelectorAll('.item-text').forEach(span =>
     span.addEventListener('dblclick', () => editItem(bucketId, span.dataset.itemId)));
   card.querySelectorAll('.item-priority-select').forEach(sel =>
@@ -2442,6 +2683,8 @@ function addItem(bucketId, text, priority = 'medium') {
   li.querySelector('.item-edit-btn').addEventListener('click', () => editItem(bucketId, item.id));
   const linkBtn = li.querySelector('.item-link-btn');
   if (linkBtn) linkBtn.addEventListener('click', () => openAdoLink('item', item.id, bucketId));
+  const descBtn = li.querySelector('.item-desc-btn');
+  if (descBtn) descBtn.addEventListener('click', () => openAdoDescribe('item', item.id, bucketId));
   li.querySelector('.item-text').addEventListener('dblclick', () => editItem(bucketId, item.id));
   const cb = li.querySelector('.item-select');
   if (cb) cb.addEventListener('change', () => onAdoSelectToggle(cb));
@@ -2873,9 +3116,11 @@ function generateMarkdown() {
     if (b.ado && b.ado.id) adoAcked[b.ado.id] = b.ado.state || 'New';
     b.items.forEach(it => { if (it.ado && it.ado.id) adoAcked[it.ado.id] = it.ado.state || 'New'; });
   });
-  if (Object.keys(adoAcked).length || adoIgnoredNew.size) {
+  if (Object.keys(adoAcked).length || adoIgnoredNew.size || (adoDescGuidance && adoDescGuidance.trim())) {
     lines.push('');
-    lines.push(`<!-- ado-meta: ${JSON.stringify({ acked: adoAcked, ignoredNew: [...adoIgnoredNew] })} -->`);
+    const meta = { acked: adoAcked, ignoredNew: [...adoIgnoredNew] };
+    if (adoDescGuidance && adoDescGuidance.trim()) meta.descGuidance = adoDescGuidance.trim();
+    lines.push(`<!-- ado-meta: ${JSON.stringify(meta)} -->`);
   }
   return lines.join('\n');
 }
@@ -3133,11 +3378,13 @@ function parseMarkdown(text) {
   let adoAcked = {};
   const adoMetaMatch = text.match(/<!--\s*ado-meta:\s*(\{[\s\S]*?\})\s*-->/);
   adoIgnoredNew.clear();
+  adoDescGuidance = '';
   if (adoMetaMatch) {
     try {
       const m = JSON.parse(adoMetaMatch[1]);
       adoAcked = m.acked || {};
       (m.ignoredNew || []).forEach(id => adoIgnoredNew.add(Number(id)));
+      adoDescGuidance = m.descGuidance || '';
     } catch(e) {}
     text = text.replace(/<!--\s*ado-meta:[\s\S]*?-->/, '');
   }
