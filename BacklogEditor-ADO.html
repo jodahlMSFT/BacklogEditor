@@ -867,7 +867,7 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   <div class="ado-modal ado-desc-modal">
     <div class="ado-modal-head">
       <h2 id="ado-desc-title">Write description</h2>
-      <p id="ado-desc-sub">An AI draft in the clarity format. Edit freely, then push to ADO.</p>
+      <p id="ado-desc-sub">Review the current ADO description, generate a new one with AI, or edit it directly - then push to ADO.</p>
     </div>
     <div class="ado-modal-body">
       <details class="ado-desc-guide" id="ado-desc-guide">
@@ -877,11 +877,11 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
           placeholder="e.g. Skip testing and documentation - they're part of our definition of done. Keep it under 6 bullets."></textarea>
       </details>
       <div id="ado-desc-status" class="ado-desc-status"></div>
-      <div id="ado-desc-editor" class="ado-desc-editor" contenteditable="true" spellcheck="true"></div>
+      <div id="ado-desc-editor" class="ado-desc-editor" contenteditable="true" spellcheck="true" oninput="adoDescUpdatePushState()"></div>
     </div>
     <div class="ado-modal-foot">
       <button class="btn btn-ghost" onclick="closeAdoDescribe()">Cancel</button>
-      <button class="btn btn-ado-ghost" id="ado-desc-regen" onclick="adoDescGenerate()">↻ Regenerate</button>
+      <button class="btn btn-ado-ghost" id="ado-desc-regen" onclick="adoDescGenerate()">✨ Generate with AI</button>
       <button class="btn btn-ado" id="ado-desc-push" onclick="adoDescPush()" disabled>Push to ADO</button>
     </div>
   </div>
@@ -2008,6 +2008,7 @@ function adoLinkUnlink() {
 // ─── AI-written descriptions ──────────────────────────────────────────────────
 // Draft a work-item description with AI, edit it in a modal, then push to ADO.
 let _adoDescTarget = null;   // { kind, objId, bucketId }
+let _adoDescSeq = 0;         // guards against stale async loads when the modal is reopened
 
 // Guidance lives in the backlog document (adoDescGuidance), serialized into the
 // ado-meta block, so it travels with the file rather than the browser.
@@ -2054,10 +2055,10 @@ function openAdoDescribe(kind, objId, bucketId) {
   if (!res) { _adoDescTarget = null; return; }
   const linked = !!(res.obj.ado && res.obj.ado.id);
   const name = res.obj.title || res.obj.text || (kind === 'bucket' ? 'this bucket' : 'this item');
-  document.getElementById('ado-desc-title').textContent = 'Write description' + (linked ? ` for #${res.obj.ado.id}` : '');
+  document.getElementById('ado-desc-title').textContent = 'Description' + (linked ? ` · #${res.obj.ado.id}` : '');
   document.getElementById('ado-desc-sub').textContent = linked
-    ? `AI draft in the clarity format for “${String(name).slice(0, 90)}”. Edit freely, then push to ADO.`
-    : `This ${kind} isn't linked to an ADO item yet — draft one below, but link it first to push.`;
+    ? `Current ADO description for “${String(name).slice(0, 90)}”. Generate a new one with AI, or edit directly, then push.`
+    : `This ${kind} isn't linked to an ADO item yet — generate a draft to preview, but link it first to push.`;
   const editor = document.getElementById('ado-desc-editor');
   editor.innerHTML = '';
   const guidance = document.getElementById('ado-desc-guidance');
@@ -2068,7 +2069,55 @@ function openAdoDescribe(kind, objId, bucketId) {
   pushBtn.disabled = true;
   pushBtn.title = linked ? '' : 'Link this to an ADO item first';
   document.getElementById('ado-desc-overlay').classList.add('show');
-  adoDescGenerate();
+  adoDescLoadExisting(res, linked, ++_adoDescSeq);
+}
+
+// Pull the current description from ADO on open (no auto-generate) so the user starts
+// from what's really there and can generate or edit from it.
+async function adoDescLoadExisting(res, linked, seq) {
+  const status = document.getElementById('ado-desc-status');
+  const editor = document.getElementById('ado-desc-editor');
+  const regen = document.getElementById('ado-desc-regen');
+  status.className = 'ado-desc-status';
+  if (!linked) {
+    status.textContent = 'Not linked to ADO. Generate a draft to preview, then link to push.';
+    adoDescUpdatePushState();
+    return;
+  }
+  const id = res.obj.ado.id;
+  status.innerHTML = `<span class="spin"></span> Loading current description from #${id}…`;
+  regen.disabled = true;
+  try {
+    const existing = await adoDescFetchExisting(id);
+    if (seq !== _adoDescSeq) return; // modal was reopened for something else
+    editor.innerHTML = existing || '';
+    status.textContent = existing
+      ? 'Current ADO description loaded. Edit it, or generate a new one with AI.'
+      : 'No description in ADO yet. Generate one with AI, or write your own.';
+  } catch (e) {
+    if (seq !== _adoDescSeq) return;
+    status.className = 'ado-desc-status err';
+    status.textContent = 'Could not load current description: ' + e.message + '. You can still generate or write one.';
+    editor.innerHTML = '';
+  } finally {
+    if (seq === _adoDescSeq) { regen.disabled = false; adoDescUpdatePushState(); }
+  }
+}
+
+// Fetch the live description HTML for a work item (empty string if none).
+async function adoDescFetchExisting(id) {
+  try { await ado.refreshItems([id]); } catch (e) {}
+  const w = ado.fetch(id);
+  return (w && w.description) || '';
+}
+
+// Push is allowed only when linked to ADO and the editor has content.
+function adoDescUpdatePushState() {
+  const res = adoDescResolve();
+  const linked = !!(res && res.obj.ado && res.obj.ado.id);
+  const html = document.getElementById('ado-desc-editor').innerHTML.trim();
+  const empty = !html || html === '<br>' || html === '<p></p>';
+  document.getElementById('ado-desc-push').disabled = !(linked && !empty);
 }
 
 function closeAdoDescribe() {
@@ -2091,17 +2140,15 @@ async function adoDescGenerate() {
     adoDescSaveGuidance(ctx.guidance || '');
     const out = await ado.generateDescription(ctx.adoId || null, ctx);
     editor.innerHTML = (out && out.html) || '<p></p>';
-    const linked = !!(res.obj.ado && res.obj.ado.id);
     status.textContent = out && out.mock
       ? 'Offline scaffold (proxy/AI not connected). Edit and push once linked.'
       : `Draft ready${out && out.model ? ' · ' + out.model : ''}. Edit freely, then push to ADO.`;
-    pushBtn.disabled = !linked;
   } catch (e) {
     status.className = 'ado-desc-status err';
     status.textContent = 'Could not generate: ' + e.message;
-    editor.innerHTML = '';
   } finally {
     regen.disabled = false;
+    adoDescUpdatePushState();
   }
 }
 

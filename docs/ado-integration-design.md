@@ -96,19 +96,21 @@ Three lenses, added one at a time; each adds meaning without adding noise.
 - Changes are never auto-applied — you review and accept/ignore each one
 
 ### AI-written descriptions (editor → ADO)
-- **✍ Write description** (per bucket / per item) drafts an ADO work-item **Description**
-  in our own "place of clarity" format: **Problem · Goal · In scope · Known issues ·
-  Related · Acceptance criteria**. The ✍ button sits next to 🔗 on bucket headers, item
-  rows, and priority-view rows.
+- **✍ Write description** (per bucket / per item) opens a modal that **first pulls the
+  current Description from ADO** so you start from what's really there. From there you can
+  **✨ Generate with AI** a fresh draft in our "place of clarity" format (**Problem · Goal ·
+  In scope · Known issues · Related · Acceptance criteria**), **edit the text directly**, or
+  both - then **Push to ADO**. The ✍ button sits next to 🔗 on bucket headers, item rows,
+  and priority-view rows.
 - The draft is produced by a real model (**GitHub Models `openai/gpt-4o`**, authed with
   the local `gh` token — no extra key), called through the proxy's `POST /describe`
   endpoint. The page hands it the backlog context (bucket title, child/sibling item text,
   priority, and the linked ADO id/title/state) so the draft reflects *our* clarity, not
   just the sparse ADO fields.
-- The result opens in an **editable modal** (contentEditable). You can **↻ Regenerate**,
-  edit freely, then **Push to ADO** (writes `System.Description` via `PATCH /workitem/:id`)
-  or **Cancel**. Nothing is pushed until you approve; push is disabled until the entry is
-  linked to an ADO item.
+- The result opens in an **editable modal** (contentEditable). You can **✨ Generate with
+  AI**, edit freely, then **Push to ADO** (writes `System.Description` via
+  `PATCH /workitem/:id`) or **Cancel**. Nothing is pushed until you approve; push is
+  disabled until the entry is linked to an ADO item and the editor has content.
 - Style guardrail: drafts use a normal hyphen (-), never the wide em-dash.
 - **Guidance field** — a collapsible "Guidance for the AI" box in the modal holds light,
   persistent instructions applied to every draft (e.g. *"skip testing and documentation -
