@@ -71,8 +71,13 @@ Three lenses, added one at a time; each adds meaning without adding noise.
 ### Pull diff (ADO → editor)
 - **Two separate on-demand checks** (clarity = subtraction — see §7a):
   - **⟳ Check updates** — the safe, everyday check. Only state changes on already-linked
-    items. Surfaces 🟢 **Closed** (shipped/cut — strike from backlog) and 🟡 **Modified**
-    (a *whisper* — review, rarely act). Adds nothing, so it can be run without worry.
+    **buckets and items**. Surfaces 🟢 **Closed** (shipped/cut — strike from backlog) and
+    🟡 **Modified** (a *whisper* — review, rarely act; includes title and re-parent
+    changes). Adds nothing, so it can be run without worry. Linked buckets are compared too,
+    not just items - so a bucket relinked to a differently-named ADO item shows a title
+    reconciliation (**Use ADO title** / **Got it**). On link/relink the baseline title is
+    seeded from the entry's *own* current name, so any mismatch with the ADO title surfaces
+    once for reconciliation; matching names flag nothing.
   - **🆕 Check for new** — the discovery check. First asks *where* to look: under your
     committed buckets, or under a single parent you pick (any level in ADO_PARENTS, e.g.
     a Scenario Group). Surfaces only the **direct children one level below** that scope
@@ -83,10 +88,23 @@ Three lenses, added one at a time; each adds meaning without adding noise.
   and the user selects which children come along as items (dedupes already-linked ids).
 - **🔗 Link to ADO** (per bucket / per item) — associate a backlog entry you *already*
   have with an existing ADO work item **without creating anything**. The 🔗 button on a
-  bucket header or item row opens a lookup-by-id modal; on confirm the entry gains the
+  bucket header or item row opens the link modal; on confirm the entry gains the
   same ADO link a commit would give it (so it tracks state/title/parent changes and is
   skipped by future commits). The same modal **unlinks** or **re-links** an entry. An id
   already linked elsewhere is rejected.
+  - **Finding the item to link: search or paste, scoped.** The modal accepts a **title
+    search** (WIQL `CONTAINS`) or a **pasted id** (direct fetch, fast). Because a
+    whole-project title scan is slow (~10s), the search is **scoped under a chosen
+    Scenario Group or Scenario** (the `Search under` selector, populated from
+    `ADO_PARENTS`, remembered per browser) - a recursive tree query that returns in ~2-3s.
+    An `Entire project (slower)` option remains for the rare cross-scope case. Results
+    render as a pickable list showing type · state · parent; the row already linked
+    elsewhere is shown disabled. This is how you *browse* to the right item when you don't
+    know the id - e.g. an auto-generated ADO item duplicates one that already exists **with
+    history**, and you want to repoint the backlog entry to the item worth keeping.
+  - **The ADO chip is a menu.** Clicking the always-visible `🔗 #NNN` chip on any linked
+    bucket/item opens a small popover: **Open in ADO ↗ / Relink to another item… / Unlink**,
+    so fixing a wrong or duplicate link is discoverable without hovering for the 🔗 button.
 - Scope for "new" is chosen per-check: every committed bucket, or one picked parent —
   always just the direct children one level below (never a deep tree walk).
 - Review sections are **collapsed by default with counts**, states are **color-coded to

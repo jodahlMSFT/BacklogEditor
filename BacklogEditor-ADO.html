@@ -392,7 +392,29 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   text-decoration: none; opacity: 0.75; transition: opacity 0.12s;
 }
 .ado-chip:hover { opacity: 1; }
+.ado-chip.ado-chip-menu-trigger { cursor: pointer; }
 .ado-chip .ado-dot { font-size: 0.5rem; line-height: 1; margin: 0 1px; }
+/* Chip popover: Open in ADO / Relink / Unlink */
+.ado-chip-menu {
+  position: fixed; z-index: 1200; min-width: 168px;
+  background: #0f172a; border: 1px solid rgba(148,163,184,0.28);
+  border-radius: 8px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+  font-family: inherit;
+}
+.ado-chip-menu-head {
+  padding: 5px 9px 6px; font-size: 0.68rem; color: #94a3b8;
+  border-bottom: 1px solid rgba(148,163,184,0.14); margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+}
+.ado-chip-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: none; border: none; cursor: pointer; text-align: left;
+  color: #e2e8f0; font-size: 0.82rem; font-family: inherit;
+  padding: 6px 9px; border-radius: 5px; line-height: 1.1;
+}
+.ado-chip-menu button:hover { background: rgba(56,189,248,0.14); }
+.ado-chip-menu button.ado-chip-menu-danger:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+.ado-chip-menu button .mi { width: 14px; text-align: center; opacity: 0.85; }
 /* Per-state colours, mirroring ADO's state categories:
    New/Proposed=grey · Active/InProgress=blue · Resolved=amber · Done/Closed=green · Removed=red */
 .ado-chip-new      { color: #94a3b8; background: rgba(148,163,184,0.10); border-color: rgba(148,163,184,0.30); }
@@ -531,6 +553,20 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .ado-pull-parent-type { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #7dd3fc; background: rgba(56,189,248,0.12); border-radius: 6px; padding: 2px 6px; }
 .ado-pull-parent-title { color: #e2e8f0; font-weight: 600; margin: 6px 0 2px; font-size: 0.9rem; }
 .ado-pull-parent-sub { font-size: 0.74rem; color: #64748b; }
+/* Relink search results list */
+.ado-link-reslist { margin-top: 12px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.ado-link-res {
+  display: grid; grid-template-columns: auto 1fr; grid-template-areas: "type title" "type sub";
+  gap: 2px 10px; align-items: center; width: 100%; text-align: left; cursor: pointer;
+  background: rgba(148,163,184,0.04); border: 1px solid #1e293b; border-radius: 10px;
+  padding: 9px 12px; font-family: inherit; transition: all 0.12s;
+}
+.ado-link-res:hover:not(:disabled) { border-color: rgba(56,189,248,0.45); background: rgba(56,189,248,0.07); }
+.ado-link-res.is-picked { border-color: #10b981; background: rgba(16,185,129,0.10); }
+.ado-link-res.is-taken { opacity: 0.5; cursor: not-allowed; }
+.ado-link-res .ado-pull-parent-type { grid-area: type; align-self: start; }
+.ado-link-res-title { grid-area: title; color: #e2e8f0; font-weight: 600; font-size: 0.86rem; }
+.ado-link-res-sub { grid-area: sub; font-size: 0.72rem; color: #64748b; }
 .ado-pull-children { list-style: none; margin: 12px 0 0; }
 .ado-pull-children-label { display: flex; align-items: center; justify-content: space-between; margin: 14px 2px 6px; }
 .ado-pull-children-label .ado-field-label { margin: 0; }
@@ -847,12 +883,16 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
     </div>
     <div class="ado-modal-body">
       <div id="ado-link-current"></div>
-      <label class="ado-field-label" for="ado-link-id">Work item ID</label>
+      <label class="ado-field-label" for="ado-link-scope">Search under</label>
+      <select class="ado-select" id="ado-link-scope" onchange="adoLinkScopeChanged()"></select>
+      <label class="ado-field-label" for="ado-link-q" style="margin-top:12px;">Find the work item to link</label>
       <div class="ado-pull-idrow">
-        <input class="ado-select" id="ado-link-id" type="number" placeholder="e.g. 1200500"
-               onkeydown="if(event.key==='Enter')adoLinkLookup()">
-        <button class="btn btn-ado-ghost" onclick="adoLinkLookup()">Look up</button>
+        <input class="ado-select" id="ado-link-q" type="text"
+               placeholder="Search by title, or paste an ID — e.g. serialized returns / 1200500"
+               oninput="adoLinkSearchDebounced()" onkeydown="if(event.key==='Enter')adoLinkSearch()">
+        <button class="btn btn-ado-ghost" onclick="adoLinkSearch()">Search</button>
       </div>
+      <div id="ado-link-results"></div>
       <div id="ado-link-result"></div>
     </div>
     <div class="ado-modal-foot">
@@ -1070,6 +1110,33 @@ const AdoMock = {
     if (this.store[id]) this.store[id].description = html;
     return { id, description: html };
   },
+  // Offline title/id search over the in-memory store, newest id first.
+  async search(query, opts) {
+    await new Promise(r => setTimeout(r, 120));
+    opts = opts || {};
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return [];
+    let rows = Object.values(this.store).filter(w => w.state !== 'Removed');
+    // Scope: keep only descendants of the chosen Scenario Group / Scenario.
+    if (opts.scope) {
+      const scopeId = parseInt(opts.scope, 10);
+      const kids = new Set();
+      let frontier = [scopeId];
+      while (frontier.length) {
+        const next = [];
+        for (const w of Object.values(this.store)) {
+          if (frontier.includes(w.parentId) && !kids.has(w.id)) { kids.add(w.id); next.push(w.id); }
+        }
+        frontier = next;
+      }
+      rows = rows.filter(w => kids.has(w.id));
+    }
+    if (opts.type) rows = rows.filter(w => (w.type || '') === opts.type);
+    rows = rows.filter(w =>
+      String(w.id) === q || String(w.id).includes(q) || (w.title || '').toLowerCase().includes(q));
+    rows.sort((a, b) => b.id - a.id);
+    return rows.slice(0, opts.top || 30).map(w => ({ ...w }));
+  },
 };
 
 // Offline scaffold used by AdoMock.generateDescription (no LLM available).
@@ -1144,6 +1211,16 @@ const AdoClient = {
     if (w && w.id) this.store[w.id] = { ...this.store[w.id], ...w };
     return w;
   },
+  async search(query, opts) {
+    opts = opts || {};
+    const qs = new URLSearchParams({ q: query });
+    if (opts.type) qs.set('type', opts.type);
+    if (opts.scope) qs.set('scope', String(opts.scope));
+    if (opts.top) qs.set('top', String(opts.top));
+    const items = await this._get('/search?' + qs.toString());
+    items.forEach(w => { this.store[w.id] = w; });   // cache so fetch(id) works after picking
+    return items;
+  },
 };
 
 // Active ADO backend. Defaults to the mock; init swaps in AdoClient if the proxy
@@ -1174,20 +1251,89 @@ function adoStateSpan(state) {
 }
 // The committed "whisper" (linked) for a bucket or item, or the "local" marker.
 // isItem=false suppresses the [no-ado] marker (buckets can't be tagged no-ado).
-function adoChipHTML(obj, isItem = true) {
+function adoChipHTML(obj, isItem = true, kind = null, objId = null) {
   if (obj.ado && obj.ado.id) {
     const state = obj.ado.state || '';
     const cat = adoStateCategory(state);
     const st = state ? ` <span class="ado-dot">●</span> ${esc(state)}` : '';
     const ty = obj.ado.type ? esc(obj.ado.type) : 'work item';
-    return `<a class="ado-chip ado-chip-${cat}" href="${adoUrl(obj.ado.id)}" target="_blank" rel="noopener"
-              title="Committed to ADO as ${ty}${state ? ' · ' + esc(state) : ''} — click to open #${obj.ado.id}"
-              onclick="event.stopPropagation()">🔗 #${obj.ado.id}${st}</a>`;
+    const k = kind || (isItem ? 'item' : 'bucket');
+    return `<span class="ado-chip ado-chip-${cat} ado-chip-menu-trigger" role="button" tabindex="0"
+              title="Linked to ADO ${ty}${state ? ' · ' + esc(state) : ''} — click to open, relink or unlink"
+              onclick="adoChipMenu(event, '${k}', '${esc(objId != null ? objId : '')}', ${obj.ado.id})"
+              onkeydown="if(event.key==='Enter'||event.key===' '){adoChipMenu(event,'${k}','${esc(objId != null ? objId : '')}',${obj.ado.id});}">🔗 #${obj.ado.id}${st}</span>`;
   }
   if (isItem && isNoAdo(obj)) {
     return `<span class="ado-local-chip" title="Marked [no-ado] — stays in the backlog only">local</span>`;
   }
   return '';
+}
+
+// ── ADO chip popover: Open in ADO / Relink / Unlink ──
+let _adoChipMenuEl = null;
+function closeAdoChipMenu() {
+  if (_adoChipMenuEl) { _adoChipMenuEl.remove(); _adoChipMenuEl = null; }
+  document.removeEventListener('mousedown', _adoChipMenuAway, true);
+  document.removeEventListener('keydown', _adoChipMenuEsc, true);
+  window.removeEventListener('scroll', closeAdoChipMenu, true);
+}
+function _adoChipMenuAway(e) { if (_adoChipMenuEl && !_adoChipMenuEl.contains(e.target)) closeAdoChipMenu(); }
+function _adoChipMenuEsc(e) { if (e.key === 'Escape') closeAdoChipMenu(); }
+
+// Resolve a { kind, objId } target to its backlog object (bucket or item).
+function adoResolveLinkObj(kind, objId) {
+  if (kind === 'bucket') { const b = getBucket(objId); return b ? { obj: b } : null; }
+  const hit = findLinkedItem(objId);
+  return hit ? { obj: hit.item } : null;
+}
+
+function adoChipMenu(ev, kind, objId, adoId) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  const already = _adoChipMenuEl;
+  closeAdoChipMenu();
+  if (already) return; // toggle off if clicking the same open menu's trigger
+
+  const menu = document.createElement('div');
+  menu.className = 'ado-chip-menu';
+  menu.innerHTML = `
+    <div class="ado-chip-menu-head">ADO #${adoId}</div>
+    <button data-act="open"><span class="mi">↗</span>Open in ADO</button>
+    <button data-act="relink"><span class="mi">🔗</span>Relink to another item…</button>
+    <button data-act="unlink" class="ado-chip-menu-danger"><span class="mi">✕</span>Unlink</button>`;
+  document.body.appendChild(menu);
+  _adoChipMenuEl = menu;
+
+  // Position under the chip, kept within the viewport.
+  const r = ev.currentTarget.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let left = r.left, top = r.bottom + 4;
+  if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
+  if (top + mh > window.innerHeight - 8) top = r.top - mh - 4;
+  menu.style.left = Math.max(8, left) + 'px';
+  menu.style.top = Math.max(8, top) + 'px';
+
+  menu.querySelector('[data-act="open"]').onclick = () => {
+    closeAdoChipMenu();
+    window.open(adoUrl(adoId), '_blank', 'noopener');
+  };
+  menu.querySelector('[data-act="relink"]').onclick = () => {
+    closeAdoChipMenu();
+    openAdoLink(kind, objId);
+  };
+  menu.querySelector('[data-act="unlink"]').onclick = () => {
+    closeAdoChipMenu();
+    const res = adoResolveLinkObj(kind, objId);
+    if (!res) return;
+    const had = res.obj.ado && res.obj.ado.id;
+    delete res.obj.ado;
+    reRender();
+    if (had) showToast(`Unlinked from #${had}`);
+  };
+
+  document.addEventListener('mousedown', _adoChipMenuAway, true);
+  document.addEventListener('keydown', _adoChipMenuEsc, true);
+  window.addEventListener('scroll', closeAdoChipMenu, true);
 }
 
 // ── Selection mode ──
@@ -1382,31 +1528,33 @@ function hasAdoLinks() {
 // Compare cached ADO state (on the backlog) against current ADO state (the mock store).
 function computeAdoDiff() {
   const linkedIds = new Set();
-  const linkedItems = [];
+  const entries = [];   // { obj, bucket, isBucket } — buckets are diffed too, not just items
   buckets.forEach(b => {
-    if (b.ado && b.ado.id) linkedIds.add(b.ado.id);
-    b.items.forEach(it => { if (it.ado && it.ado.id) { linkedIds.add(it.ado.id); linkedItems.push({ item: it, bucket: b }); } });
+    if (b.ado && b.ado.id) { linkedIds.add(b.ado.id); entries.push({ obj: b, bucket: b, isBucket: true }); }
+    b.items.forEach(it => { if (it.ado && it.ado.id) { linkedIds.add(it.ado.id); entries.push({ obj: it, bucket: b, isBucket: false }); } });
   });
 
   const closed = [], modified = [];
-  linkedItems.forEach(({ item, bucket }) => {
-    const srv = ado.fetch(item.ado.id);
+  entries.forEach(({ obj, bucket, isBucket }) => {
+    const srv = ado.fetch(obj.ado.id);
     if (!srv) return;
-    const stateChanged = srv.state !== item.ado.state;
+    const stateChanged = srv.state !== obj.ado.state;
+    // The entry's own display text: bucket title, or item text.
+    const ownText = isBucket ? bucket.title : obj.text;
     // Baseline title: the last ADO title we recorded, or (for links made before we
     // tracked titles) the backlog text — which equalled the ADO title at commit time.
-    const baseTitle = item.ado.title != null ? item.ado.title : item.text;
+    const baseTitle = obj.ado.title != null ? obj.ado.title : ownText;
     const titleChanged = srv.title != null && srv.title !== baseTitle;
-    // Re-parented in ADO: the item now hangs under a different work item than the one
-    // its backlog bucket maps to. Only meaningful when we know both parents.
-    const oldParentId = item.ado.parent && item.ado.parent.id;
+    // Re-parented in ADO: the entry now hangs under a different work item than the one
+    // its backlog mapping records. Only meaningful when we know both parents.
+    const oldParentId = obj.ado.parent && obj.ado.parent.id;
     const newParentId = srv.parentId;
     const parentChanged = newParentId != null && oldParentId != null && newParentId !== oldParentId;
     if (!stateChanged && !titleChanged && !parentChanged) return;
     const newParentBucket = parentChanged ? buckets.find(b => b.ado && b.ado.id === newParentId) : null;
     const newParentSrv = parentChanged ? ado.fetch(newParentId) : null;
     const row = {
-      item, bucket, from: item.ado.state, to: srv.state,
+      item: obj, isBucket, entryText: ownText, bucket, from: obj.ado.state, to: srv.state,
       stateChanged, titleChanged, titleFrom: baseTitle, titleTo: srv.title,
       parentChanged, newParentId,
       parentFrom: bucket.title,
@@ -1589,7 +1737,7 @@ function renderAdoReview() {
       <div class="ado-rev-row" data-kind="closed" data-item="${r.item.id}">
         <div class="ado-rev-main">
           <span class="ado-rev-tag ${cut ? 'cut' : 'shipped'}">${cut ? '✂ Cut from scope' : '✓ Shipped'}</span>
-          <div class="ado-rev-text">${esc(r.item.text)}</div>
+          <div class="ado-rev-text">${esc(r.entryText)}${r.isBucket ? ' <span class="ado-rev-dim">(bucket)</span>' : ''}</div>
           <div class="ado-rev-meta">#${r.item.ado.id} · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)} · ${esc(r.bucket.title)}</div>
         </div>
         <div class="ado-rev-actions">
@@ -1604,7 +1752,7 @@ function renderAdoReview() {
     sections.push(section('🟡', 'Modified', 'State, title or parent changed in ADO', 'modified', d.modified.map(r => `
       <div class="ado-rev-row" data-kind="modified" data-item="${r.item.id}">
         <div class="ado-rev-main">
-          <div class="ado-rev-text">${esc(r.item.text)}</div>
+          <div class="ado-rev-text">${esc(r.entryText)}${r.isBucket ? ' <span class="ado-rev-dim">(bucket)</span>' : ''}</div>
           <div class="ado-rev-meta">#${r.item.ado.id}${r.stateChanged ? ` · ${adoStateSpan(r.from)} → ${adoStateSpan(r.to)}` : ''} · ${esc(r.bucket.title)}</div>
           ${r.titleChanged ? `<div class="ado-rev-meta ado-rev-title-change">✎ “${esc(r.titleFrom)}” → “${esc(r.titleTo)}”</div>` : ''}
           ${r.parentChanged ? `<div class="ado-rev-meta ado-rev-move-change">↳ Moved: ${esc(r.parentFrom)} → ${esc(r.parentTo)}${r.parentInBacklog ? '' : ' <span class="ado-rev-dim">(not a backlog bucket)</span>'}</div>` : ''}
@@ -1668,49 +1816,60 @@ function findLinkedItem(itemId) {
   return null;
 }
 
-// Closed → strike from the backlog (mark N/A) and acknowledge the new state.
-function adoRevClosedStrike(itemId) {
-  const hit = findLinkedItem(itemId);
-  if (!hit) return;
-  const srv = ado.fetch(hit.item.ado.id);
-  hit.item.priority = 'na';
-  if (srv) hit.item.ado.state = srv.state;
+// Find a linked ADO entry (bucket OR item) by its backlog id. Buckets and items share
+// the same id space (both from uid()), so ids never collide.
+function findAdoEntry(id) {
+  const b = getBucket(id);
+  if (b) return { obj: b, bucket: b, isBucket: true };
+  const hit = findLinkedItem(id);
+  return hit ? { obj: hit.item, bucket: hit.bucket, isBucket: false } : null;
+}
+
+// Closed → strike from the backlog and acknowledge the new state. Items get marked N/A
+// (struck through); a whole closed bucket has no strike-through, so we just acknowledge.
+function adoRevClosedStrike(id) {
+  const e = findAdoEntry(id);
+  if (!e) return;
+  const srv = ado.fetch(e.obj.ado.id);
+  if (!e.isBucket) e.obj.priority = 'na';
+  if (srv) e.obj.ado.state = srv.state;
   reRender(); renderAdoReview();
-  showToast('Struck from backlog');
+  showToast(e.isBucket ? 'Acknowledged' : 'Struck from backlog');
 }
 
 // Accept the ADO state/title/parent as-is (Closed→Keep, or Modified→Got it): refresh the whisper.
-function adoRevAcknowledge(itemId) {
-  const hit = findLinkedItem(itemId);
-  if (!hit) return;
-  const srv = ado.fetch(hit.item.ado.id);
+function adoRevAcknowledge(id) {
+  const e = findAdoEntry(id);
+  if (!e) return;
+  const srv = ado.fetch(e.obj.ado.id);
   if (srv) {
-    hit.item.ado.state = srv.state;
-    hit.item.ado.title = srv.title;
+    e.obj.ado.state = srv.state;
+    e.obj.ado.title = srv.title;
     if (srv.parentId != null) {
-      const level = hit.item.ado.parent && hit.item.ado.parent.level;
-      hit.item.ado.parent = { level: level || null, id: srv.parentId };
+      const level = e.obj.ado.parent && e.obj.ado.parent.level;
+      e.obj.ado.parent = { level: level || null, id: srv.parentId };
     }
   }
   reRender(); renderAdoReview();
 }
 
 // Adopt the ADO title into the backlog entry (rename to match ADO), and refresh baseline.
-function adoRevAdoptTitle(itemId) {
-  const hit = findLinkedItem(itemId);
-  if (!hit) return;
-  const srv = ado.fetch(hit.item.ado.id);
+function adoRevAdoptTitle(id) {
+  const e = findAdoEntry(id);
+  if (!e) return;
+  const srv = ado.fetch(e.obj.ado.id);
   if (srv) {
-    hit.item.text = srv.title;
-    hit.item.ado.title = srv.title;
-    hit.item.ado.state = srv.state;
+    if (e.isBucket) e.obj.title = srv.title; else e.obj.text = srv.title;
+    e.obj.ado.title = srv.title;
+    e.obj.ado.state = srv.state;
   }
   reRender(); renderAdoReview();
   showToast('Renamed to match ADO');
 }
 
-// Adopt the ADO re-parent: relocate the backlog entry under the bucket that maps to the
-// item's new ADO parent, and refresh the baseline. Only offered when such a bucket exists.
+// Adopt the ADO re-parent: relocate the backlog item under the bucket that maps to the
+// item's new ADO parent, and refresh the baseline. Items only (buckets have no bucket
+// parent in the backlog), and only offered when such a bucket exists.
 function adoRevAdoptMove(itemId) {
   const hit = findLinkedItem(itemId);
   if (!hit) return;
@@ -1924,49 +2083,136 @@ function openAdoLink(kind, objId, bucketId) {
            ${res.obj.ado.title ? `“${esc(res.obj.ado.title)}”` : ''}</div>
          <button class="btn btn-ghost ado-link-unlink" onclick="adoLinkUnlink()">Unlink</button>
        </div>
-       <div class="ado-link-relabel">Look up another ID below to re-link.</div>`
+       <div class="ado-link-relabel">Search below and pick the correct item to re-link.</div>`
     : '';
-  document.getElementById('ado-link-id').value = '';
+  document.getElementById('ado-link-q').value = '';
+  document.getElementById('ado-link-results').innerHTML = '';
   document.getElementById('ado-link-result').innerHTML = '';
   document.getElementById('ado-link-confirm').disabled = true;
+  _adoLinkResults = [];
+  adoLinkPopulateScope();
   document.getElementById('ado-link-overlay').classList.add('show');
-  setTimeout(() => document.getElementById('ado-link-id').focus(), 30);
+  setTimeout(() => document.getElementById('ado-link-q').focus(), 30);
 }
 
 function closeAdoLink() {
   document.getElementById('ado-link-overlay').classList.remove('show');
-  _adoLinkTarget = null; _adoLinkFound = null;
+  clearTimeout(_adoLinkSearchTimer);
+  _adoLinkTarget = null; _adoLinkFound = null; _adoLinkResults = [];
 }
 
-async function adoLinkLookup() {
-  const raw = document.getElementById('ado-link-id').value.trim();
-  const result = document.getElementById('ado-link-result');
-  const confirmBtn = document.getElementById('ado-link-confirm');
-  confirmBtn.disabled = true; _adoLinkFound = null;
-  if (!raw) { result.innerHTML = ''; return; }
-  const id = parseInt(raw, 10);
-  result.innerHTML = `<div class="ado-pull-empty">Looking up #${esc(raw)}…</div>`;
-  try {
-    await ado.refreshItems([id]);
-  } catch (e) {
-    result.innerHTML = `<div class="ado-pull-error">Lookup failed: ${esc(e.message)}</div>`;
+let _adoLinkScope = '';   // id of the Scenario Group / Scenario to search under ('' = whole project)
+
+// Fill the "Search under" selector from ADO_PARENTS, grouped by level; restore last choice.
+function adoLinkPopulateScope() {
+  const sel = document.getElementById('ado-link-scope');
+  const groups = ADO_PARENTS.filter(p => p.level === 'Scenario Group');
+  const scenarios = ADO_PARENTS.filter(p => p.level === 'Scenario');
+  const opt = p => `<option value="${p.id}">${esc(p.title)}${p.note ? ' (' + esc(p.note) + ')' : ''}</option>`;
+  let html = '';
+  if (groups.length)    html += `<optgroup label="Scenario Group">${groups.map(opt).join('')}</optgroup>`;
+  if (scenarios.length) html += `<optgroup label="Scenario">${scenarios.map(opt).join('')}</optgroup>`;
+  html += `<option value="">Entire project (slower)</option>`;
+  sel.innerHTML = html;
+  let saved = null;
+  try { saved = localStorage.getItem('adoLinkScope'); } catch (e) {}
+  const def = saved != null ? saved : String(groups.length ? groups[0].id : '');
+  // Only accept the saved value if it's still a real option.
+  sel.value = [...sel.options].some(o => o.value === def) ? def : (groups.length ? String(groups[0].id) : '');
+  _adoLinkScope = sel.value;
+}
+
+function adoLinkScopeChanged() {
+  _adoLinkScope = document.getElementById('ado-link-scope').value;
+  try { localStorage.setItem('adoLinkScope', _adoLinkScope); } catch (e) {}
+  if (document.getElementById('ado-link-q').value.trim()) adoLinkSearch();
+}
+
+let _adoLinkResults = [];
+let _adoLinkSearchTimer = null;
+let _adoLinkSearchSeq = 0;
+
+function adoLinkSearchDebounced() {
+  clearTimeout(_adoLinkSearchTimer);
+  const q = document.getElementById('ado-link-q').value.trim();
+  if (!q) {
+    document.getElementById('ado-link-results').innerHTML = '';
+    document.getElementById('ado-link-result').innerHTML = '';
+    document.getElementById('ado-link-confirm').disabled = true;
+    _adoLinkFound = null; _adoLinkResults = [];
     return;
   }
-  const wi = ado.fetch(id);
-  if (!wi) {
-    result.innerHTML = `<div class="ado-pull-error">No ADO work item found with ID #${esc(raw)}.</div>`;
+  _adoLinkSearchTimer = setTimeout(adoLinkSearch, 350);
+}
+
+async function adoLinkSearch() {
+  clearTimeout(_adoLinkSearchTimer);
+  const raw = document.getElementById('ado-link-q').value.trim();
+  const results = document.getElementById('ado-link-results');
+  const status = document.getElementById('ado-link-result');
+  const confirmBtn = document.getElementById('ado-link-confirm');
+  confirmBtn.disabled = true; _adoLinkFound = null; status.innerHTML = '';
+  if (!raw) { results.innerHTML = ''; return; }
+  const seq = ++_adoLinkSearchSeq;
+  const scopeSel = document.getElementById('ado-link-scope');
+  const scopeLabel = _adoLinkScope && scopeSel
+    ? (scopeSel.options[scopeSel.selectedIndex] ? scopeSel.options[scopeSel.selectedIndex].text : '')
+    : '';
+  const isId = /^\d+$/.test(raw);
+  results.innerHTML = `<div class="ado-pull-empty">Searching ${scopeLabel && !isId ? 'under “' + esc(scopeLabel) + '”' : 'ADO'} for “${esc(raw)}”…</div>`;
+  let items;
+  try {
+    const opts = { top: 25 };
+    if (_adoLinkScope) opts.scope = _adoLinkScope;
+    items = await ado.search(raw, opts);
+  } catch (e) {
+    if (seq !== _adoLinkSearchSeq) return;
+    results.innerHTML = `<div class="ado-pull-error">Search failed: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (seq !== _adoLinkSearchSeq) return; // a newer search superseded this one
+  _adoLinkResults = items || [];
+  if (!_adoLinkResults.length) {
+    const scopeHint = scopeLabel && !isId ? ` under “${esc(scopeLabel)}”` : '';
+    results.innerHTML = `<div class="ado-pull-empty">No matches for “${esc(raw)}”${scopeHint}. Try other words, widen the scope, or paste the ID.</div>`;
     return;
   }
   const res = adoLinkResolve();
   const ownId = res && res.obj.ado && res.obj.ado.id;
+  const linked = linkedAdoIds();
+  results.innerHTML = `<div class="ado-link-reslist">` + _adoLinkResults.map(wi => {
+    const taken = wi.id !== ownId && linked.has(wi.id);
+    const isCur = wi.id === ownId;
+    return `<button class="ado-link-res${taken ? ' is-taken' : ''}"${taken ? ' disabled' : ''}
+              onclick="adoLinkPick(${wi.id})" title="${taken ? 'Already linked elsewhere in the backlog' : 'Select #' + wi.id}">
+        <span class="ado-pull-parent-type">${esc(wi.type || 'work item')}</span>
+        <span class="ado-link-res-title">${esc(wi.title || '(untitled)')}</span>
+        <span class="ado-link-res-sub">#${wi.id} · ${adoStateSpan(wi.state)}${wi.parentId ? ' · under #' + wi.parentId : ''}${isCur ? ' · <i>current link</i>' : ''}${taken ? ' · <i>already linked</i>' : ''}</span>
+      </button>`;
+  }).join('') + `</div>`;
+}
+
+function adoLinkPick(id) {
+  const wi = _adoLinkResults.find(w => w.id === id);
+  const status = document.getElementById('ado-link-result');
+  const confirmBtn = document.getElementById('ado-link-confirm');
+  if (!wi) { confirmBtn.disabled = true; _adoLinkFound = null; return; }
+  const res = adoLinkResolve();
+  const ownId = res && res.obj.ado && res.obj.ado.id;
   if (id !== ownId && linkedAdoIds().has(id)) {
-    result.innerHTML = `<div class="ado-pull-error">#${id} “${esc(wi.title)}” is already linked elsewhere in the backlog.</div>`;
+    status.innerHTML = `<div class="ado-pull-error">#${id} is already linked elsewhere in the backlog.</div>`;
+    confirmBtn.disabled = true; _adoLinkFound = null;
     return;
   }
   _adoLinkFound = wi;
-  result.innerHTML = `<div class="ado-pull-parent">
+  // Highlight the chosen row.
+  document.querySelectorAll('#ado-link-results .ado-link-res').forEach(b => b.classList.remove('is-picked'));
+  const btn = [...document.querySelectorAll('#ado-link-results .ado-link-res')]
+    .find(b => b.getAttribute('onclick') === `adoLinkPick(${id})`);
+  if (btn) btn.classList.add('is-picked');
+  status.innerHTML = `<div class="ado-pull-parent">
       <span class="ado-pull-parent-type">${esc(wi.type)}</span>
-      <div class="ado-pull-parent-title">${esc(wi.title)}</div>
+      <div class="ado-pull-parent-title">Selected: ${esc(wi.title)}</div>
       <div class="ado-pull-parent-sub">#${wi.id} · ${adoStateSpan(wi.state)}${wi.parentId ? ' · under #' + wi.parentId : ''}</div>
     </div>`;
   confirmBtn.disabled = false;
@@ -1976,8 +2222,13 @@ function confirmAdoLink() {
   const res = adoLinkResolve();
   const srv = _adoLinkFound;
   if (!res || !srv) { closeAdoLink(); return; }
+  // Seed the baseline title with the entry's OWN current name (not the ADO title) so that
+  // if the linked ADO item is named differently, the next "Check updates" surfaces a
+  // title-reconciliation whisper (Use ADO title / Got it). When the names already match,
+  // baseline === ADO title, so nothing is flagged.
+  const ownName = _adoLinkTarget.kind === 'bucket' ? res.obj.title : res.obj.text;
   if (_adoLinkTarget.kind === 'bucket') {
-    res.obj.ado = { id: srv.id, type: srv.type, state: srv.state, title: srv.title };
+    res.obj.ado = { id: srv.id, type: srv.type, state: srv.state, title: ownName };
   } else {
     // Baseline parent: the bucket's own ADO link when it has one (so no false "moved"
     // whisper against its home), else the item's real ADO parent.
@@ -1985,7 +2236,7 @@ function confirmAdoLink() {
     const parentId = (bAdo && bAdo.id) != null ? bAdo.id : (srv.parentId != null ? srv.parentId : null);
     const parentLevel = (bAdo && bAdo.type) || null;
     res.obj.ado = {
-      id: srv.id, type: srv.type, state: srv.state, title: srv.title,
+      id: srv.id, type: srv.type, state: srv.state, title: ownName,
       parent: parentId != null ? { level: parentLevel, id: parentId } : null,
     };
   }
@@ -2360,7 +2611,7 @@ function renderPriorityView() {
             <input type="checkbox" class="item-select"${selected ? ' checked' : ''} data-item-id="${item.id}" title="Select for ADO commit" onchange="onAdoSelectToggle(this)">
             <span class="pv-item-text">${q && !isTagSearch && item.text.toLowerCase().includes(q) ? highlightText(item.text, q) : fmtItemText(item.text)}</span>
             ${item.tags && item.tags.length ? `<span class="pv-item-tags">${item.tags.map(t => `<span class="tag-chip" data-tag="${esc(t)}" onclick="onTagChipClick(this)">#${esc(t)}</span>`).join('')}</span>` : ''}
-            <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>${adoChipHTML(item)}
+            <span class="pv-bucket-tag">${esc(item.bucketTitle)}</span>${adoChipHTML(item, true, 'item', item.id)}
             ${excluded ? '' : `<button class="pv-desc-btn" title="${committed ? 'Write ADO description' : 'Draft a description (link to push)'}" onclick="openAdoDescribe('item','${item.id}')">✍</button>`}
           </div>`;
         }).join('')}
@@ -2403,7 +2654,7 @@ function createBucketCard(bucket, idx) {
       </select>
       <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
-      ${adoChipHTML(bucket, false)}
+      ${adoChipHTML(bucket, false, 'bucket', bucket.id)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
       <button class="desc-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>
       <button class="rename-bucket-btn" title="Rename bucket">✏</button>
@@ -2502,7 +2753,7 @@ function makeItemLI(item) {
       </select>
       <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
-      ${adoChipHTML(item)}
+      ${adoChipHTML(item, true, 'item', item.id)}
       <div class="item-actions">
         ${excluded ? '' : `<button class="item-desc-btn" data-item-id="${item.id}" title="${committed ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>`}
         ${excluded ? '' : `<button class="item-link-btn" data-item-id="${item.id}" title="${committed ? 'Manage ADO link (#' + item.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>`}

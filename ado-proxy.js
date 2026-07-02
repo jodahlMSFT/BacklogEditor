@@ -84,14 +84,14 @@ if (!PAT) {
 const AUTH = 'Basic ' + Buffer.from(':' + PAT).toString('base64');
 
 // ── ADO REST helpers ──────────────────────────────────────────────────────────
-function adoRequest(method, urlStr, body) {
+function adoRequest(method, urlStr, body, contentType) {
   return new Promise((resolve, reject) => {
     const u = new URL(urlStr);
     const payload = body ? Buffer.from(JSON.stringify(body)) : null;
     const headers = { Authorization: AUTH, Accept: 'application/json' };
     if (payload) {
-      // Create/update work items use the JSON-Patch content type.
-      headers['Content-Type'] = 'application/json-patch+json';
+      // Create/update work items use JSON-Patch; WIQL and other calls use plain JSON.
+      headers['Content-Type'] = contentType || 'application/json-patch+json';
       headers['Content-Length'] = payload.length;
     }
     const req = https.request(
@@ -165,6 +165,64 @@ async function getChildren(id) {
   return getChildren_fetch(childIds);
 }
 const getChildren_fetch = ids => getWorkItems(ids);
+
+// Search work items by title (and optional type) via WIQL, newest-changed first.
+// When `opts.scope` (a Scenario Group / Scenario id) is given, the search is limited to
+// that item's descendant tree - which is what keeps it fast (no whole-project scan).
+async function searchWorkItems(query, opts) {
+  opts = opts || {};
+  const q = String(query || '').trim();
+  if (!q) return [];
+  const wiqlUrl = `${ORG_URL}/${encodeURIComponent(PROJECT)}/_apis/wit/wiql?api-version=${API_VERSION}`;
+  const top = opts.top || 30;
+  const scope = opts.scope ? parseInt(opts.scope, 10) : null;
+  const esc = s => String(s).replace(/'/g, "''");
+
+  // A pasted ID: fetch it directly (instant) instead of a slow WIQL title scan.
+  if (/^\d+$/.test(q)) {
+    const items = await getWorkItems([parseInt(q, 10)]);
+    return items.filter(w => w && (w.state || '') !== 'Removed');
+  }
+
+  let ids;
+  if (scope) {
+    // Recursive tree query under the chosen parent, filtered to matching titles.
+    const clauses = [
+      `[Target].[System.State] <> 'Removed'`,
+      `[Target].[System.Title] CONTAINS '${esc(q)}'`,
+    ];
+    if (opts.type) clauses.push(`[Target].[System.WorkItemType] = '${esc(opts.type)}'`);
+    const wiql = `SELECT [System.Id] FROM WorkItemLinks WHERE ` +
+      `([Source].[System.Id] = ${scope}) AND ` +
+      `([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') AND ` +
+      `(${clauses.join(' AND ')}) MODE (Recursive)`;
+    const res = await adoRequest('POST', wiqlUrl, { query: wiql }, 'application/json');
+    ids = [...new Set((res.workItemRelations || [])
+      .map(r => r.target && r.target.id).filter(Boolean))]
+      .filter(id => id !== scope);
+  } else {
+    const clauses = [
+      `[System.TeamProject] = @project`,
+      `[System.State] <> 'Removed'`,
+      `[System.Title] CONTAINS '${esc(q)}'`,
+    ];
+    if (opts.type) clauses.push(`[System.WorkItemType] = '${esc(opts.type)}'`);
+    const wiql = `SELECT [System.Id] FROM WorkItems WHERE ${clauses.join(' AND ')} ` +
+      `ORDER BY [System.ChangedDate] DESC`;
+    const res = await adoRequest('POST', wiqlUrl, { query: wiql }, 'application/json');
+    ids = (res.workItems || []).map(w => w.id);
+  }
+
+  ids = ids.slice(0, top);
+  if (!ids.length) return [];
+  const items = await getWorkItems(ids);
+  const byId = new Map(items.map(w => [w.id, w]));
+  // Recursive tree queries can return non-matching ancestor rows to preserve structure;
+  // post-filter to titles that actually match so the picker only shows real hits.
+  const needle = q.toLowerCase();
+  return ids.map(id => byId.get(id))
+    .filter(w => w && (w.state || '') !== 'Removed' && (w.title || '').toLowerCase().includes(needle));
+}
 
 async function createWorkItem(type, title, parentId, fields) {
   fields = Object.assign({}, fields);
@@ -369,6 +427,14 @@ const server = http.createServer(async (req, res) => {
     // GET /children/:id
     if (req.method === 'GET' && parts[0] === 'children' && parts[1]) {
       return sendJson(res, 200, await getChildren(parseInt(parts[1], 10)));
+    }
+    // GET /search?q=text&type=Deliverable&scope=1052319&top=30
+    if (req.method === 'GET' && parts[0] === 'search') {
+      const q = u.searchParams.get('q') || '';
+      const type = u.searchParams.get('type') || null;
+      const scope = u.searchParams.get('scope') || null;
+      const top = parseInt(u.searchParams.get('top') || '30', 10);
+      return sendJson(res, 200, await searchWorkItems(q, { type, scope, top }));
     }
     // PATCH /workitem/:id  { fields: { "System.Description": "<html>" } }
     if ((req.method === 'PATCH' || req.method === 'POST') && parts[0] === 'workitem' && parts[1]) {
