@@ -3,17 +3,17 @@
 
 ---
 
-## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item"
+## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" <!-- ado:1149935 -->
 
-- 🔴 Rename "Rental Item" to "Fleet item" in UI: Makes users align to new terminology. Makes data model discussions easier. [10.0.49]
-- 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc.: Important for long-term alignment. [10.0.50]
+- ⬜ Rename "Rental Item" to "Fleet item" in UI [10.0.49] <!-- ado:1149936 -->
+- 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc. [10.0.50] <!-- ado:1149937 -->
 
 ---
 
 ## 🔴 BUCKET 2: Brownfield / Adoption Blockers <!-- ado:1149926 -->
 
 - 🔴 Batch tracking: Make batch tracking optional. [10.0.50] <!-- ado:1149927 -->
-- 🔴 Fleet types as configurable table (not enum): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
+- 🔴 Configurable fleet types (not hardcoded): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
 - 🔴 Existing inventory: Create fleet item from existing inventory. [10.0.50] <!-- ado:1149929 -->
 - 🔴 Existing inventory: Create fleet items from existing inventory at scale. <!-- ado:1149930 -->
 - 🔴 S/N: Make S/N optional. [10.0.50] <!-- ado:1149931 -->
@@ -26,11 +26,11 @@
 
 ---
 
-## 🔴 BUCKET 3: Bulk Items
+## 🔴 BUCKET 3: Bulk Items <!-- ado:1149939 -->
 
-- 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc). [10.0.50]
-- 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity, [10.0.50]
-- 🔴 FA process for bulk: One FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo [10.0.50]
+- 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc). [10.0.50] <!-- ado:1149940 -->
+- 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity, [10.0.50] <!-- ado:1149941 -->
+- 🔴 FA process for bulk: One FA per unit vs. one FA for all; no transfer-to-FA path for bulk → items stuck in inventory limbo [10.0.50] <!-- ado:1149942 -->
 - 🟡 Scan and process: picking/quantity control on outbound movement
 - 🟡 Allow bulk partial returns: cannot return 3 of 5 units on a single line
 - ⬜ qty=2 on quote allowed for pricing, but on activation throws "only one rental item per contract line"
@@ -42,16 +42,16 @@
 
 ---
 
-## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O
+## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O <!-- ado:1149943 -->
 
 - 🔴 Entities and actions: Enables CAT & Deere to build their own UX on top of F&O capabilities. [10.0.50]
-- 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc.
+- 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc. <!-- ado:1149944 -->
 
 ---
 
-## 🔴 BUCKET 5: Demo data
+## 🔴 BUCKET 5: Demo data <!-- ado:1149945 -->
 
-- 🔴 Demo data: Rental demo data [10.0.50]
+- 🔴 Demo data: Official rental demo data [10.0.50] <!-- ado:1149946 -->
 
 ---
 
@@ -67,22 +67,22 @@
 
 ---
 
-## 🔴 BUCKET 8: RPO
+## 🔴 BUCKET 8: RPO <!-- ado:1125475 -->
 
-- 🔴 RPO: Validate rent-to-purchase scenarios. [10.0.50]
+- 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
 ---
 
-## 🟡 BUCKET 9: CAT: Improvements
+## 🟡 BUCKET 9: CAT: Improvements <!-- ado:1149948 -->
 
-- 🔴 CAT: Ability to associate customer with rental template. [10.0.50]
+- 🔴 CAT: Ability to associate customer with rental template. [10.0.50] <!-- ado:1149949 -->
 - 🟡 CAT: Auto-close expired quotes.
 
 ---
 
-## 🟡 BUCKET 10: Configurability
+## 🟡 BUCKET 10: Configurability <!-- ado:1149950 -->
 
-- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology.
+- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Loxam wants their own status terminology. <!-- ado:1149951 -->
 - 🟡 Access to fleets: Limit fleet visibility per user/role
 - 🟡 Configurable master data: Fleet item attributes
 
@@ -136,9 +136,9 @@
 
 ---
 
-## 🟡 BUCKET 15: Field Service Integration Gaps
+## 🟡 BUCKET 15: Field Service Integration Gaps <!-- ado:1149952 -->
 
-- 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class. [10.0.50]
+- 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [10.0.50] <!-- ado:1149953 -->
 - 🔴 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision. [10.0.50]
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported. [10.0.50]
 - 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
@@ -150,9 +150,9 @@
 
 ---
 
-## 🟡 BUCKET 16: Jobsite management
+## 🟡 BUCKET 16: Jobsite management <!-- ado:1149954 -->
 
-- 🔴 CAT: Add lat/long to jobsite. [10.0.50]
+- 🔴 CAT: Add lat/long to jobsite. [10.0.50] <!-- ado:1149955 -->
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
 - 🟡 Jobsite grouping: Associate jobsite with rental location/territory
@@ -231,4 +231,4 @@
 
 <!-- tag-meta: {"_title":"Backlog","10.0.49":{},"10.0.50":{},"10.0.52":{}} -->
 
-<!-- ado-meta: {"acked":{"1149926":"Proposed","1149927":"Not Started","1149928":"Not Started","1149929":"Not Started","1149930":"Not Started","1149931":"Not Started","1149932":"Not Started"},"ignoredNew":[]} -->
+<!-- ado-meta: {"acked":{"1125475":"Proposed","1149926":"Proposed","1149927":"Not Started","1149928":"Not Started","1149929":"Not Started","1149930":"Not Started","1149931":"Not Started","1149932":"Not Started","1149935":"Proposed","1149936":"Closed","1149937":"Not Started","1149939":"Proposed","1149940":"Not Started","1149941":"Not Started","1149942":"Not Started","1149943":"Proposed","1149944":"Not Started","1149945":"Proposed","1149946":"Not Started","1149947":"Not Started","1149948":"Proposed","1149949":"Not Started","1149950":"Proposed","1149951":"Not Started","1149952":"Proposed","1149953":"Not Started","1149954":"Proposed","1149955":"Not Started"},"ignoredNew":[]} -->
