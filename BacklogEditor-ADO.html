@@ -30,6 +30,7 @@ body {
   padding: 10px 32px;
   border-bottom: 1px solid #1e293b;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   position: sticky;
@@ -44,6 +45,7 @@ body {
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
+  white-space: nowrap;
   transition: all 0.15s;
   display: inline-flex;
   align-items: center;
@@ -53,7 +55,7 @@ body {
 .btn-primary:hover { background: #3b82f6; box-shadow: 0 3px 14px rgba(59,130,246,0.4); transform: translateY(-1px); }
 .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
 .btn-secondary:hover { background: #263347; border-color: #475569; }
-.toolbar-hint { margin-left: auto; font-size: 0.74rem; color: #475569; }
+.toolbar-hint { margin-left: auto; font-size: 0.74rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; }
 .search-wrap { position: relative; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 9px; color: #475569; font-size: 0.82rem; pointer-events: none; }
 .search-input {
