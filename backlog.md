@@ -1,5 +1,5 @@
 # Backlog Editor
-**Updated: 02 July 2026**
+**Updated: 05 August 2026**
 
 ---
 
@@ -141,6 +141,7 @@
 - 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [10.0.50] <!-- ado:1149953 -->
 - 🔴 FS-ProjOps billing path: Is the intended path for billing damage/service work to a customer via FS + Proj Ops? If so, clarify the design decision. [10.0.50]
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer — needs to be supported. [10.0.50]
+- 🟡 List of historical and open WOs on a fleet item: Rental coordinator should have a complete overview of all the WOs that have been opened on a particular fleet item.
 - 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
 - 🟡 ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.
 - 🟡 Upcoming WOs: Timing of WOs from upcoming planned maintenance should be visible in F&O (affects availability for rent)
