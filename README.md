@@ -121,3 +121,28 @@ just Node.
 ---
 
 Built by [@jodahlMSFT](https://github.com/jodahlMSFT) with GitHub Copilot.
+
+## Shipped releases
+
+A release tag whose timeline status is **✓ SHIPPED** is treated as *history, not plan*.
+
+- **Timeline view** — shipped releases still appear. The timeline is the cumulative
+  capability story across every release, which is exactly what you present.
+- **Buckets / Priority views** — shipped items are hidden, so the backlog only ever
+  shows pending work.
+- **📦 toggle** in the toolbar reveals them again, with a count of what is hidden.
+  Nothing is deleted and nothing leaves the file.
+
+Mark a release shipped by clicking its status pill in the Timeline view
+(cycles ○ PLANNED → ● IN FLIGHT → ✓ SHIPPED). The status round-trips in the
+existing `<!-- tag-meta: … -->` comment, so there is no data-model change.
+
+This means one dataset serves both jobs: **plan** what is next, and **present**
+what has shipped — without maintaining a separate capability list per release.
+
+> **Known limitation (pre-existing, stock file only).** `extractTags()` anchors
+> `[tags]` to the end of the line, so a bucket whose title ends with an
+> `<!-- ado:NNN -->` marker loses its tags in `BacklogEditor.html`. Bucket-level
+> shipped-filtering therefore only works in `BacklogEditor-ADO.html`. Item-level
+> filtering works in both. Fixing it changes tag ordering on save, so it is left
+> as a deliberate decision.

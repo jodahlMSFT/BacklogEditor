@@ -504,6 +504,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
     <button id="btn-view-buckets" class="btn-view active" onclick="setView('buckets')" title="Group by bucket">☰ Buckets</button>
     <button id="btn-view-priority" class="btn-view" onclick="setView('priority')" title="Flat list ranked by priority">≡ Priority</button>
     <button id="btn-view-timeline" class="btn-view" onclick="setView('timeline')" title="Roadmap timeline by tag">◼ Timeline</button>
+    <button id="btn-show-shipped" class="btn-view" onclick="toggleShowShipped()" style="display:none">📦 Shipped hidden</button>
   </div>
   <span class="toolbar-sep"></span>
   <button class="btn btn-ghost" onclick="expandAll()" title="Expand all">▾ Expand all</button>
@@ -593,6 +594,51 @@ function clearSearch() {
   else renderPriorityView();
 }
 
+// ─── Shipped releases ─────────────────────────────────────────────────────────
+// A release tag whose tagMeta.status is 'shipped' is HISTORY, not plan. Its items
+// stay in the file and keep appearing on the Timeline (that is the point — the
+// timeline is the cumulative capability story across releases), but they are
+// hidden from the planning views so the backlog only ever shows pending work.
+//
+// Nothing is deleted and no data model changes: 'shipped' already round-trips in
+// the <!-- tag-meta: --> comment. Toggle with 📦 to audit what shipped.
+let showShipped = false;
+
+function isShippedTag(tag) {
+  return (tagMeta[tag] || {}).status === 'shipped';
+}
+function isShippedItem(item) {
+  return (item && (item.tags || []).some(isShippedTag)) || false;
+}
+function isShippedBucket(bucket) {
+  return (bucket && (bucket.tags || []).some(isShippedTag)) || false;
+}
+/** Items hidden from planning right now — drives the toolbar count. */
+function shippedItemCount() {
+  let n = 0;
+  buckets.forEach(b => {
+    if (isShippedBucket(b)) { n += b.items.length; return; }
+    b.items.forEach(i => { if (isShippedItem(i)) n++; });
+  });
+  return n;
+}
+function toggleShowShipped() {
+  showShipped = !showShipped;
+  updateShippedToggle();
+  setView(currentView);
+}
+function updateShippedToggle() {
+  const btn = document.getElementById('btn-show-shipped');
+  if (!btn) return;
+  const n = shippedItemCount();
+  btn.classList.toggle('active', showShipped);
+  btn.style.display = n ? '' : 'none';
+  btn.textContent = showShipped ? `📦 Shipped shown (${n})` : `📦 Shipped hidden (${n})`;
+  btn.title = showShipped
+    ? 'Shipped releases are visible in planning views. Click to hide them again.'
+    : `${n} item(s) in shipped releases are hidden from planning. They still appear on the Timeline. Click to show.`;
+}
+
 function applyBucketSearch() {
   const q = searchQuery;
   const isTagSearch = q.startsWith('#');
@@ -600,6 +646,7 @@ function applyBucketSearch() {
   document.querySelectorAll('.bucket-card').forEach(card => {
     const bid = card.dataset.id;
     const bucket = getBucket(bid);
+    const bucketShipped = !showShipped && isShippedBucket(bucket);
     let visibleCount = 0;
     card.querySelectorAll('.item-row').forEach(row => {
       const textEl = row.querySelector('.item-text');
@@ -615,6 +662,8 @@ function applyBucketSearch() {
       } else {
         match = raw.toLowerCase().includes(q) || !!(item && (item.tags || []).some(t => t.toLowerCase().includes(q)));
       }
+      // Shipped work is history — never surface it in planning unless asked.
+      if (!showShipped && (bucketShipped || isShippedItem(item))) match = false;
       row.style.display = match ? '' : 'none';
       if (match) {
         textEl.innerHTML = q && !isTagSearch && raw.toLowerCase().includes(q) ? highlightText(raw, q) : fmtItemText(raw);
@@ -622,6 +671,11 @@ function applyBucketSearch() {
       }
     });
     const bucketTagMatch = !!(q && isTagSearch && bucket && (bucket.tags || []).some(t => t.toLowerCase().includes(tagQ)));
+    if (bucketShipped) {
+      // Whole bucket belongs to a shipped release — hide it entirely.
+      card.style.display = 'none';
+      return;
+    }
     if (q) {
       const show = visibleCount > 0 || bucketTagMatch;
       card.style.display = show ? '' : 'none';
@@ -630,7 +684,10 @@ function applyBucketSearch() {
         if (body) body.style.display = '';
         card.classList.remove('collapsed');
         if (bucketTagMatch && visibleCount === 0) {
-          card.querySelectorAll('.item-row').forEach(r => r.style.display = '');
+          card.querySelectorAll('.item-row').forEach(r => {
+            const it = bucket ? bucket.items.find(x => x.id === r.dataset.id) : null;
+            if (showShipped || !isShippedItem(it)) r.style.display = '';
+          });
         }
       }
     } else {
@@ -664,6 +721,7 @@ function renderPriorityView() {
   const container = document.getElementById('buckets-container');
   container.innerHTML = '';
   if (!buckets.length) { renderAll(); return; }
+  updateShippedToggle();
 
   const ORDER = ['critical', 'medium', 'low', 'na'];
   const LABEL = { critical: '🔴 Critical', medium: '🟡 Medium', low: '🔵 Low', na: '⬜ N/A' };
@@ -674,7 +732,13 @@ function renderPriorityView() {
   const isTagSearch = q.startsWith('#');
   const tagQ = isTagSearch ? q.slice(1).toLowerCase() : null;
   const flat = [];
-  buckets.forEach(b => b.items.forEach(item => flat.push({ ...item, bucketTitle: b.title })));
+  buckets.forEach(b => {
+    if (!showShipped && isShippedBucket(b)) return;      // shipped release = history
+    b.items.forEach(item => {
+      if (!showShipped && isShippedItem(item)) return;
+      flat.push({ ...item, bucketTitle: b.title });
+    });
+  });
 
   const grouped = {};
   ORDER.forEach(p => grouped[p] = flat.filter(i => {
@@ -725,7 +789,10 @@ function renderAll() {
   }
   buckets.forEach((b, i) => container.appendChild(createBucketCard(b, i)));
   initSortables();
-  if (searchQuery) applyBucketSearch();
+  // Always run the filter pass — it now applies the shipped-release filter as
+  // well as search, so it must run even with an empty query.
+  applyBucketSearch();
+  updateShippedToggle();
 }
 
 function createBucketCard(bucket, idx) {

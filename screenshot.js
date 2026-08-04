@@ -3,9 +3,9 @@ const path = require('path');
 const fs = require('fs');
 
 (async () => {
-  const htmlPath = 'Q:/git/BacklogEditor/BacklogEditor.html';
-  const mdPath = 'Q:/git/BacklogEditor/backlog.md';
-  const outPath = 'Q:/git/BacklogEditor/backlog-screenshot.png';
+  const htmlPath = 'C:/git/BacklogEditor/BacklogEditor.html';
+  const mdPath = 'C:/git/BacklogEditor/backlog.md';
+  const outPath = 'C:/git/BacklogEditor/backlog-screenshot.png';
 
   const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
