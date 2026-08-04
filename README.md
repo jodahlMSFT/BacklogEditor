@@ -94,8 +94,24 @@ The editor is designed to work alongside Azure DevOps:
 ### Going live against real ADO
 
 The page talks to ADO through a tiny **local proxy** (`ado-proxy.js`) that holds your
-PAT and forwards REST calls — the token never lives in the HTML. Zero dependencies,
-just Node.
+credentials and forwards REST calls — nothing sensitive lives in the HTML. Zero
+dependencies, just Node.
+
+The proxy accepts **either** of two credentials, and prefers whichever is available:
+
+| Credential | Setup | Expires |
+| --- | --- | --- |
+| **Entra ID** (recommended) | `az login` — nothing else | auto-renewed |
+| **PAT** | `.ado-pat` file / `ADO_PAT` env | up to 1 year, then breaks |
+
+If a PAT is present it is tried first; when ADO rejects it (typically **“the Personal
+Access Token used has expired”**) the proxy logs a warning, mints an Entra token via
+`az account get-access-token`, retries the same request, and stays on Entra for the
+rest of the session. So an expired PAT no longer takes the integration down as long
+as you are signed in with `az login`. `GET /health` reports the active mode as
+`"auth": "pat" | "entra"`.
+
+To use Entra only, just delete `.ado-pat`. To use a PAT:
 
 1. Create a **Personal Access Token** in ADO with **Work Items (Read & Write)** scope.
 2. Save it to a git-ignored file next to the HTML:

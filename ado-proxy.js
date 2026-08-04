@@ -82,20 +82,61 @@ const GIT_FILE   = cfg('GIT_FILE', 'backlog.md');
 const GIT_REMOTE = cfg('GIT_REMOTE', 'origin');
 const GIT_SYNC   = cfg('GIT_SYNC', '1') !== '0';
 
-if (!PAT) {
-  console.error('\n[ado-proxy] No PAT found. Create a git-ignored `.ado-pat` file');
-  console.error('            (the whole file = your token) or set ADO_PAT in `.env`.\n');
-  process.exit(1);
+// ── Auth ──────────────────────────────────────────────────────────────────────
+// A PAT is used when one is configured, but PATs expire and that failure is both
+// silent and recurring. When `az` is signed in we can mint a short-lived Entra
+// token for the Azure DevOps resource instead, and refresh it automatically.
+const ADO_RESOURCE = '499b84ac-1321-427f-aa17-267ca6975798';   // Azure DevOps
+
+let _azToken = null;          // { token, expiresAt }
+let _authMode = PAT ? 'pat' : 'entra';
+
+function azToken() {
+  const now = Date.now();
+  if (_azToken && _azToken.expiresAt - now > 5 * 60 * 1000) return _azToken.token;
+  try {
+    const raw = execFileSync('az', ['account', 'get-access-token', '--resource', ADO_RESOURCE, '-o', 'json'], {
+      encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'ignore'], shell: true,
+    });
+    const j = JSON.parse(raw);
+    if (!j.accessToken) return null;
+    // expires_on is epoch seconds; expiresOn is a local-time string.
+    const expiresAt = j.expires_on ? j.expires_on * 1000 : Date.parse(j.expiresOn) || (now + 45 * 60 * 1000);
+    _azToken = { token: j.accessToken, expiresAt };
+    return _azToken.token;
+  } catch (e) { return null; }
 }
 
-const AUTH = 'Basic ' + Buffer.from(':' + PAT).toString('base64');
+function authHeader(mode) {
+  if ((mode || _authMode) === 'entra') {
+    const t = azToken();
+    return t ? 'Bearer ' + t : null;
+  }
+  return 'Basic ' + Buffer.from(':' + PAT).toString('base64');
+}
+
+function looksLikeAuthFailure(status, message) {
+  if (status === 401 || status === 203) return true;
+  return /access denied|has expired|unauthoriz/i.test(String(message || ''));
+}
+
+if (!PAT && !azToken()) {
+  console.error('\n[ado-proxy] No ADO credentials. Either create a git-ignored `.ado-pat`');
+  console.error('            file (the whole file = your token) / set ADO_PAT in `.env`,');
+  console.error('            or run `az login` so a token can be minted automatically.');
+  console.error('            Git sync endpoints do not need this — start with GIT_SYNC=1');
+  console.error('            and ADO_ALLOW_NO_AUTH=1 to run without ADO access.\n');
+  if (cfg('ADO_ALLOW_NO_AUTH', '') !== '1') process.exit(1);
+}
 
 // ── ADO REST helpers ──────────────────────────────────────────────────────────
-function adoRequest(method, urlStr, body, contentType) {
+function adoRequestOnce(method, urlStr, body, contentType, mode) {
   return new Promise((resolve, reject) => {
     const u = new URL(urlStr);
     const payload = body ? Buffer.from(JSON.stringify(body)) : null;
-    const headers = { Authorization: AUTH, Accept: 'application/json' };
+    const auth = authHeader(mode);
+    if (!auth) return reject({ status: 401, message: 'No usable ADO credentials (PAT missing/expired and `az login` unavailable)' });
+    const headers = { Authorization: auth, Accept: 'application/json' };
     if (payload) {
       // Create/update work items use JSON-Patch; WIQL and other calls use plain JSON.
       headers['Content-Type'] = contentType || 'application/json-patch+json';
@@ -112,7 +153,7 @@ function adoRequest(method, urlStr, body, contentType) {
             resolve(text ? JSON.parse(text) : {});
           } else {
             let msg = text;
-            try { msg = JSON.parse(text).message || text; } catch (e) {}
+            try { msg = JSON.parse(text.replace(/^\uFEFF/, '')).message || text; } catch (e) {}
             reject({ status: res.statusCode, message: msg });
           }
         });
@@ -122,6 +163,22 @@ function adoRequest(method, urlStr, body, contentType) {
     if (payload) req.write(payload);
     req.end();
   });
+}
+
+// Expired PAT? Fall back to an Entra token once, then stay on it.
+async function adoRequest(method, urlStr, body, contentType) {
+  try {
+    return await adoRequestOnce(method, urlStr, body, contentType);
+  } catch (e) {
+    if (_authMode !== 'pat' || !looksLikeAuthFailure(e.status, e.message)) throw e;
+    if (!azToken()) {
+      throw { status: 401, message: (e.message || 'ADO auth failed')
+        + ' — refresh `.ado-pat`, or run `az login` to switch to Entra tokens automatically.' };
+    }
+    console.warn('[ado-proxy] PAT rejected (' + (e.message || '').slice(0, 80) + '); switching to Entra token from `az`.');
+    _authMode = 'entra';
+    return adoRequestOnce(method, urlStr, body, contentType, 'entra');
+  }
 }
 
 // Pull the parent work-item id out of an item's relations (Hierarchy-Reverse).
@@ -558,7 +615,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && parts[0] === 'health') {
       let gitInfo = null;
       try { gitInfo = gitState(); } catch (e) { gitInfo = { enabled: false, reason: String(e.message || e) }; }
-      return sendJson(res, 200, { ok: true, org: ORG, project: PROJECT, orgUrl: ORG_URL, git: gitInfo });
+      return sendJson(res, 200, { ok: true, org: ORG, project: PROJECT, orgUrl: ORG_URL, auth: _authMode, git: gitInfo });
     }
     // GET /git/status
     if (req.method === 'GET' && parts[0] === 'git' && parts[1] === 'status') {
@@ -628,5 +685,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`[ado-proxy] listening on http://localhost:${PORT}`);
   console.log(`[ado-proxy] org=${ORG} project=${PROJECT} orgUrl=${ORG_URL}`);
+  console.log(`[ado-proxy] auth=${_authMode}${_authMode === 'entra' ? ' (Entra token via az — no PAT expiry)' : ' (PAT; falls back to Entra if it expires)'}`);
   console.log('[ado-proxy] open BacklogEditor-ADO.html — it will auto-detect this proxy.');
 });

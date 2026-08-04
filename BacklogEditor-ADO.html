@@ -3570,6 +3570,9 @@ let _loadedFileName   = 'backlog.md';
 
 async function saveAsMarkdown() {
   const md = generateMarkdown();
+  // The proxy may have started since the page loaded — re-check before deciding
+  // whether this save also pushes.
+  if (syncCfg.pushOnSave && syncCfg.mode !== 'off' && !syncBackend()) await syncDetect();
   const syncing = syncCfg.pushOnSave && !!syncBackend();
   let savedLocally = false;
 
@@ -4122,7 +4125,7 @@ function renderSyncPill() {
   if (syncBusy) {
     cls = 'busy'; text = '⇅ Sync: working…'; title = 'Talking to GitHub…';
   } else if (syncError) {
-    cls = 'err'; text = '⇅ Sync: error'; title = syncError + ' — click to configure';
+    cls = 'err'; text = '⇅ Sync: error'; title = syncError + '\nClick ⇅ Sync to retry, or click here to configure';
   } else if (syncActive === 'proxy') {
     const s = syncProxyState || {};
     cls = 'live'; text = `⇅ Sync: git (${s.branch || 'main'})`;
@@ -4130,11 +4133,15 @@ function renderSyncPill() {
   } else if (syncActive === 'github') {
     cls = 'gh'; text = `⇅ Sync: GitHub (${syncCfg.branch})`;
     title = `Syncing ${syncCfg.path} with ${syncCfg.owner}/${syncCfg.repo}@${syncCfg.branch} over the GitHub API\nClick to configure`;
+  } else if (syncCfg.mode !== 'off') {
+    cls = 'off'; text = '⇅ Sync: not connected';
+    title = 'No backend found. Start the proxy (node ado-proxy.js) then click ⇅ Sync to retry, or click here to configure';
   }
   pill.className = 'sync-status ' + cls;
   pill.textContent = text;
   pill.title = title;
-  if (btn) { btn.disabled = syncBusy || syncActive === 'off'; btn.style.opacity = btn.disabled ? 0.45 : ''; }
+  // Stay clickable when detection failed so ⇅ Sync doubles as a retry.
+  if (btn) { btn.disabled = syncBusy || syncCfg.mode === 'off'; btn.style.opacity = btn.disabled ? 0.45 : ''; }
 }
 
 function syncCommitMessage() {
@@ -4155,8 +4162,17 @@ function applyRemoteMarkdown(text, label) {
 
 // Manual reconcile: pull first, and only ask when the two copies actually differ.
 async function syncNow() {
-  const be = syncBackend();
-  if (!be) { openSyncSettings(); return; }
+  let be = syncBackend();
+  if (!be) {
+    // Off is a deliberate choice — anything else means detection failed earlier
+    // (proxy hadn't started yet, network was down). Retry before giving up.
+    if (syncCfg.mode === 'off') { openSyncSettings(); return; }
+    syncBusy = true; renderSyncPill();
+    try { await syncDetect(); } finally { syncBusy = false; renderSyncPill(); }
+    be = syncBackend();
+    if (!be) { showToast('⚠ ' + (syncError || 'No sync backend available')); openSyncSettings(); return; }
+    showToast(`✓ Reconnected — ${syncActive === 'proxy' ? 'git via proxy' : 'GitHub API'}`);
+  }
   syncBusy = true; syncError = null; renderSyncPill();
   try {
     const local  = generateMarkdown();
@@ -4190,7 +4206,9 @@ async function syncNow() {
 // Called after a successful local save, so a failed push never loses the file.
 async function syncPushAfterSave() {
   if (!syncCfg.pushOnSave) return;
-  const be = syncBackend();
+  let be = syncBackend();
+  // The proxy may have started (or come back) since the page loaded.
+  if (!be && syncCfg.mode !== 'off') { await syncDetect(); be = syncBackend(); }
   if (!be) return;
   syncBusy = true; renderSyncPill();
   try {
