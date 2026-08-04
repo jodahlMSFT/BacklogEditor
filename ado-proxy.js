@@ -23,7 +23,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // ── Config & secret loading ───────────────────────────────────────────────────
 function loadDotEnv() {
@@ -74,6 +74,13 @@ const INHERIT_FIELDS = [RELEASE_FIELD, AREA_FIELD].filter(Boolean);
 const AI_MODEL = cfg('AI_MODEL', 'openai/gpt-4o');
 const AI_HOST = cfg('AI_HOST', 'models.github.ai');
 const AI_PATH = cfg('AI_PATH', '/inference/chat/completions');
+
+// Git sync config. The proxy owns the clone, so the browser never handles
+// credentials — `git` uses whatever credential helper is already configured.
+const GIT_DIR    = path.resolve(cfg('GIT_REPO_DIR', __dirname));
+const GIT_FILE   = cfg('GIT_FILE', 'backlog.md');
+const GIT_REMOTE = cfg('GIT_REMOTE', 'origin');
+const GIT_SYNC   = cfg('GIT_SYNC', '1') !== '0';
 
 if (!PAT) {
   console.error('\n[ado-proxy] No PAT found. Create a git-ignored `.ado-pat` file');
@@ -382,6 +389,143 @@ async function describeWorkItem(adoId, context) {
 }
 
 // ── HTTP server (the whitelist the page is allowed to call) ───────────────────
+// ── Git sync (backlog.md ↔ GitHub) ────────────────────────────────────────────
+// The proxy owns the clone, so the browser never sees credentials. Every command
+// is scoped to GIT_FILE, so saving the backlog can never sweep unrelated
+// working-tree changes into a commit.
+
+function git(args, timeout) {
+  return execFileSync('git', args, {
+    cwd: GIT_DIR, encoding: 'utf8', timeout: timeout || 20000,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).replace(/\s+$/, '');
+}
+
+function gitTry(args, timeout) {
+  try { return { ok: true, out: git(args, timeout) }; }
+  catch (e) {
+    const out = [e.stderr, e.stdout, e.message].filter(Boolean).join('\n').replace(/\s+$/, '');
+    return { ok: false, out };
+  }
+}
+
+function parseGitHubRemote(url) {
+  const m = String(url).match(/github\.com[/:]([^/]+)\/(.+?)(?:\.git)?\/?$/i);
+  return m ? { owner: m[1], repo: m[2] } : null;
+}
+
+function gitFilePath() { return path.join(GIT_DIR, GIT_FILE); }
+function gitReadFile() {
+  const p = gitFilePath();
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+}
+
+function gitState() {
+  if (!GIT_SYNC) return { enabled: false, reason: 'Git sync is off (GIT_SYNC=0)' };
+  const top = gitTry(['rev-parse', '--show-toplevel']);
+  if (!top.ok) return { enabled: false, reason: 'Not a git repository: ' + GIT_DIR };
+  const branch = gitTry(['rev-parse', '--abbrev-ref', 'HEAD']).out;
+  const remoteUrl = gitTry(['remote', 'get-url', GIT_REMOTE]).out;
+  const st = {
+    enabled: true, repoRoot: top.out, file: GIT_FILE, branch,
+    remote: GIT_REMOTE, remoteUrl, github: parseGitHubRemote(remoteUrl),
+    head: gitTry(['rev-parse', 'HEAD']).out.slice(0, 7),
+    exists: fs.existsSync(gitFilePath()),
+  };
+  if (!remoteUrl) { st.enabled = false; st.reason = `No '${GIT_REMOTE}' remote configured`; return st; }
+  const ab = gitTry(['rev-list', '--left-right', '--count', `${GIT_REMOTE}/${branch}...HEAD`]);
+  if (ab.ok) {
+    const [behind, ahead] = ab.out.split(/\s+/).map(n => parseInt(n, 10) || 0);
+    st.behind = behind; st.ahead = ahead;
+  }
+  const dirty = gitTry(['status', '--porcelain', '--', GIT_FILE]);
+  st.dirty = dirty.ok && !!dirty.out;
+  return st;
+}
+
+function requireGit() {
+  const st = gitState();
+  if (!st.enabled) throw { status: 400, message: st.reason || 'Git sync unavailable' };
+  return st;
+}
+
+function gitPull() {
+  const st = requireGit();
+  const before = gitTry(['rev-parse', 'HEAD']).out;
+  const fetched = gitTry(['fetch', GIT_REMOTE], 60000);
+  if (!fetched.ok) throw { status: 502, message: 'git fetch failed:\n' + fetched.out };
+
+  let strategy = 'fast-forward';
+  const ff = gitTry(['merge', '--ff-only', `${GIT_REMOTE}/${st.branch}`], 30000);
+  if (!ff.ok) {
+    // Local commits exist that the remote doesn't have — replay them on top.
+    const rb = gitTry(['pull', '--rebase', '--autostash', GIT_REMOTE, st.branch], 60000);
+    strategy = 'rebase';
+    if (!rb.ok) {
+      gitTry(['rebase', '--abort']);
+      throw {
+        status: 409,
+        message: 'Local and remote have diverged and could not be reconciled automatically. '
+               + 'Resolve it in the repo, then sync again.\n\n' + rb.out,
+      };
+    }
+  }
+  const after = gitTry(['rev-parse', 'HEAD']).out;
+  return {
+    ok: true, changed: before !== after, strategy,
+    before: before.slice(0, 7), after: after.slice(0, 7),
+    content: gitReadFile(), state: gitState(),
+  };
+}
+
+function gitPush(content, message) {
+  const st = requireGit();
+  if (typeof content === 'string') fs.writeFileSync(gitFilePath(), content, 'utf8');
+
+  let committed = false;
+  const pending = gitTry(['status', '--porcelain', '--', GIT_FILE]);
+  if (pending.ok && pending.out) {
+    const add = gitTry(['add', '--', GIT_FILE]);
+    if (!add.ok) throw { status: 500, message: 'git add failed:\n' + add.out };
+    const msg = (message && String(message).trim()) || `Update ${GIT_FILE} from Backlog Editor`;
+    const commit = gitTry(['commit', '-m', msg, '--', GIT_FILE]);
+    if (!commit.ok) throw { status: 500, message: 'git commit failed:\n' + commit.out };
+    committed = true;
+  }
+
+  gitTry(['fetch', GIT_REMOTE], 60000);
+  const aheadCount = () => {
+    const r = gitTry(['rev-list', '--count', `${GIT_REMOTE}/${st.branch}..HEAD`]);
+    return r.ok ? (parseInt(r.out, 10) || 0) : 0;
+  };
+  if (!committed && aheadCount() === 0) {
+    return { ok: true, noop: true, committed: false, content: gitReadFile(), state: gitState() };
+  }
+
+  let rebased = false;
+  let push = gitTry(['push', GIT_REMOTE, `HEAD:${st.branch}`], 60000);
+  if (!push.ok) {
+    // Someone else pushed first — replay on top of them and retry once.
+    const rb = gitTry(['pull', '--rebase', '--autostash', GIT_REMOTE, st.branch], 60000);
+    if (!rb.ok) {
+      gitTry(['rebase', '--abort']);
+      throw {
+        status: 409,
+        message: 'Push was rejected and the changes could not be replayed on top of the '
+               + 'remote automatically. Resolve the conflict in the repo, then sync again.\n\n' + rb.out,
+      };
+    }
+    rebased = true;
+    push = gitTry(['push', GIT_REMOTE, `HEAD:${st.branch}`], 60000);
+    if (!push.ok) throw { status: 502, message: 'git push failed:\n' + push.out };
+  }
+  return {
+    ok: true, committed, rebased, noop: false,
+    sha: gitTry(['rev-parse', 'HEAD']).out.slice(0, 7),
+    content: gitReadFile(), state: gitState(),
+  };
+}
+
 function sendJson(res, status, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(status, {
@@ -412,7 +556,28 @@ const server = http.createServer(async (req, res) => {
   try {
     // GET /health
     if (req.method === 'GET' && parts[0] === 'health') {
-      return sendJson(res, 200, { ok: true, org: ORG, project: PROJECT, orgUrl: ORG_URL });
+      let gitInfo = null;
+      try { gitInfo = gitState(); } catch (e) { gitInfo = { enabled: false, reason: String(e.message || e) }; }
+      return sendJson(res, 200, { ok: true, org: ORG, project: PROJECT, orgUrl: ORG_URL, git: gitInfo });
+    }
+    // GET /git/status
+    if (req.method === 'GET' && parts[0] === 'git' && parts[1] === 'status') {
+      return sendJson(res, 200, gitState());
+    }
+    // GET /git/file  -> current working-tree content of the backlog file
+    if (req.method === 'GET' && parts[0] === 'git' && parts[1] === 'file') {
+      requireGit();
+      return sendJson(res, 200, { content: gitReadFile(), state: gitState() });
+    }
+    // POST /git/pull -> fetch + fast-forward (or rebase), returns file content
+    if (req.method === 'POST' && parts[0] === 'git' && parts[1] === 'pull') {
+      return sendJson(res, 200, gitPull());
+    }
+    // POST /git/push { content, message } -> write + commit + push
+    if (req.method === 'POST' && parts[0] === 'git' && parts[1] === 'push') {
+      const b = await readBody(req);
+      if (typeof b.content !== 'string') return sendJson(res, 400, { message: 'content string is required' });
+      return sendJson(res, 200, gitPush(b.content, b.message));
     }
     // GET /workitems?ids=1,2,3
     if (req.method === 'GET' && parts[0] === 'workitems') {

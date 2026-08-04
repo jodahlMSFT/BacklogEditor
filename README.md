@@ -14,6 +14,7 @@ A single-file, zero-dependency interactive backlog editor. Dark-themed HTML app 
 - **Tagging** — add `[tag]` tokens to items; filter by tag
 - **Markdown import** — load any `.md` file via the File System Access API (retains file handle for direct save)
 - **Markdown save** — 💾 Save overwrites the loaded file directly; **Save As…** for a new location
+- **GitHub sync** *(`-ADO` variant)* — optionally pull `backlog.md` on load and push it on save, so the same backlog follows you between machines
 - **Snapshot export** — 📤 exports a self-contained read-only HTML file with both Buckets and Priority views, suitable for sharing via SharePoint or Teams
 - **Expand / Collapse all** — works in both Bucket and Priority views
 - **Dark theme** — easy on the eyes
@@ -117,6 +118,44 @@ just Node.
 > The work-item **type names** the integration creates are `Scenario Group → Scenario
 > → Deliverable → Task`. If your project uses different type names, adjust `ADO_LADDER`
 > in `BacklogEditor-ADO.html`; reads work regardless of type names.
+
+## Syncing `backlog.md` across machines
+
+`BacklogEditor-ADO.html` can keep `backlog.md` in step with GitHub: **pull the latest
+when the page loads, push when you click 💾 Save**. Click the **⇅ Sync** pill in the
+toolbar to configure it. There are three backends, and **Auto** picks the best one
+available:
+
+| Mode | How it syncs | Needs |
+|------|--------------|-------|
+| **Proxy** | `ado-proxy.js` runs real `git` in your clone | the repo cloned, `git`, and the proxy running |
+| **GitHub** | GitHub Contents API straight from the browser | nothing — but a token to push |
+| **Off** | no network at all; plain local file, exactly like the stock editor | — |
+
+**Proxy mode is preferred** because nothing secret touches the browser (git uses your
+existing credential helper) and because git reconciles divergence properly: it
+fast-forwards when it can, and otherwise **rebases your change on top of the remote**,
+so an edit made on another machine survives instead of being overwritten. If both
+sides changed the *same* line, the sync stops and asks you to resolve it in the repo
+rather than silently picking a winner.
+
+**GitHub mode** is the fallback for a machine with no clone. Reading a *public* repo
+needs no token; pushing needs a token with **`repo`** scope, entered in the Sync
+settings dialog. It's kept in that browser's `localStorage` only — never written into
+`backlog.md`. Before pushing, the editor re-reads the remote file and warns you if it
+changed since the page last read it.
+
+**⇅ Sync** (the button) reconciles on demand: it pulls, and if the two copies differ it
+asks whether to push yours or take the remote one. It's a no-op when they already match.
+
+Proxy-side overrides (env or `.env`): `GIT_REPO_DIR` (default: the proxy's folder),
+`GIT_FILE` (default `backlog.md`), `GIT_REMOTE` (default `origin`), and `GIT_SYNC=0`
+to disable the git endpoints entirely. Every git command is scoped to `GIT_FILE`, so
+saving the backlog can never sweep unrelated working-tree changes into a commit.
+
+> Sync defaults to **Auto**, so it starts working as soon as the proxy is running or a
+> repo is configured. Setting it to **Off** restores the original behaviour exactly:
+> no network calls, and 💾 Save just writes the local file.
 
 ---
 

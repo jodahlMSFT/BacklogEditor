@@ -593,6 +593,34 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .ado-status.live { color: #34d399; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
 .ado-status.mock { color: #94a3b8; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.22); }
 
+/* Backlog sync pill + settings */
+.sync-status {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.01em; padding: 3px 9px;
+  border-radius: 999px; white-space: nowrap; align-self: center; cursor: pointer;
+  border: 1px solid transparent; transition: filter 0.15s;
+}
+.sync-status:hover { filter: brightness(1.25); }
+.sync-status.off  { color: #64748b; background: rgba(100,116,139,0.1);  border-color: rgba(100,116,139,0.22); }
+.sync-status.live { color: #60a5fa; background: rgba(59,130,246,0.12);  border-color: rgba(59,130,246,0.3); }
+.sync-status.gh   { color: #c084fc; background: rgba(168,85,247,0.12);  border-color: rgba(168,85,247,0.3); }
+.sync-status.busy { color: #fbbf24; background: rgba(245,158,11,0.12);  border-color: rgba(245,158,11,0.3); }
+.sync-status.err  { color: #f87171; background: rgba(239,68,68,0.12);   border-color: rgba(239,68,68,0.32); }
+.sync-row { display: flex; gap: 10px; align-items: center; }
+.sync-input {
+  width: 100%; padding: 8px 10px; background: #0f172a; border: 1px solid #1e293b;
+  border-radius: 8px; color: #e2e8f0; font-size: 0.82rem; font-family: inherit;
+}
+.sync-input:focus { outline: none; border-color: #3b82f6; }
+.sync-check { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #cbd5e1; margin: 10px 0; cursor: pointer; }
+.sync-note { font-size: 0.74rem; color: #64748b; margin-top: 6px; line-height: 1.55; }
+.sync-note code { background: #0f172a; padding: 1px 5px; border-radius: 4px; color: #94a3b8; }
+.sync-detected {
+  font-size: 0.75rem; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b;
+  border-radius: 8px; padding: 9px 11px; margin-top: 8px; line-height: 1.55;
+}
+.sync-detected b { color: #cbd5e1; }
+.sync-detected.ok b { color: #34d399; }
+
 /* Check-ADO ghost button */
 .btn-ado-ghost { background: none; color: #64748b; border: 1px solid #334155; }
 .btn-ado-ghost:hover { color: #34d399; border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.06); transform: none; box-shadow: none; }
@@ -793,6 +821,8 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   <button id="btn-ado-new" class="btn btn-ado-ghost" onclick="checkAdoNew()" title="Check ADO for new items under your committed buckets">🆕 Check for new</button>
   <button id="btn-ado-pull" class="btn btn-ado-ghost" onclick="openAdoPull()" title="Pull an existing ADO item into the backlog by ID">⇩ Pull by ID</button>
   <span id="ado-status" class="ado-status" title="ADO backend">● ADO: …</span>
+  <button id="btn-sync" class="btn btn-ado-ghost" onclick="syncNow()" title="Reconcile this backlog with the copy on GitHub">⇅ Sync</button>
+  <span id="sync-status" class="sync-status off" onclick="openSyncSettings()" title="Backlog sync — click to configure">⇅ Sync: off</span>
   <span class="toolbar-sep"></span>
   <div class="view-toggle">
     <button id="btn-view-buckets" class="btn-view active" onclick="setView('buckets')" title="Group by bucket">☰ Buckets</button>
@@ -814,6 +844,55 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 
 <div id="buckets-container"></div>
 <div class="toast" id="toast"></div>
+
+<!-- Backlog sync settings -->
+<div class="ado-modal-overlay" id="sync-modal-overlay" onclick="if(event.target===this)closeSyncSettings()">
+  <div class="ado-modal">
+    <div class="ado-modal-head">
+      <h2>Backlog sync</h2>
+      <p>Keeps <code>backlog.md</code> in step across machines: pull the latest when the page
+         loads, push when you save. Turn it off and the editor behaves exactly like a plain
+         HTML file with no network calls.</p>
+    </div>
+    <div class="ado-modal-body">
+      <label class="ado-field-label">Mode</label>
+      <select class="ado-select" id="sync-mode" onchange="onSyncModeChange()">
+        <option value="auto">Auto — local proxy if it's running, otherwise GitHub</option>
+        <option value="proxy">Proxy only — real git in your clone</option>
+        <option value="github">GitHub only — straight from the browser</option>
+        <option value="off">Off — local file only, no network</option>
+      </select>
+      <div class="sync-detected" id="sync-detected">Detecting…</div>
+
+      <div id="sync-gh-fields">
+        <label class="ado-field-label">Repository</label>
+        <div class="sync-row">
+          <input class="sync-input" id="sync-owner" placeholder="owner" spellcheck="false">
+          <input class="sync-input" id="sync-repo" placeholder="repo" spellcheck="false">
+        </div>
+        <label class="ado-field-label">Branch and file</label>
+        <div class="sync-row">
+          <input class="sync-input" id="sync-branch" placeholder="main" spellcheck="false">
+          <input class="sync-input" id="sync-path" placeholder="backlog.md" spellcheck="false">
+        </div>
+        <label class="ado-field-label">GitHub token</label>
+        <input class="sync-input" id="sync-token" type="password" placeholder="github_pat_… or ghp_… (repo scope)" spellcheck="false">
+        <div class="sync-note">
+          Only needed to <b>push</b> without the proxy — reading a public repo is anonymous.
+          Kept in this browser's local storage, never written to <code>backlog.md</code>.
+          When the proxy is running it pushes with your existing git credentials and this is ignored.
+        </div>
+      </div>
+
+      <label class="sync-check"><input type="checkbox" id="sync-pull-load"> Pull the latest version when the page loads</label>
+      <label class="sync-check"><input type="checkbox" id="sync-push-save"> Push to GitHub when I click Save</label>
+    </div>
+    <div class="ado-modal-foot">
+      <button class="btn btn-ghost" onclick="closeSyncSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSyncSettings()">Save settings</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADO commit UI (Phase 1: Deciding) -->
 <div class="ado-commit-bar" id="ado-commit-bar">
@@ -3491,35 +3570,45 @@ let _loadedFileName   = 'backlog.md';
 
 async function saveAsMarkdown() {
   const md = generateMarkdown();
+  const syncing = syncCfg.pushOnSave && !!syncBackend();
+  let savedLocally = false;
+
   if (window.showSaveFilePicker) {
     try {
-      if (_loadedFileHandle) {
-        const w = await _loadedFileHandle.createWritable();
-        await w.write(md); await w.close();
-        showToast(`✓ Saved to ${_loadedFileName}`);
-        return;
+      let handle = _loadedFileHandle;
+      // With sync on, the repo copy is the real target — don't nag for a local
+      // file the user never opened (e.g. the backlog arrived via pull-on-load).
+      if (!handle && !syncing) {
+        handle = await window.showSaveFilePicker({
+          suggestedName: _loadedFileName,
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md'] } }]
+        });
       }
-      const handle = await window.showSaveFilePicker({
-        suggestedName: _loadedFileName,
-        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'], 'text/plain': ['.md'] } }]
-      });
-      const w = await handle.createWritable();
-      await w.write(md); await w.close();
-      _loadedFileHandle = handle;
-      _loadedFileName   = handle.name;
-      showToast(`✓ Saved to ${handle.name}`);
-      return;
+      if (handle) {
+        const w = await handle.createWritable();
+        await w.write(md); await w.close();
+        _loadedFileHandle = handle;
+        _loadedFileName   = handle.name;
+        savedLocally = true;
+        showToast(`✓ Saved to ${_loadedFileName}`);
+      }
     } catch (e) {
-      if (e.name === 'AbortError') return;
+      if (e.name !== 'AbortError') showToast('⚠ Could not write the local file');
+      else if (!syncing) return;
     }
   }
-  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = _loadedFileName;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✓ Downloaded!');
+
+  if (!savedLocally && !syncing) {
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = _loadedFileName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Downloaded!');
+  }
+
+  if (syncing) await syncPushAfterSave();
 }
 
 async function saveAsNewFile() {
@@ -3816,6 +3905,375 @@ function parseMarkdown(text) {
   return result;
 }
 
+// ═══ Backlog sync (backlog.md ↔ GitHub) ══════════════════════════════════════
+// Three backends, auto-detected in order of preference:
+//   proxy  — ado-proxy.js runs real git in the clone. Nothing secret in the browser,
+//            and git handles divergence (fast-forward, else rebase).
+//   github — GitHub Contents API straight from the page. Needs no clone, no git and
+//            no proxy; a token is required only to push, since reads of a public
+//            repo are anonymous.
+//   off    — no network at all; the page behaves like the plain single-file editor.
+const SYNC_DEFAULTS = {
+  mode: 'auto',                 // 'auto' | 'proxy' | 'github' | 'off'
+  owner: '', repo: '', branch: 'main', path: 'backlog.md',
+  token: '',
+  pullOnLoad: true, pushOnSave: true,
+};
+let syncCfg        = { ...SYNC_DEFAULTS };
+let syncActive     = 'off';   // resolved backend
+let syncBusy       = false;
+let syncError      = null;
+let syncProxyState = null;    // last /git/status payload
+let syncRemoteSha  = null;    // GitHub blob sha we last saw (drift detection)
+
+function loadSyncCfg() {
+  try {
+    const raw = window.localStorage && localStorage.getItem('backlogSync');
+    if (raw) syncCfg = { ...SYNC_DEFAULTS, ...JSON.parse(raw) };
+  } catch (e) { /* corrupt or unavailable — fall back to defaults */ }
+}
+function saveSyncCfg() {
+  try { localStorage.setItem('backlogSync', JSON.stringify(syncCfg)); } catch (e) {}
+}
+
+// Base64 that survives the emoji this format is built on — btoa() alone would throw.
+function b64encodeUtf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decodeUtf8(b64) {
+  const bin = atob(String(b64).replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+// git talks in paragraphs; the pill and toast need one line. Full detail goes to
+// the console so nothing is actually lost.
+function syncShortError(err) {
+  const raw = (err && err.message) || String(err || 'Sync failed');
+  try { console.warn('[sync]', raw); } catch (e) {}
+  const first = raw.split('\n').map(s => s.trim()).filter(Boolean)[0] || 'Sync failed';
+  return first.length > 150 ? first.slice(0, 147) + '…' : first;
+}
+
+async function ghErrorMessage(r) {
+  let m = 'GitHub HTTP ' + r.status;
+  try { const j = await r.json(); if (j && j.message) m = j.message; } catch (e) {}
+  if (r.status === 401 || r.status === 403) m += ' (check the token in Sync settings)';
+  if (r.status === 404) m += ' (check owner/repo/branch/path, or the token if the repo is private)';
+  return m;
+}
+
+const SyncProxy = {
+  get base() { return AdoClient.base; },
+  async _json(pathq, opts) {
+    const r = await window.fetch(this.base + pathq, opts);
+    let body = null;
+    try { body = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error((body && body.message) || ('HTTP ' + r.status));
+    return body;
+  },
+  async detect() {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 1500);
+    try {
+      const st = await this._json('/git/status', { signal: ctl.signal });
+      return st && st.enabled ? st : null;
+    } catch (e) { return null; } finally { clearTimeout(t); }
+  },
+  async pull() {
+    const r = await this._json('/git/pull', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    syncProxyState = r.state || syncProxyState;
+    return { content: r.content, label: `${r.strategy} → ${r.after}` };
+  },
+  async push(content, message) {
+    const r = await this._json('/git/push', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, message }),
+    });
+    syncProxyState = r.state || syncProxyState;
+    return {
+      noop: !!r.noop,
+      label: r.noop ? 'already up to date' : (r.rebased ? `rebased and pushed ${r.sha}` : `pushed ${r.sha}`),
+    };
+  },
+};
+
+const SyncGitHub = {
+  api(p) { return 'https://api.github.com' + p; },
+  contentsUrl(withRef) {
+    const u = `/repos/${syncCfg.owner}/${syncCfg.repo}/contents/${syncCfg.path.split('/').map(encodeURIComponent).join('/')}`;
+    return this.api(withRef ? `${u}?ref=${encodeURIComponent(syncCfg.branch)}` : u);
+  },
+  configured() { return !!(syncCfg.owner && syncCfg.repo && syncCfg.branch && syncCfg.path); },
+  headers(json) {
+    const h = { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    if (syncCfg.token) h.Authorization = 'Bearer ' + syncCfg.token.trim();
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  },
+  async detect() {
+    if (!this.configured()) return null;
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    try {
+      const r = await window.fetch(this.api(`/repos/${syncCfg.owner}/${syncCfg.repo}`), { headers: this.headers(), signal: ctl.signal });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return { owner: syncCfg.owner, repo: syncCfg.repo, branch: syncCfg.branch, private: !!j.private };
+    } catch (e) { return null; } finally { clearTimeout(t); }
+  },
+  async _read() {
+    const r = await window.fetch(this.contentsUrl(true), { headers: this.headers() });
+    if (r.status === 404) return { content: null, sha: null };
+    if (!r.ok) throw new Error(await ghErrorMessage(r));
+    const j = await r.json();
+    return { content: b64decodeUtf8(j.content || ''), sha: j.sha };
+  },
+  async pull() {
+    const { content, sha } = await this._read();
+    if (content === null) throw new Error(`${syncCfg.path} does not exist on ${syncCfg.owner}/${syncCfg.repo}@${syncCfg.branch}`);
+    syncRemoteSha = sha;
+    return { content, label: `${syncCfg.branch} @ ${String(sha).slice(0, 7)}` };
+  },
+  async push(content, message) {
+    if (!syncCfg.token) {
+      throw new Error('A GitHub token with repo scope is needed to push. Add one in Sync settings, or start the proxy (node ado-proxy.js) to push with git instead.');
+    }
+    const cur = await this._read();
+    if (cur.content === content) { syncRemoteSha = cur.sha; return { noop: true, label: 'already up to date' }; }
+    if (cur.sha && syncRemoteSha && cur.sha !== syncRemoteSha) {
+      const go = confirm(
+        'The backlog changed on GitHub since this page last read it.\n\n'
+        + 'OK — overwrite GitHub with your version\n'
+        + 'Cancel — keep the GitHub version (use ⇅ Sync to pull it in)'
+      );
+      if (!go) throw new Error('Push cancelled — GitHub had newer changes');
+    }
+    const body = {
+      message: message || `Update ${syncCfg.path} from Backlog Editor`,
+      content: b64encodeUtf8(content),
+      branch: syncCfg.branch,
+    };
+    if (cur.sha) body.sha = cur.sha;
+    const r = await window.fetch(this.contentsUrl(false), { method: 'PUT', headers: this.headers(true), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(await ghErrorMessage(r));
+    const j = await r.json();
+    syncRemoteSha = j.content && j.content.sha;
+    const sha = j.commit && j.commit.sha ? j.commit.sha.slice(0, 7) : '';
+    return { noop: false, label: 'pushed ' + sha };
+  },
+};
+
+function syncBackend() {
+  if (syncActive === 'proxy')  return SyncProxy;
+  if (syncActive === 'github') return SyncGitHub;
+  return null;
+}
+
+async function syncDetect() {
+  syncError = null;
+  if (syncCfg.mode === 'off') { syncActive = 'off'; renderSyncPill(); return 'off'; }
+
+  if (syncCfg.mode === 'auto' || syncCfg.mode === 'proxy') {
+    const st = await SyncProxy.detect();
+    if (st) {
+      syncProxyState = st;
+      // Learn the repo coordinates from the clone so GitHub mode needs no setup.
+      if (st.github && !syncCfg.owner) {
+        syncCfg.owner  = st.github.owner;
+        syncCfg.repo   = st.github.repo;
+        syncCfg.branch = st.branch || syncCfg.branch;
+        syncCfg.path   = st.file   || syncCfg.path;
+        saveSyncCfg();
+      }
+      syncActive = 'proxy'; renderSyncPill(); return 'proxy';
+    }
+    if (syncCfg.mode === 'proxy') {
+      syncActive = 'off'; syncError = 'Proxy not reachable — run `node ado-proxy.js`';
+      renderSyncPill(); return 'off';
+    }
+  }
+
+  if (syncCfg.mode === 'auto' || syncCfg.mode === 'github') {
+    if (await SyncGitHub.detect()) { syncActive = 'github'; renderSyncPill(); return 'github'; }
+    if (syncCfg.mode === 'github') {
+      syncActive = 'off';
+      syncError = SyncGitHub.configured()
+        ? `Cannot reach ${syncCfg.owner}/${syncCfg.repo} — check the repo details or token`
+        : 'GitHub repo not configured — click the pill to set owner/repo';
+      renderSyncPill(); return 'off';
+    }
+  }
+
+  syncActive = 'off'; renderSyncPill(); return 'off';
+}
+
+function renderSyncPill() {
+  const pill = document.getElementById('sync-status');
+  const btn  = document.getElementById('btn-sync');
+  if (!pill) return;
+  let cls = 'off', text = '⇅ Sync: off', title = 'Backlog sync is off — click to configure';
+  if (syncBusy) {
+    cls = 'busy'; text = '⇅ Sync: working…'; title = 'Talking to GitHub…';
+  } else if (syncError) {
+    cls = 'err'; text = '⇅ Sync: error'; title = syncError + ' — click to configure';
+  } else if (syncActive === 'proxy') {
+    const s = syncProxyState || {};
+    cls = 'live'; text = `⇅ Sync: git (${s.branch || 'main'})`;
+    title = `Syncing ${s.file || 'backlog.md'} through the local proxy — ${s.remoteUrl || 'origin'}\nClick to configure`;
+  } else if (syncActive === 'github') {
+    cls = 'gh'; text = `⇅ Sync: GitHub (${syncCfg.branch})`;
+    title = `Syncing ${syncCfg.path} with ${syncCfg.owner}/${syncCfg.repo}@${syncCfg.branch} over the GitHub API\nClick to configure`;
+  }
+  pill.className = 'sync-status ' + cls;
+  pill.textContent = text;
+  pill.title = title;
+  if (btn) { btn.disabled = syncBusy || syncActive === 'off'; btn.style.opacity = btn.disabled ? 0.45 : ''; }
+}
+
+function syncCommitMessage() {
+  const items = buckets.reduce((n, b) => n + b.items.length, 0);
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  return `Update backlog: ${plural(buckets.length, 'bucket')}, ${plural(items, 'item')}`;
+}
+
+function applyRemoteMarkdown(text, label) {
+  const parsed = parseMarkdown(text);
+  if (!parsed.length) return false;
+  buckets = parsed;
+  renderAll();
+  const sub = document.getElementById('editor-subtitle');
+  if (sub) sub.textContent = `Loaded from GitHub — ${label}`;
+  return true;
+}
+
+// Manual reconcile: pull first, and only ask when the two copies actually differ.
+async function syncNow() {
+  const be = syncBackend();
+  if (!be) { openSyncSettings(); return; }
+  syncBusy = true; syncError = null; renderSyncPill();
+  try {
+    const local  = generateMarkdown();
+    const pulled = await be.pull();
+    const remote = pulled.content;
+
+    if (remote === local) { showToast('✓ Already in sync with GitHub'); return; }
+    if (!buckets.length) {
+      applyRemoteMarkdown(remote, pulled.label);
+      showToast('✓ Pulled backlog from GitHub');
+      return;
+    }
+    const keepMine = confirm(
+      'This backlog differs from the copy on GitHub.\n\n'
+      + 'OK — push YOUR version to GitHub\n'
+      + 'Cancel — load the GitHub version (discards unsaved local edits)'
+    );
+    if (keepMine) {
+      const r = await be.push(local, syncCommitMessage());
+      showToast('✓ ' + r.label);
+    } else {
+      applyRemoteMarkdown(remote, pulled.label);
+      showToast('✓ Loaded the GitHub version');
+    }
+  } catch (e) {
+    syncError = syncShortError(e);
+    showToast('⚠ Sync failed — ' + syncError);
+  } finally { syncBusy = false; renderSyncPill(); }
+}
+
+// Called after a successful local save, so a failed push never loses the file.
+async function syncPushAfterSave() {
+  if (!syncCfg.pushOnSave) return;
+  const be = syncBackend();
+  if (!be) return;
+  syncBusy = true; renderSyncPill();
+  try {
+    const r = await be.push(generateMarkdown(), syncCommitMessage());
+    syncError = null;
+    showToast(r.noop ? '✓ Saved — GitHub already up to date' : '✓ Saved and ' + r.label);
+  } catch (e) {
+    syncError = syncShortError(e);
+    showToast('⚠ Saved locally, but push failed — ' + syncError);
+  } finally { syncBusy = false; renderSyncPill(); }
+}
+
+async function syncInit() {
+  loadSyncCfg();
+  renderSyncPill();
+  const mode = await syncDetect();
+  if (mode === 'off' || !syncCfg.pullOnLoad) return;
+  syncBusy = true; renderSyncPill();
+  try {
+    const r = await syncBackend().pull();
+    if (r.content && applyRemoteMarkdown(r.content, r.label)) {
+      showToast(`✓ Pulled the latest backlog from GitHub (${r.label})`);
+    }
+  } catch (e) {
+    syncError = syncShortError(e);
+    showToast('⚠ Could not pull from GitHub — ' + syncError);
+  } finally { syncBusy = false; renderSyncPill(); }
+}
+
+// ─── Sync settings modal ──────────────────────────────────────────────────────
+function openSyncSettings() {
+  loadSyncCfg();
+  document.getElementById('sync-mode').value      = syncCfg.mode;
+  document.getElementById('sync-owner').value     = syncCfg.owner;
+  document.getElementById('sync-repo').value      = syncCfg.repo;
+  document.getElementById('sync-branch').value    = syncCfg.branch;
+  document.getElementById('sync-path').value      = syncCfg.path;
+  document.getElementById('sync-token').value     = syncCfg.token;
+  document.getElementById('sync-pull-load').checked = !!syncCfg.pullOnLoad;
+  document.getElementById('sync-push-save').checked = !!syncCfg.pushOnSave;
+  onSyncModeChange();
+  document.getElementById('sync-modal-overlay').classList.add('show');
+}
+function closeSyncSettings() {
+  document.getElementById('sync-modal-overlay').classList.remove('show');
+}
+function onSyncModeChange() {
+  const mode = document.getElementById('sync-mode').value;
+  const box  = document.getElementById('sync-detected');
+  document.getElementById('sync-gh-fields').style.display = (mode === 'proxy' || mode === 'off') ? 'none' : '';
+  if (mode === 'off') {
+    box.className = 'sync-detected';
+    box.innerHTML = 'No network calls are made. <b>Save</b> writes the local file only — exactly like the plain editor.';
+    return;
+  }
+  box.className = 'sync-detected';
+  box.textContent = 'Checking for the local proxy…';
+  SyncProxy.detect().then(st => {
+    if (st) {
+      box.className = 'sync-detected ok';
+      box.innerHTML = `Proxy found — syncing <b>${st.file}</b> on branch <b>${st.branch}</b> of <b>${st.remoteUrl || 'origin'}</b> with git. No token needed.`;
+    } else if (mode === 'proxy') {
+      box.innerHTML = 'Proxy not reachable. Start it with <code>node ado-proxy.js</code>, or pick Auto/GitHub.';
+    } else {
+      box.innerHTML = 'Proxy not reachable — the GitHub API will be used. Reading a public repo works anonymously; pushing needs a token.';
+    }
+  });
+}
+function saveSyncSettings() {
+  syncCfg.mode       = document.getElementById('sync-mode').value;
+  syncCfg.owner      = document.getElementById('sync-owner').value.trim();
+  syncCfg.repo       = document.getElementById('sync-repo').value.trim().replace(/\.git$/i, '');
+  syncCfg.branch     = document.getElementById('sync-branch').value.trim() || 'main';
+  syncCfg.path       = document.getElementById('sync-path').value.trim() || 'backlog.md';
+  syncCfg.token      = document.getElementById('sync-token').value.trim();
+  syncCfg.pullOnLoad = document.getElementById('sync-pull-load').checked;
+  syncCfg.pushOnSave = document.getElementById('sync-push-save').checked;
+  saveSyncCfg();
+  closeSyncSettings();
+  syncRemoteSha = null;
+  syncDetect().then(m => showToast(m === 'off' ? '✓ Sync turned off' : `✓ Sync ready (${m === 'proxy' ? 'git via proxy' : 'GitHub API'})`));
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 // Pick the ADO backend: if the local proxy answers, use the real client; otherwise
 // fall back to the in-memory mock (and seed it so the demo flows still work).
@@ -3837,6 +4295,7 @@ async function initAdoBackend() {
 (function () {
   renderAll();
   initAdoBackend();
+  syncInit();
   return;
   const _md = `# Backlog Editor
 **Updated: 17 June 2026**
