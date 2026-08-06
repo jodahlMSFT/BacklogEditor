@@ -62,21 +62,17 @@
 
 ## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50] <!-- ado:1147069 -->
 
-- 🟡 Check-in and check-out ap: Yard worker inspections and movements processing. [10.0.50]
-- 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping, inspection status and priority on the card, so the coordinator can act without calling the back office. [10.0.50]
-- 🔴 Inventory, location and contract visibility in the field: Look up what is where, on which contract, from the device. Removes the help-desk dependency for basic information. [10.0.50]
-- 🔴 Create damage record from the mobile app: Raise a damage record during inspection carrying asset, contract and photo evidence into F&O, so damage becomes chargeable and disputable. [10.0.50]
-- 🔴 Change service status from the mobile app: Let the inspector set the fleet item's service status in the field instead of waiting for a back-office update. [10.0.50]
-- 🔴 Handle purchase and sales movements in the mobile app: Yard workers process all movement types on the same device. (Enablement of the movements themselves is tracked under Automation Gaps.) [10.0.50]
-- 🔴 Offline-first inspections: Save progress, capture photos and record comments without connectivity, syncing on reconnect. Yards and jobsites routinely have no signal. [10.0.50]
-- 🔴 Inbound return processing on mobile: Return notification, inspection, condition documentation and contract update. The MVP covered outbound only - inbound is the other half of the rental cycle. [10.0.50]
+- 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping, inspection status and priority on the card, so the coordinator can act without calling the back office.
+- 🔴 Inventory, location and contract visibility in the field: Look up what is where, on which contract, from the device. Removes the help-desk dependency for basic information.
+- 🔴 Create damage record from the mobile app: Raise a damage record during inspection carrying asset, contract and photo evidence into F&O, so damage becomes chargeable and disputable.
+- 🔴 Change service status from the mobile app: Let the inspector set the fleet item's service status in the field instead of waiting for a back-office update.
+- 🔴 Barcode scanning: Enable lookup of movement records, fleet items, and contracts from scanning of fleet item barcodes.
+- 🟡 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming.
+- 🟡 Handle purchase and sales movements in the mobile app: Yard workers process all movement types on the same device. (Enablement of the movements themselves is tracked under Automation Gaps.)
+- 🟡 Offline-first inspections: Save progress, capture photos and record comments without connectivity, syncing on reconnect. Yards and jobsites routinely have no signal.
+- 🟡 Pre-download inspection forms: Pull checklists before entering a low-connectivity area so an inspection is never blocked by a missing form.
 - 🟡 Time-bound editing of completed inspections: Inspections remain editable for a limited window (24h suggested) for minor corrections; larger corrections follow an escalation path.
 - 🟡 Role-based reopening of completed inspections: Only service advisors, managers and senior rental coordinators may reopen a completed inspection.
-- 🟡 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming.
-- 🟡 Driver signature and inspector attribution at handover: Capture who inspected and who took custody. (Customer signatures are rarely used in heavy equipment - not required.)
-- 🟡 Pre-download inspection forms: Pull checklists before entering a low-connectivity area so an inspection is never blocked by a missing form.
-- 🟡 Revisit completed shipment records: Reopen a completed shipment read-only for traceability and dispute resolution.
-- 🟡 Scanner fallback and assisted serial entry: A validated path when the barcode will not scan - manual typing is the main source of wrong-asset errors.
 
 ---
 
