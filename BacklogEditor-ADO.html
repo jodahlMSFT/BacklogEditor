@@ -504,6 +504,7 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .ado-preview-item::before { content: '└'; color: #334155; margin-right: -2px; margin-top: 1px; }
 .ado-preview-bucket { flex-shrink: 0; font-size: 0.62rem; color: #475569; margin-left: auto; white-space: nowrap; align-self: center; }
 .ado-preview-new { color: #34d399; }
+.ado-preview-desc { display: block; color: #64748b; font-size: 0.72rem; line-height: 1.45; margin-top: 2px; }
 .ado-field-row { display: flex; gap: 12px; }
 .ado-field-col-level { flex: 0 0 38%; }
 .ado-field-col-parent { flex: 1; min-width: 0; }
@@ -1122,10 +1123,11 @@ const ADO_CLOSED_STATES = ['Done', 'Removed', 'Closed', 'Resolved', 'Completed']
 const AdoMock = {
   store: {},           // id -> { id, type, title, parentId, state, kind }
   _step: 0,
-  async createWorkItem(type, title, parentId, kind) {
+  async createWorkItem(type, title, parentId, kind, fields) {
     await new Promise(r => setTimeout(r, 60)); // simulate network latency
     const id = ++_adoMockId;
     this.store[id] = { id, type, title, parentId, state: 'New', kind };
+    if (fields && fields['System.Description']) this.store[id].description = fields['System.Description'];
     return { ...this.store[id] };
   },
   fetch(id)          { const w = this.store[id]; return w ? { ...w } : null; },
@@ -1286,8 +1288,8 @@ const AdoClient = {
   },
   fetch(id) { const w = this.store[id]; return w ? { ...w } : null; },
   childrenOf(parentId) { return (this._children[parentId] || []).map(id => this.store[id]).filter(Boolean); },
-  async createWorkItem(type, title, parentId, kind) {
-    const w = await this._post('/workitem', { type, title, parentId: parentId || null });
+  async createWorkItem(type, title, parentId, kind, fields) {
+    const w = await this._post('/workitem', { type, title, parentId: parentId || null, fields: fields || null });
     this.store[w.id] = w;
     if (parentId) { (this._children[parentId] = this._children[parentId] || []).push(w.id); }
     return { ...w, kind };
@@ -1497,6 +1499,33 @@ function fillAdoParentSelect() {
 }
 
 // Group the current selection by bucket, preserving encounter order.
+// Backlog convention (same one fmtItemText renders in bold): "Short lead-in: the
+// longer explanation." On commit the lead-in becomes the ADO title and the
+// remainder becomes the work-item description, so ADO gets a scannable title
+// instead of a full sentence. Falls back to the whole string when there is no
+// colon, or when either side would be empty.
+function splitTitleBody(text) {
+  const s = String(text == null ? '' : text).trim();
+  const i = s.indexOf(':');
+  if (i < 1) return { title: s, body: '' };
+  const title = s.slice(0, i).trim();
+  const body = s.slice(i + 1).trim();
+  // Colon with nothing after it ("Financial tags defaulting:") is a lead-in with no
+  // body - keep it as the title, minus the now-dangling colon.
+  if (!body) return { title: title || s, body: '' };
+  if (!title) return { title: s, body: '' };
+  return { title, body };
+}
+
+// Plain backlog prose -> the minimal HTML ADO stores in System.Description.
+function bodyToDescriptionHtml(body) {
+  const s = String(body == null ? '' : body).trim();
+  if (!s) return '';
+  return s.split(/\n{2,}/)
+    .map(p => '<p>' + esc(p.trim()).replace(/\n/g, '<br>') + '</p>')
+    .join('');
+}
+
 function groupPicksByBucket(picks) {
   const order = [], map = new Map();
   picks.forEach(({ bucket, item }) => {
@@ -1524,15 +1553,19 @@ function renderAdoPreviewBody() {
     const badge = existing
       ? `<span class="ado-preview-bucket">existing #${bucket.ado.id}</span>`
       : `<span class="ado-preview-bucket ado-preview-new">new</span>`;
-    const rows = items.map(it => `
+    const rows = items.map(it => {
+      const s = splitTitleBody(it.text);
+      return `
       <li class="ado-preview-item">
         <span class="ado-preview-type">${esc(iType)}</span>
-        <span>${esc(it.text)}</span>
-      </li>`).join('');
+        <span>${esc(s.title)}${s.body ? `<span class="ado-preview-desc">${esc(s.body)}</span>` : ''}</span>
+      </li>`;
+    }).join('');
+    const bs = splitTitleBody(bucket.title);
     return `
       <li class="ado-preview-brow">
         <span class="ado-preview-type ado-preview-type-b">${esc(bType)}</span>
-        <span class="ado-preview-btitle">${esc(bucket.title)}</span>
+        <span class="ado-preview-btitle">${esc(existing ? bucket.title : bs.title)}</span>
         ${badge}
       </li>${rows}`;
   }).join('');
@@ -1548,11 +1581,14 @@ function closeAdoPreview() {
 
 // Look for an existing child of `parentId` with the same type + title, so commits
 // can adopt it instead of creating a duplicate (idempotent retry/refresh safety).
+// Accepts several candidate titles: items committed before the colon-split change
+// carry the full backlog sentence as their title, so we match those too.
 async function adoFindChildByTitle(parentId, type, title) {
   try { await ado.refreshChildren(parentId); } catch (e) { /* mock / offline */ }
   const kids = ado.childrenOf(parentId) || [];
   const norm = s => (s || '').trim().toLowerCase();
-  return kids.find(k => norm(k.title) === norm(title) && (!type || k.type === type)) || null;
+  const wanted = (Array.isArray(title) ? title : [title]).map(norm).filter(Boolean);
+  return kids.find(k => wanted.includes(norm(k.title)) && (!type || k.type === type)) || null;
 }
 
 async function confirmAdoCommit() {
@@ -1573,16 +1609,24 @@ async function confirmAdoCommit() {
       // same-title child if one is already there (idempotent — avoids duplicates on
       // retry after a partial failure or a page refresh).
       if (!(bucket.ado && bucket.ado.id)) {
-        let w = await adoFindChildByTitle(parent.id, bType, bucket.title);
-        if (!w) { w = await ado.createWorkItem(bType, bucket.title, parent.id, 'bucket'); nBuckets++; }
-        bucket.ado = { id: w.id, type: w.type || bType, state: w.state, title: w.title || bucket.title, parent: { level: parent.level, id: parent.id } };
+        const bSplit = splitTitleBody(bucket.title);
+        let w = await adoFindChildByTitle(parent.id, bType, [bSplit.title, bucket.title]);
+        if (!w) {
+          const bFields = bSplit.body ? { 'System.Description': bodyToDescriptionHtml(bSplit.body) } : null;
+          w = await ado.createWorkItem(bType, bSplit.title, parent.id, 'bucket', bFields); nBuckets++;
+        }
+        bucket.ado = { id: w.id, type: w.type || bType, state: w.state, title: w.title || bSplit.title, parent: { level: parent.level, id: parent.id } };
       }
       // Create each item one level below its bucket (adopt existing by title).
       for (const item of items) {
         if (item.ado && item.ado.id) continue;
-        let w = await adoFindChildByTitle(bucket.ado.id, iType, item.text);
-        if (!w) { w = await ado.createWorkItem(iType, item.text, bucket.ado.id, 'item'); nItems++; }
-        item.ado = { id: w.id, type: w.type || iType, state: w.state, title: w.title || item.text, parent: { level: bType, id: bucket.ado.id } };
+        const iSplit = splitTitleBody(item.text);
+        let w = await adoFindChildByTitle(bucket.ado.id, iType, [iSplit.title, item.text]);
+        if (!w) {
+          const iFields = iSplit.body ? { 'System.Description': bodyToDescriptionHtml(iSplit.body) } : null;
+          w = await ado.createWorkItem(iType, iSplit.title, bucket.ado.id, 'item', iFields); nItems++;
+        }
+        item.ado = { id: w.id, type: w.type || iType, state: w.state, title: w.title || iSplit.title, parent: { level: bType, id: bucket.ado.id } };
       }
     }
     closeAdoPreview();
@@ -2372,11 +2416,14 @@ function adoDescBuildContext(res) {
   const obj = res.obj, bucket = res.bucket;
   const ctx = { kind: isBucket ? 'bucket' : 'item', priority: obj.priority || bucket.priority || null };
   if (isBucket) {
-    ctx.title = bucket.title;
+    const bs = splitTitleBody(bucket.title);
+    ctx.title = bs.title;
+    ctx.text = bucket.title;
     ctx.bucketTitle = bucket.title;
     ctx.items = (bucket.items || []).filter(i => !isNoAdo(i)).map(i => ({ text: i.text, priority: i.priority }));
   } else {
-    ctx.title = obj.text || '';
+    const is = splitTitleBody(obj.text || '');
+    ctx.title = is.title;
     ctx.text = obj.text || '';
     ctx.bucketTitle = bucket ? bucket.title : null;
     ctx.siblings = bucket ? (bucket.items || []).filter(i => i.id !== obj.id && !isNoAdo(i)).map(i => i.text).slice(0, 12) : [];
