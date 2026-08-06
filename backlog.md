@@ -62,14 +62,15 @@
 
 ## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50] <!-- ado:1147069 -->
 
-- 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping, inspection status and priority on the card, so the coordinator can act without calling the back office.
-- 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming.
+- 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping (customer, contact, start and end date/time for contract etc), inspection status on the card, so the coordinator can act without calling the back office.
+- 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming. Most critical is inbound and outbound.
 - 🔴 Create damage record from the mobile app: Raise a damage record during inspection carrying asset, contract and photo evidence into F&O, so damage becomes chargeable and disputable.
 - 🔴 Change service status from the mobile app: Let the inspector set the fleet item's service status in the field instead of waiting for a back-office update.
+- 🔴 Work order request: Raise a work order request from the mobile app. Also, from within the report damages section, so that the work order request can be linked to the damage record.
 - 🟡 Barcode scanning: Enable lookup of movement records, fleet items, and contracts from scanning of fleet item barcodes.
 - 🟡 Inventory, location and contract visibility in the field and ability to move hub location: Look up what is where, on which contract, from the device. Removes the help-desk dependency for basic information.
 - 🟡 Handle purchase and sales movements in the mobile app: Yard workers process all movement types on the same device. (Enablement of the movements themselves is tracked under Automation Gaps.)
-- 🟡 Offline-first inspections: Save progress, capture photos and record comments without connectivity, syncing on reconnect. Yards and jobsites routinely have no signal.
+- 🟡 Offline-first inspections: Save progress, capture photos and record comments without connectivity, syncing on reconnect. Jobsites routinely have no signal.
 - 🟡 Pre-download inspection forms: Pull checklists before entering a low-connectivity area so an inspection is never blocked by a missing form.
 - 🟡 Time-bound editing of completed inspections: Inspections remain editable for a limited window (24h suggested) for minor corrections; larger corrections follow an escalation path.
 - 🟡 Role-based reopening of completed inspections: Only service advisors, managers and senior rental coordinators may reopen a completed inspection.
