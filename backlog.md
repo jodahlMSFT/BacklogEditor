@@ -63,11 +63,11 @@
 ## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50] <!-- ado:1147069 -->
 
 - 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping, inspection status and priority on the card, so the coordinator can act without calling the back office.
-- 🔴 Inventory, location and contract visibility in the field: Look up what is where, on which contract, from the device. Removes the help-desk dependency for basic information.
+- 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming.
 - 🔴 Create damage record from the mobile app: Raise a damage record during inspection carrying asset, contract and photo evidence into F&O, so damage becomes chargeable and disputable.
 - 🔴 Change service status from the mobile app: Let the inspector set the fleet item's service status in the field instead of waiting for a back-office update.
 - 🔴 Barcode scanning: Enable lookup of movement records, fleet items, and contracts from scanning of fleet item barcodes.
-- 🟡 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming.
+- 🔴 Inventory, location and contract visibility in the field: Look up what is where, on which contract, from the device. Removes the help-desk dependency for basic information.
 - 🟡 Handle purchase and sales movements in the mobile app: Yard workers process all movement types on the same device. (Enablement of the movements themselves is tracked under Automation Gaps.)
 - 🟡 Offline-first inspections: Save progress, capture photos and record comments without connectivity, syncing on reconnect. Yards and jobsites routinely have no signal.
 - 🟡 Pre-download inspection forms: Pull checklists before entering a low-connectivity area so an inspection is never blocked by a missing form.
