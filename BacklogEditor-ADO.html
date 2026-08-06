@@ -1224,15 +1224,22 @@ const AdoMock = {
 // Offline scaffold used by AdoMock.generateDescription (no LLM available).
 function mockDescribeHtml(ctx) {
   ctx = ctx || {};
+  // Only a BUCKET is defined by its child items. For a single item the bucket's other
+  // items are context for the model - they are not what this item covers, and listing
+  // them as "In scope" silently turns an item description into a bucket description.
+  const isBucket = ctx.kind ? ctx.kind === 'bucket' : (Array.isArray(ctx.items) && ctx.items.length > 0);
   const title = esc(ctx.title || ctx.text || 'this item');
-  const scope = (Array.isArray(ctx.items) && ctx.items.length)
+  const scope = isBucket && Array.isArray(ctx.items)
     ? ctx.items.map(i => (typeof i === 'string' ? i : (i.text || '')))
-    : (ctx.siblings || []);
+    : [];
   const scopeLis = scope.filter(Boolean).slice(0, 8).map(s => `<li>${esc(String(s))}</li>`).join('')
-    || '<li><i>(add the units of scope)</i></li>';
+    || `<li><i>(list what ${isBucket ? 'this bucket' : 'this item'} covers)</i></li>`;
+  const theme = (!isBucket && ctx.bucketTitle && ctx.bucketTitle !== ctx.title)
+    ? `<p><b>Related</b><br>Part of &ldquo;${esc(ctx.bucketTitle)}&rdquo;.</p>` : '';
   return `<p><b>Problem</b><br>Describe the gap today that makes &ldquo;${title}&rdquo; necessary, and why it matters.</p>`
     + `<p><b>Goal</b><br>State the clear outcome this delivers.</p>`
     + `<p><b>In scope</b></p><ul>${scopeLis}</ul>`
+    + theme
     + `<p><b>Acceptance criteria</b></p><ul><li>Specific, testable condition</li><li>Another testable condition</li></ul>`;
 }
 

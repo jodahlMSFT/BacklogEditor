@@ -389,7 +389,7 @@ const DESCRIBE_SYSTEM = [
   'Structure the description with these sections, in this order (omit a section only if there is genuinely nothing to say):',
   '1. Problem  - the gap or pain today, and why it matters.',
   '2. Goal     - the clear outcome this delivers.',
-  '3. In scope - a bulleted list of what is covered.',
+  '3. In scope - a bulleted list of what is covered. When the kind is "item", this covers ONLY that single item; never list sibling items as scope.',
   '4. Known issues - bulleted current symptoms/blockers, ONLY if the context implies them.',
   '5. Related  - bulleted references to related items, ONLY if the context provides them.',
   '6. Acceptance criteria - a bulleted list of specific, testable conditions.',
@@ -412,6 +412,9 @@ function buildDescribeUser(ado, context) {
     if (ado.description) lines.push('Existing description (may be empty or rough): ' + String(ado.description).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 800));
   }
   lines.push('Kind: ' + (c.kind || 'item'));
+  if ((c.kind || 'item') !== 'bucket') {
+    lines.push('This is ONE backlog item, not a theme. Describe only this item; scope it to what this single item delivers.');
+  }
   if (c.title) lines.push('Title / summary: ' + c.title);
   if (c.bucketTitle && c.bucketTitle !== c.title) lines.push('Parent theme (bucket): ' + c.bucketTitle);
   if (c.priority) lines.push('Priority: ' + c.priority);
@@ -421,7 +424,8 @@ function buildDescribeUser(ado, context) {
     c.items.forEach(i => lines.push('  - ' + (typeof i === 'string' ? i : (i.text || ''))));
   }
   if (Array.isArray(c.siblings) && c.siblings.length) {
-    lines.push('Sibling items in the same bucket (for context only):');
+    lines.push('Sibling items in the same bucket - CONTEXT ONLY, to help you tell this item apart from its neighbours.');
+    lines.push('Do NOT describe them and do NOT list them under "In scope":');
     c.siblings.forEach(s => lines.push('  - ' + s));
   }
   if (c.guidance && String(c.guidance).trim()) {
@@ -432,17 +436,48 @@ function buildDescribeUser(ado, context) {
   return lines.join('\n');
 }
 
+// Offline scaffold, mirroring the page's mockDescribeHtml. Used when no AI backend is
+// reachable so Describe still produces a usable skeleton instead of an error.
+// GitHub Models (models.github.ai) was fully retired on 2026-07-30, so this is the
+// default path until AI_HOST/AI_PATH are pointed at a live provider.
+function scaffoldDescribeHtml(context) {
+  const c = context || {};
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  const isBucket = c.kind ? c.kind === 'bucket' : (Array.isArray(c.items) && c.items.length > 0);
+  const title = esc(c.title || c.text || 'this item');
+  // Siblings are context only - they must never become this item's scope.
+  const scope = isBucket && Array.isArray(c.items)
+    ? c.items.map(i => (typeof i === 'string' ? i : (i && i.text) || ''))
+    : [];
+  const lis = scope.filter(Boolean).slice(0, 8).map(s => '<li>' + esc(s) + '</li>').join('')
+    || '<li><i>(list what ' + (isBucket ? 'this bucket' : 'this item') + ' covers)</i></li>';
+  const related = (!isBucket && c.bucketTitle && c.bucketTitle !== c.title)
+    ? '<p><b>Related</b><br>Part of &ldquo;' + esc(c.bucketTitle) + '&rdquo;.</p>' : '';
+  return '<p><b>Problem</b><br>Describe the gap today that makes &ldquo;' + title + '&rdquo; necessary, and why it matters.</p>'
+    + '<p><b>Goal</b><br>State the clear outcome this delivers.</p>'
+    + '<p><b>In scope</b></p><ul>' + lis + '</ul>'
+    + related
+    + '<p><b>Acceptance criteria</b></p><ul><li>Specific, testable condition</li><li>Another testable condition</li></ul>';
+}
+
 // Generate a description (HTML fragment) for a work item / backlog entry.
 async function describeWorkItem(adoId, context) {
   let ado = {};
   if (adoId) {
     try { const items = await getWorkItems([adoId]); if (items[0]) ado = items[0]; } catch (e) { /* draft from context alone */ }
   }
-  const raw = await aiChat([
-    { role: 'system', content: DESCRIBE_SYSTEM },
-    { role: 'user', content: buildDescribeUser(ado, context) },
-  ]);
-  return { html: stripFences(raw), model: AI_MODEL };
+  try {
+    const raw = await aiChat([
+      { role: 'system', content: DESCRIBE_SYSTEM },
+      { role: 'user', content: buildDescribeUser(ado, context) },
+    ]);
+    return { html: stripFences(raw), model: AI_MODEL };
+  } catch (e) {
+    // Degrade to the scaffold rather than failing the whole Describe flow.
+    const why = (e && (e.message || e.reason)) || 'AI unavailable';
+    console.error('[ado-proxy] describe: AI unavailable (' + why + ') - returning offline scaffold');
+    return { html: scaffoldDescribeHtml(context), model: 'template (offline)', mock: true, aiError: String(why) };
+  }
 }
 
 // ── HTTP server (the whitelist the page is allowed to call) ───────────────────
