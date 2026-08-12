@@ -151,7 +151,8 @@
 
 - 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [10.0.50] <!-- ado:1149953 -->
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported. [10.0.50]
-- 🔴 Damage recovery: Link WOs to damage records and invoices to facilitate recoupment of costs from damages. [10.0.50]
+- 🔴 Damage recovery: Link WOs to damage records and invoices to facilitate recoupment of costs from damages.
+- 🔴 Fleet management: Expose costs associated with running the fleet items (planned maintenance, damages, refurbishments, etc.).
 - 🟡 List of historical and open WOs on a fleet item: Rental coordinator should have a complete overview of all the WOs that have been opened on a particular fleet item.
 - 🟡 FS PO sync (Dual Write) status unclear: Does PO created in FS for work order parts still sync to F&O? FS WO → parts PO → delivery date → WO completion → rental availability chain needs to work end-to-end.
 - 🟡 ETA from work order on availability: WO expected completion date should surface in the rental item availability calendar.
