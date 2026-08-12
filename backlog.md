@@ -1,5 +1,5 @@
 # Backlog Editor
-**Updated: 06 August 2026**
+**Updated: 12 August 2026**
 
 ---
 
@@ -83,11 +83,11 @@
 
 ---
 
-## 🟡 BUCKET 9: CAT: Improvements <!-- ado:1149948 -->
+## 🟡 BUCKET 9: Private preview feedback: Improvements <!-- ado:1149948 -->
 
-- 🔴 CAT: Ability to tie rental templates to one or more customers [10.0.50] <!-- ado:1108023 -->
-- 🔴 CAT: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin) <!-- ado:1095542 -->
-- 🟡 CAT: Auto-close expired quotes.
+- 🔴 Private preview feedback: Ability to tie rental templates to one or more customers [10.0.50] <!-- ado:1108023 -->
+- 🔴 Private preview feedback: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin) <!-- ado:1095542 -->
+- 🟡 Private preview feedback: Auto-close expired quotes.
 
 ---
 
