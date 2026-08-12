@@ -13,7 +13,7 @@
 ## 🔴 BUCKET 2: Brownfield / Adoption Blockers <!-- ado:1149926 -->
 
 - 🔴 Batch tracking: Make batch tracking optional. [10.0.50] <!-- ado:1149927 -->
-- 🔴 Configurable fleet types (not hardcoded): Improves transparency and enables Deere non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
+- 🔴 Configurable fleet types (not hardcoded): Improves transparency and enables non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
 - 🔴 Existing inventory: Create fleet item from existing inventory. [10.0.50] <!-- ado:1149929 -->
 - 🔴 S/N: Make serial number optional. [10.0.50] <!-- ado:1149931 -->
 - 🔴 S/N: Serial entry at receipt vs. PO time. Most companies don't know VIN/serial at PO creation - only at receipt. [10.0.50] <!-- ado:1149932 -->
@@ -43,7 +43,7 @@
 
 ## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O <!-- ado:1149943 -->
 
-- 🔴 Entities and actions: Enables CAT & Deere to build their own UX on top of F&O capabilities. [10.0.50] <!-- ado:1133532 -->
+- 🔴 Entities and actions: Enables customers and partners to build their own UX on top of F&O capabilities. [10.0.50] <!-- ado:1133532 -->
 - 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc. <!-- ado:1149944 -->
 
 ---
@@ -187,7 +187,7 @@
 
 ## 🟡 BUCKET 19: Combined Sales and Rental
 
-- 🟡 Combined quoting: Combined sales, RPO, and rental quote (Deere)
+- 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
 - 🟡 Automated fleet transfer: Quickly sell a rental item
 
