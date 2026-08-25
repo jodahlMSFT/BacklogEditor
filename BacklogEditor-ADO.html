@@ -972,14 +972,6 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-subitem.strike .tl-subtext { color: #334155; text-decoration: line-through; }
 .tl-subitem .tl-est { font-size: 0.64rem; color: #475569; }
 .tl-card.horizon .tl-subtext { color: #6b7a90; }
-.tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
-.tl-add-ms-btn {
-  background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
-  color: #334155; cursor: pointer; font-size: 0.78rem; padding: 14px; text-align: center;
-  width: 100%; transition: all 0.15s; min-height: 70px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px; margin-top: 120px;
-}
-.tl-add-ms-btn:hover { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.07); }
 .tl-meta-inline-input {
   background: rgba(14,31,56,0.95); border: 1px solid #38bdf8; border-radius: 4px;
   color: #e2e8f0; padding: 2px 7px; outline: none; font-family: inherit;
@@ -4118,17 +4110,6 @@ function renderTimelineView() {
     unit.appendChild(card);
     colsRow.appendChild(unit);
   });
-
-  // Add-milestone placeholder
-  const addUnit = document.createElement('div');
-  addUnit.className = 'tl-add-ms';
-  const addBtn = document.createElement('div');
-  addBtn.className = 'tl-add-ms-btn';
-  addBtn.innerHTML = '＋<br><span style="font-size:0.68rem;opacity:0.5">Tag items in<br>Buckets view</span>';
-  addBtn.title = 'Switch to Buckets view to tag items';
-  addBtn.onclick = () => setView('buckets');
-  addUnit.appendChild(addBtn);
-  colsRow.appendChild(addUnit);
 
   scrollWrap.appendChild(colsRow);
   view.appendChild(scrollWrap);
