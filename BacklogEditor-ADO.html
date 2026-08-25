@@ -191,9 +191,9 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 .bucket-inv-select:hover, .bucket-inv-select:focus { outline: none; border-color: #3b82f6; }
 .bucket-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.45); }
-.bucket-inv-select.inv-cat  { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
+.bucket-inv-select.inv-cat  { color: #ffcd11; border-color: rgba(255,205,17,0.45); }
 .bucket-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.45); }
-.bucket-inv-select.inv-xdyn { color: #fbbf24; border-color: rgba(251,191,36,0.45); }
+.bucket-inv-select.inv-xdyn { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
 /* Release select. Same shape as the investment select so the two read as peer
    dimensions of the same bucket: which release, and which investment. */
 .bucket-rel-select {
@@ -243,9 +243,9 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 .item-inv-select:hover, .item-inv-select:focus { outline: none; border-color: #3b82f6; }
 .item-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
-.item-inv-select.inv-cat  { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
+.item-inv-select.inv-cat  { color: #ffcd11; border-color: rgba(255,205,17,0.35); }
 .item-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.35); }
-.item-inv-select.inv-xdyn { color: #fbbf24; border-color: rgba(251,191,36,0.35); }
+.item-inv-select.inv-xdyn { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
 /* Investment group header inside a timeline release column. */
 .tl-inv-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -3601,9 +3601,9 @@ function parseVersionTag(s) {
 const INV_PREFIX = 'inv:';
 const INVESTMENTS = [
   { id: 'fnd',  label: 'Foundation',      short: 'FND',  icon: '🔧', color: '#a78bfa' },
-  { id: 'cat',  label: 'CAT + dealers',   short: 'CAT',  icon: '1️⃣', color: '#38bdf8' },
+  { id: 'cat',  label: 'CAT',             short: 'CAT',  icon: '1️⃣', color: '#ffcd11' },
   { id: 'vert', label: 'Other verticals', short: 'VERT', icon: '2️⃣', color: '#34d399' },
-  { id: 'xdyn', label: 'Cross-Dynamics',  short: 'XDYN', icon: '3️⃣', color: '#fbbf24' },
+  { id: 'xdyn', label: 'Cross-Dynamics',  short: 'XDYN', icon: '3️⃣', color: '#38bdf8' },
 ];
 const INV_BY_ID = Object.fromEntries(INVESTMENTS.map(i => [i.id, i]));
 
