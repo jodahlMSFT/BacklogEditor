@@ -875,6 +875,12 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-itext.strike { color: #334155; text-decoration: line-through; font-weight: 400; }
 .tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; font-weight: 400; }
 .tl-empty { color: #2a3f5e; font-size: 0.78rem; padding: 4px 0; font-style: italic; }
+.tl-level-hint {
+  margin-top: 12px; padding-top: 8px; border-top: 1px dashed #1e3a5f;
+  font-size: 0.68rem; color: #475569; cursor: pointer; user-select: none;
+  transition: color 0.12s;
+}
+.tl-level-hint:hover { color: #7dd3fc; }
 .tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
 .tl-add-ms-btn {
   background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
@@ -3880,6 +3886,21 @@ function renderTimelineView() {
       empty.className = 'tl-empty';
       empty.textContent = `No ${atBucketLevel ? 'buckets' : 'items'} tagged [${tag}]`;
       card.appendChild(empty);
+    }
+
+    // Each altitude shows only what was assigned at that altitude, which means work can
+    // sit in a release and still be absent from the view you happen to be on - an empty
+    // bucket assigned to a release has no items to show here at all. Say how much is on
+    // the other side rather than letting it look like nothing is there.
+    const otherCount = atBucketLevel ? itemsForTag(tag).length : bucketsForTag(tag).length;
+    if (otherCount) {
+      const hint = document.createElement('div');
+      hint.className = 'tl-level-hint';
+      const noun = atBucketLevel ? 'item' : 'bucket';
+      hint.textContent = `${atBucketLevel ? '≡' : '▤'} ${otherCount} ${noun}${otherCount === 1 ? '' : 's'} assigned`;
+      hint.title = `Switch to the ${atBucketLevel ? 'Line items' : 'Buckets'} view to see ${otherCount === 1 ? 'it' : 'them'}`;
+      hint.onclick = () => setTimelineLevel(atBucketLevel ? 'items' : 'buckets');
+      card.appendChild(hint);
     }
 
     unit.appendChild(card);
