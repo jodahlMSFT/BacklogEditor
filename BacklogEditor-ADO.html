@@ -2978,8 +2978,8 @@ function makeItemLI(item) {
       </select>
       <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
       <select class="item-inv-select inv-${investmentOf(item) || 'none'}" data-item-id="${item.id}" title="Investment bucket">
-        <option value=""     ${!investmentOf(item) ? 'selected' : ''}>· inv</option>
-        ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.short}</option>`).join('')}
+        <option value=""     ${!investmentOf(item) ? 'selected' : ''}>· No bucket</option>
+        ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
       </select>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
       ${adoChipHTML(item, true, 'item', item.id)}
@@ -3397,6 +3397,51 @@ const INVESTMENTS = [
 ];
 const INV_BY_ID = Object.fromEntries(INVESTMENTS.map(i => [i.id, i]));
 
+// The timeline is a scan-in-one-pass overview, so its cards want a headline rather
+// than the whole item. Most items here are written "Headline: elaboration", so the
+// text before the first colon is the headline. Two shapes stop that working alone:
+//   - An abbreviation prefix ("S/N:", "RPO:"). Cutting there would render BOTH
+//     "S/N:" items as the same three characters, so keep enough of the tail to
+//     tell them apart.
+//   - No colon at all (19 of 117 items today). Nothing to cut, so just cap it.
+// The full text stays in the title attribute, so this hides detail, never loses it.
+function clipAtWord(s, max) {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max), sp = cut.lastIndexOf(' ');
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:.\-]+$/, '') + '…';
+}
+function timelineTitle(text) {
+  const s = String(text || '').trim();
+  const i = s.search(/:(?!\/\/)/);
+  if (i < 0) return clipAtWord(s, 95);
+  if (i < 8) return clipAtWord(s, 60);
+  return clipAtWord(s.slice(0, i).trim(), 95);
+}
+// Cutting at the colon is only safe while the headlines stay distinct. They do not:
+// "Existing Fixed Asset: Associate..." and "Existing Fixed Asset: Create new..." are
+// different work items, and four items share a "Private preview feedback:" prefix.
+// Rendered as bare headlines they become the same card and the reader has to hover
+// to tell which is which. So headline first, but restore text for the ones that clash.
+function timelineTitleMap(items) {
+  const out = new Map(), byTitle = new Map();
+  items.forEach(it => {
+    const t = timelineTitle(it.text);
+    out.set(it.id, t);
+    if (!byTitle.has(t)) byTitle.set(t, []);
+    byTitle.get(t).push(it);
+  });
+  byTitle.forEach((group, t) => {
+    if (group.length < 2) return;
+    group.forEach(it => {
+      const longer = clipAtWord(String(it.text || '').trim(), 75);
+      // If the longer form still matches, the two items really are duplicates and
+      // no amount of extra text separates them. Leave it rather than pad noise.
+      if (longer !== t) out.set(it.id, longer);
+    });
+  });
+  return out;
+}
+
 function isInvestmentTag(t) { return typeof t === 'string' && t.toLowerCase().startsWith(INV_PREFIX); }
 function investmentOf(o)   { const t = (o.tags || []).find(isInvestmentTag); return t ? t.slice(INV_PREFIX.length).toLowerCase() : ''; }
 // Tags a row carries that are NOT investment tags - what the chips should show.
@@ -3485,6 +3530,9 @@ function renderTimelineView() {
   const container = document.getElementById('buckets-container');
   container.innerHTML = '';
   const tags = sortedTagIds();
+  // Built once across every item, so a headline that is unique inside one release
+  // but clashes in another still resolves the same way wherever it is shown.
+  const tlTitles = timelineTitleMap(buckets.flatMap(b => b.items || []));
   const view = document.createElement('div');
   view.className = 'tl-view';
 
@@ -3623,7 +3671,8 @@ function renderTimelineView() {
         } else {
           icon = '›'; iconClass = 'soft'; textClass = '';
         }
-        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(item.text)}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
+        row.title = item.text;
+        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
         card.appendChild(row);
       };
 
