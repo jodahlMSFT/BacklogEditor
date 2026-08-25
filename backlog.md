@@ -367,9 +367,9 @@
 
 ---
 
-## 🔴 BUCKET 46: Rentals on Project Operations projects [inv:xdyn][10.0.52+]
+## 🔴 BUCKET 46: Rentals in Project Operations projects [inv:xdyn][10.0.52+]
 
-- 🔴 Rentals on Project Operations projects
+- 🔴 Rentals in Project Operations projects
 
 ---
 
