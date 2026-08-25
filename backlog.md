@@ -336,6 +336,18 @@
 
 ---
 
+## 🟡 BUCKET 41: High-volume pricing API [inv:cat][10.0.52]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 42: High-volume availability API [inv:cat][10.0.52]
+
+*No items*
+
+---
+
 
 <!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped","date":"July 2026","sublabel":"End-to-end core rentals"},"10.0.50":{"status":"inflight","sublabel":"Adoption blockers & data model changes"},"10.0.52":{"status":"preliminary","sublabel":""},"10.0.52+":{"status":"preliminary"}} -->
 
