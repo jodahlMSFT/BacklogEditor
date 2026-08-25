@@ -4476,11 +4476,13 @@ function exportTimelineSnapshot() {
     if (none.length) groups.push({ id:'none', label:'Unassigned', icon:'·', color:'#64748b', rows: none });
 
     const body = groups.filter(g => g.rows.length).map(g => {
-      const sum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
-      const sumTxt = sum > 0 ? `${Math.round(sum*100)/100} mm` : '-';
+      // Estimates are deliberately left out of the shared file - it goes to people who
+      // want the plan, not the internal costing. The header keeps a row count so the
+      // slot still says something about the size of the theme.
+      const countTxt = `${g.rows.length}`;
       const head = `<div class="ghead" data-inv="${g.id}" onclick="tg('${g.id}')" title="Click to collapse this theme in every release" style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;gap:6px;margin:12px 0 4px;padding:2px 7px;border-left:2px solid ${g.color};border-right:2px solid ${g.color}">
           <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${g.color}"><span class="gcar" style="display:inline-block;width:10px;font-size:0.6rem;opacity:0.75">▾</span>${g.icon} ${esc(g.label)}</span>
-          <span style="font-size:${sum>0?'0.78rem':'0.62rem'};font-weight:${sum>0?800:400};color:${sum>0?'#a5dffd':'#475569'};font-variant-numeric:tabular-nums">${esc(sumTxt)}</span>
+          <span style="font-size:0.62rem;color:#475569;font-variant-numeric:tabular-nums">${esc(countTxt)}</span>
         </div>`;
       const rowsHtml = g.rows.map(r => {
         const done = m.status === 'shipped';
@@ -4489,15 +4491,11 @@ function exportTimelineSnapshot() {
         const iconC = done ? '#4ade80' : (r.priority === 'na' ? '#334155' : crit ? '#38bdf8' : '#6b7f99');
         const txtC  = r.priority === 'na' ? '#334155' : (r.priority === 'low' ? '#4b5873' : '#f0f4f8');
         const strike = r.priority === 'na' ? 'text-decoration:line-through;' : '';
-        const est = r.est === '' || r.est == null ? '' :
-          `<span style="flex-shrink:0;margin-left:auto;padding-left:6px;font-size:${level==='buckets'?'0.72rem':'0.68rem'};font-weight:${level==='buckets'?700:600};color:${level==='buckets'?'#7dd3fc':'#64748b'};font-variant-numeric:tabular-nums;white-space:nowrap">${Math.round(r.est*100)/100} mm</span>`;
         const kids = level === 'buckets' ? timelineItemsOf(getBucket(r.id)) : [];
         const kidsHtml = kids.length ? `<div class="kids" style="display:none">` + kids.map(k => {
-          const ke = estimateOf(k);
           return `<div style="display:flex;align-items:flex-start;gap:5px;padding:1px 0 1px 18px;font-size:0.76rem;line-height:1.4">
             <span style="flex-shrink:0;width:8px;color:#334155;font-weight:800;margin-top:1px">·</span>
             <span style="flex:1;color:#94a3b8">${esc(timelineTitle(k.text))}</span>
-            ${ke===''?'':`<span style="flex-shrink:0;font-size:0.64rem;color:#475569;font-variant-numeric:tabular-nums">${Math.round(ke*100)/100} mm</span>`}
           </div>`; }).join('') + `</div>` : '';
         const clickable = kids.length
           ? ` class="row" onclick="this.classList.toggle('open');var k=this.querySelector('.kids');k.style.display=k.style.display==='none'?'block':'none'" style="cursor:pointer;"`
@@ -4507,7 +4505,7 @@ function exportTimelineSnapshot() {
               <span style="flex-shrink:0;width:12px;margin-top:2px;font-size:0.68rem;font-weight:800;color:${iconC}">${kids.length?'▸':icon}</span>
               <span style="flex:1;color:${txtC};font-weight:600;${strike}">${esc(titles.get(r.id) || timelineTitle(r.text))}
                 <span style="display:block;font-size:0.62rem;color:#2d4060;margin-top:1px;font-weight:400">${esc(r.bucketTitle || '')}</span>
-              </span>${est}
+              </span>
             </div>${kidsHtml}
           </div>`;
       }).join('');
