@@ -840,6 +840,17 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-card.inflight { background: #071829; border-color: #1e3a5f; border-top-color: #38bdf8; }
 .tl-card.planned  { background: #0b1c32; border-color: #1a3050; border-top-color: #7dd3fc; }
 .tl-card.preliminary { background: #0e1826; border-color: #253449; border-top-color: #94a3b8; border-top-style: dashed; }
+/* Horizon column ("10.0.52+"). Everything in it is indicative, so it is rendered a step
+   quieter than a real release - present and readable, but not competing with committed
+   work for attention. Deliberately a smaller step than the low/na de-emphasis, which
+   still has to mean something inside this column. */
+.tl-card.horizon .tl-itext { color: #8b9bb0; font-weight: 500; }
+.tl-card.horizon .tl-itext.dim { color: #46536b; }
+.tl-card.horizon .tl-itext.strike { color: #334155; }
+.tl-card.horizon .tl-ibucket { color: #26374f; }
+.tl-card.horizon .tl-inv-name { opacity: 0.62; }
+.tl-card.horizon .tl-icon { opacity: 0.6; }
+.tl-card.horizon .tl-card-title { color: #b9c4d2; }
 .tl-badge {
   display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 700;
   letter-spacing: 0.1em; padding: 3px 9px; border-radius: 4px; margin-bottom: 11px;
@@ -3862,7 +3873,12 @@ function renderTimelineView() {
 
     // ── Column card ──
     const card = document.createElement('div');
-    card.className = 'tl-card ' + s;
+    // A release whose name is not a concrete version - "10.0.52+" - is a horizon rather
+    // than a release: everything in it is indicative. Status cannot express that here,
+    // since 10.0.52 and 10.0.52+ are both preliminary, so it keys off the same
+    // not-a-version test the sort already uses to place these last.
+    const horizon = !parseVersionTag(tag);
+    card.className = 'tl-card ' + s + (horizon ? ' horizon' : '');
 
     const badge = document.createElement('div');
     badge.className = 'tl-badge ' + s;
