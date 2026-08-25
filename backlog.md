@@ -126,14 +126,14 @@
 ## 🟡 BUCKET 14: Automation Gaps [inv:cat][10.0.52]
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
-- 🟡 (Auto-) create work order from item movement: For prep, etc. work flows
+- 🔴 (Auto-) create work order from item movement: For prep, etc. work flows [inv:cat][est:2]
 - 🟡 Customer - rental template links: Tie rental templates to one or more specific customers
 - 🟡 Automatically change service status through item movement processes: For preparation, etc.
 - 🟡 Movement → service location → auto-create WO: Moving a rental item to a service location should optionally auto-create a Field Service work order.
 - 🟡 Damage decision code workflow: When a damage decision code is set on a movement, it should trigger automated follow-on actions (e.g., move to service location, create WO, set service status).
-- 🟡 Location automation: Enable automatic change of location upon processing of item movement.
+- 🔴 Location automation: Enable automatic change of location upon processing of item movement. [inv:cat][est:2]
 - 🟡 Auto-assign item: When adding a class to a contract an available unit should be automatically defaulted onto the contract for each line
-- 🟡 Bulk update service status: For example, there's a service note on all CTL344s - now I want to update all those models to service status = 'Hard down'.
+- 🟡 Bulk update service status: For example, there's a service note on all CTL344s - now I want to update all those models to service status = 'Hard down'. [inv:cat][est:1]
 - 🟡 Clean up expired quotes: Auto-close expired quotes
 - 🔵 Missing accessories auto-charge: When movement return lacks tracked accessories, system should auto-flag for charges.
 - ⬜ Batch = New auto-set: When creating a rental item via PO flow, batch status should default to "New" automatically. Users missing this causes downstream failures.
