@@ -354,6 +354,12 @@
 
 ---
 
+## 🟡 BUCKET 44: Maintenance costs inform fleet management decisions [inv:xdyn][10.0.52]
+
+*No items*
+
+---
+
 
 <!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped","date":"July 2026","sublabel":"End-to-end core rentals"},"10.0.50":{"status":"inflight","sublabel":"Adoption blockers & data model changes"},"10.0.52":{"status":"preliminary","sublabel":"Target GA: First customer live"},"10.0.52+":{"status":"preliminary","sublabel":"Expansion"}} -->
 
