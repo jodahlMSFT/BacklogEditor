@@ -138,7 +138,7 @@
 
 ---
 
-## 🟡 BUCKET 14: Intercompany [inv:vert][10.0.52]
+## 🟡 BUCKET 14: Intercompany [inv:vert][10.0.52+]
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -171,7 +171,7 @@
 
 ---
 
-## 🟡 BUCKET 17: Pricing Gaps [inv:vert][10.0.52]
+## 🟡 BUCKET 17: Pricing Gaps [inv:vert][10.0.52+]
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -186,7 +186,7 @@
 
 ---
 
-## 🟡 BUCKET 19: Combined Sales and Rental [inv:cat][10.0.52]
+## 🟡 BUCKET 19: Combined Sales and Rental [inv:cat][10.0.52+]
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
@@ -194,7 +194,7 @@
 
 ---
 
-## 🟡 BUCKET 20: Kitting / Packages [inv:vert][10.0.52]
+## 🟡 BUCKET 20: Kitting / Packages [inv:vert][10.0.52+]
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -204,7 +204,7 @@
 
 ---
 
-## 🔵 BUCKET 21: Availability and Reservations [inv:vert][10.0.52]
+## 🔵 BUCKET 21: Availability and Reservations [inv:vert][10.0.52+]
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
@@ -221,7 +221,7 @@
 
 ---
 
-## 🔵 BUCKET 23: Accessory Packs [inv:vert][10.0.52]
+## 🔵 BUCKET 23: Accessory Packs [inv:vert][10.0.52+]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
