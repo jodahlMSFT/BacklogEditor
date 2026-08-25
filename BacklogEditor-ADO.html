@@ -805,7 +805,10 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 50%, #7dd3fc 100%);
   z-index: 0; pointer-events: none;
 }
-.tl-col-unit { flex: 1 0 220px; max-width: 320px; display: flex; flex-direction: column; align-items: stretch; padding: 0 6px; }
+/* Columns grow into whatever width is available - at a 320px cap a 1920px screen left
+   560px of the roadmap empty. The cap still exists so that one or two releases do not
+   each become a 900px column of short titles. */
+.tl-col-unit { flex: 1 0 220px; max-width: 560px; display: flex; flex-direction: column; align-items: stretch; padding: 0 6px; }
 /* ── Milestone header ── */
 .tl-ms-header { display: flex; flex-direction: column; align-items: center; }
 .tl-ms-meta { min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 6px; gap: 2px; text-align: center; }
@@ -4451,7 +4454,7 @@ function exportTimelineSnapshot() {
       return head + rowsHtml;
     }).join('') || `<div style="color:#2a3f5e;font-size:0.78rem;font-style:italic;padding:4px 0">Nothing assigned</div>`;
 
-    return `<div style="flex:0 0 250px;${dim}">
+    return `<div style="flex:1 1 250px;min-width:250px;max-width:560px;${dim}">
       <div style="text-align:center;padding-bottom:10px">
         <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;letter-spacing:0.05em">${esc(tag)}</div>
         <div style="font-size:0.72rem;color:${m.status==='shipped'?'#4ade80':'#475569'};font-weight:${m.status==='shipped'?600:400};min-height:16px">${esc(m.date||'')}</div>
