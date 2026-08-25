@@ -910,6 +910,29 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .item-tl-btn:hover, .tl-bucket-btn:hover { color: #fb7185; background: rgba(251,113,133,0.12); }
 .item-tl-btn.on, .tl-bucket-btn.on { color: #fb7185; }
 .tl-bucket-btn { flex-shrink: 0; }
+/* Engineering estimate, man months. Narrow and spinner-free: the rows are already
+   crowded, and the value is nearly always one or two characters. */
+.est-input {
+  width: 46px; flex-shrink: 0;
+  border: 1px solid #1e293b; border-radius: 5px;
+  padding: 2px 4px; font-size: 0.7rem; font-family: inherit;
+  background: #0f172a; color: #475569; text-align: right;
+  transition: all 0.12s;
+}
+.est-input::-webkit-outer-spin-button, .est-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.est-input { -moz-appearance: textfield; appearance: textfield; }
+.est-input::placeholder { color: #334155; }
+.est-input:hover, .est-input:focus { outline: none; border-color: #3b82f6; }
+.est-input.has-est { color: #e2e8f0; border-color: rgba(148,163,184,0.4); font-weight: 600; }
+.bucket-header .est-input { padding: 3px 5px; font-size: 0.72rem; width: 52px; }
+/* On the roadmap the estimate is a right-hand column, so a release reads as a list of
+   work with its cost beside it. */
+.tl-est {
+  flex-shrink: 0; margin-left: auto; padding-left: 6px;
+  font-size: 0.68rem; font-weight: 600; color: #64748b;
+  font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 1px;
+}
+.tl-card.horizon .tl-est { color: #46536b; }
 .tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
 .tl-add-ms-btn {
   background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
@@ -2996,6 +3019,8 @@ function createBucketCard(bucket, idx) {
         <option value="" ${!releaseOf(bucket) ? 'selected' : ''}>· No release</option>
         ${sortedTagIds().map(t => `<option value="${esc(t)}" ${releaseOf(bucket) === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
       </select>
+      <input class="est-input${estimateOf(bucket) !== '' ? ' has-est' : ''}" type="number" min="0" step="0.5"
+             value="${estimateOf(bucket)}" placeholder="mm" title="Engineering estimate, man months">
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false, 'bucket', bucket.id)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
@@ -3052,6 +3077,17 @@ function createBucketCard(bucket, idx) {
     e.stopPropagation();
     toggleTimelineExcluded(bucket.id, null);
   });
+
+  // engineering estimate
+  const estInp = card.querySelector('.bucket-header .est-input');
+  if (estInp) {
+    estInp.addEventListener('change', (e) => {
+      setEstimate(bucket.id, null, estInp.value);
+      estInp.classList.toggle('has-est', estInp.value !== '' && parseFloat(estInp.value) > 0);
+      e.stopPropagation();
+    });
+    estInp.addEventListener('click', e => e.stopPropagation());
+  }
 
   // rename bucket button
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
@@ -3125,6 +3161,8 @@ function makeItemLI(item) {
         ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
       </select>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
+      <input class="est-input${estimateOf(item) !== '' ? ' has-est' : ''}" type="number" min="0" step="0.5"
+             data-item-id="${item.id}" value="${estimateOf(item)}" placeholder="mm" title="Engineering estimate, man months">
       ${isTimelineExcluded(item) ? '<span class="tl-off-chip" title="Kept off the timeline">⊘ off roadmap</span>' : ''}
       ${adoChipHTML(item, true, 'item', item.id)}
       <div class="item-actions">
@@ -3143,6 +3181,13 @@ function wireItemEvents(card, bucketId) {
   card.querySelectorAll('.item-edit-btn').forEach(btn =>    btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
   card.querySelectorAll('.item-tl-btn').forEach(btn =>
     btn.addEventListener('click', () => toggleTimelineExcluded(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.est-input[data-item-id]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      setEstimate(bucketId, inp.dataset.itemId, inp.value);
+      inp.classList.toggle('has-est', inp.value !== '' && parseFloat(inp.value) > 0);
+    });
+    inp.addEventListener('click', e => e.stopPropagation());
+  });
   card.querySelectorAll('.item-link-btn').forEach(btn =>
     btn.addEventListener('click', () => openAdoLink('item', btn.dataset.itemId, bucketId)));
   card.querySelectorAll('.item-desc-btn').forEach(btn =>
@@ -3558,6 +3603,27 @@ function setTimelineLevel(level) {
   renderTimelineView();
 }
 
+// Engineering estimate in man months. Stored as a marker tag like the others so it
+// round-trips through backlog.md with no format change. Bucket and item estimates are
+// deliberately independent - neither rolls up into nor validates the other.
+const EST_PREFIX = 'est:';
+function isEstimateTag(t) { return typeof t === 'string' && t.toLowerCase().startsWith(EST_PREFIX); }
+function estimateOf(o) {
+  const t = (o && (o.tags || []).find(isEstimateTag));
+  if (!t) return '';
+  const n = parseFloat(t.slice(EST_PREFIX.length));
+  return isFinite(n) ? n : '';
+}
+function fmtEstimate(n) { return (Math.round(n * 100) / 100) + ' mm'; }
+function setEstimate(bucketId, itemId, raw) {
+  const b = getBucket(bucketId);
+  const target = itemId ? (b && b.items.find(x => x.id === itemId)) : b;
+  if (!target) return;
+  const n = parseFloat(String(raw == null ? '' : raw).replace(',', '.'));
+  target.tags = (target.tags || []).filter(t => !isEstimateTag(t));
+  if (isFinite(n) && n > 0) target.tags.push(EST_PREFIX + (Math.round(n * 100) / 100));
+}
+
 // Kept off the roadmap without losing its release. Follows the existing [no-ado]
 // convention - a marker tag rather than a new field, so it round-trips through
 // backlog.md unchanged. It must never be treated as a release, or excluding something
@@ -3566,7 +3632,7 @@ const NO_TL_TAG = 'no-timeline';
 function isNoTimelineTag(t) { return typeof t === 'string' && t.toLowerCase() === NO_TL_TAG; }
 // Tags that carry meaning other than "which release": they have their own controls and
 // are kept off the release axis and out of the chip list.
-function isMetaTag(t) { return isInvestmentTag(t) || isNoTimelineTag(t); }
+function isMetaTag(t) { return isInvestmentTag(t) || isNoTimelineTag(t) || isEstimateTag(t); }
 function isTimelineExcluded(o) { return (o && (o.tags || []).some(isNoTimelineTag)) || false; }
 function toggleTimelineExcluded(bucketId, itemId) {
   const b = getBucket(bucketId);
@@ -3929,7 +3995,9 @@ function renderTimelineView() {
           icon = '›'; iconClass = 'soft'; textClass = '';
         }
         row.title = item.text;
-        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
+        const est = estimateOf(item);
+        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>` +
+          (est !== '' ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(est))}</span>` : '');
         card.appendChild(row);
       };
 
