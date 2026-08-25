@@ -882,7 +882,10 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-icon { flex-shrink: 0; width: 12px; margin-top: 2px; font-size: 0.68rem; font-weight: 800; }
 .tl-icon.ok   { color: #4ade80; }
 .tl-icon.go   { color: #38bdf8; }
-.tl-icon.soft { color: #475569; }
+/* Non-critical rows. Since priority was taken out of the item text, this chevron is the
+   only place it still shows on the roadmap, so it has to be legible - at #475569 it
+   read as a rendering fault rather than as "lower priority". */
+.tl-icon.soft { color: #6b7f99; }
 .tl-icon.na   { color: #334155; }
 /* Medium is 68 of 117 items, so encoding priority in the item text rendered the majority
    of the roadmap as secondary content. Weight and colour are now uniform; critical vs
