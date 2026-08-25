@@ -301,9 +301,9 @@
 
 ---
 
-## 🟡 BUCKET 35: Credit Management II [inv:cat][10.0.52]
+## 🔴 BUCKET 35: Credit Management II [inv:cat][10.0.52]
 
-*No items*
+- 🔴 Credit management for long-running contracts: Avoid activating new rental contracts if customer is past due
 
 ---
 
