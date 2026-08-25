@@ -4562,7 +4562,7 @@ h1 span{font-weight:300;color:#94a3b8}
   <h1>${esc(roadmapTitle)} <span>Roadmap</span></h1>
 </div>
 <div class="scroll">${build(tlLevel)}</div>
-<div class="meta">Exported ${esc(date)} · ${tlLevel === 'buckets' ? 'buckets' : 'line items'} · critical work only, except ${tags.filter(isHorizonTag).length ? esc(tags.filter(isHorizonTag).join(', ')) + ' which shows everything' : 'where noted'}${tlLevel === 'buckets' ? ' · click a theme to collapse it, or a bucket to see its items' : ' · click a theme to collapse it'}</div>
+<div class="meta">Exported ${esc(date)}</div>
 </div><script>
 // Collapsing a theme hides it in every release, so the columns stay comparable.
 var gone = {};
