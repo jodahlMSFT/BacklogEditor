@@ -1,5 +1,5 @@
 # Backlog Editor
-**Updated: 12 August 2026**
+**Updated: 25 August 2026**
 
 ---
 
@@ -93,7 +93,7 @@
 
 ## 🟡 BUCKET 10: Configurability
 
-- 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair".
+- 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52]
 - 🟡 Access to fleets: Limit fleet visibility per user/role
 - 🟡 Configurable master data: Fleet item attributes
 
