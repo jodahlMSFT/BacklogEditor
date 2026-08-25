@@ -331,9 +331,9 @@
 
 ---
 
-## 🟡 BUCKET 40: Rates by division [inv:cat][10.0.52]
+## 🔴 BUCKET 40: Rates by division [inv:cat][10.0.52]
 
-*No items*
+- 🔴 Rates by division: Ability to define rates and discounts per division [10.0.52]
 
 ---
 
