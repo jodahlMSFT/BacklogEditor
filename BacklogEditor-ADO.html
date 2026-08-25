@@ -194,6 +194,22 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .bucket-inv-select.inv-cat  { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
 .bucket-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.45); }
 .bucket-inv-select.inv-xdyn { color: #fbbf24; border-color: rgba(251,191,36,0.45); }
+/* Release select. Same shape as the investment select so the two read as peer
+   dimensions of the same bucket: which release, and which investment. */
+.bucket-rel-select {
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #475569;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.bucket-rel-select:hover, .bucket-rel-select:focus { outline: none; border-color: #3b82f6; }
+.bucket-rel-select.has-rel { color: #7dd3fc; border-color: rgba(125,211,252,0.45); }
 
 .item-priority-select {
   border: 1px solid #1e293b;
@@ -2729,6 +2745,23 @@ function shippedItemCount() {
   });
   return n;
 }
+/** Buckets hidden from planning. Counted separately because a bucket tagged to a
+ *  shipped release disappears whole, and an empty one contributes no items at all -
+ *  so an item-only count reported "4" while nine buckets had vanished. */
+function shippedHiddenCounts() {
+  let items = 0, bkts = 0;
+  buckets.forEach(b => {
+    if (isShippedBucket(b)) { bkts++; items += b.items.length; return; }
+    b.items.forEach(i => { if (isShippedItem(i)) items++; });
+  });
+  return { items, bkts };
+}
+function shippedHiddenLabel() {
+  const { items, bkts } = shippedHiddenCounts();
+  if (bkts && items) return `${bkts} bucket${bkts === 1 ? '' : 's'}, ${items} item${items === 1 ? '' : 's'}`;
+  if (bkts) return `${bkts} bucket${bkts === 1 ? '' : 's'}`;
+  return `${items} item${items === 1 ? '' : 's'}`;
+}
 function toggleShowShipped() {
   showShipped = !showShipped;
   updateShippedToggle();
@@ -2737,13 +2770,14 @@ function toggleShowShipped() {
 function updateShippedToggle() {
   const btn = document.getElementById('btn-show-shipped');
   if (!btn) return;
-  const n = shippedItemCount();
+  const { items, bkts } = shippedHiddenCounts();
+  const label = shippedHiddenLabel();
   btn.classList.toggle('active', showShipped);
-  btn.style.display = n ? '' : 'none';
-  btn.textContent = showShipped ? `📦 Shipped shown (${n})` : `📦 Shipped hidden (${n})`;
+  btn.style.display = (items || bkts) ? '' : 'none';
+  btn.textContent = showShipped ? `📦 Shipped shown (${label})` : `📦 Shipped hidden (${label})`;
   btn.title = showShipped
     ? 'Shipped releases are visible in planning views. Click to hide them again.'
-    : `${n} item(s) in shipped releases are hidden from planning. They still appear on the Timeline. Click to show.`;
+    : `${label} in shipped releases are hidden from planning. They still appear on the Timeline. Click to show.`;
 }
 
 function applyBucketSearch() {
@@ -2923,6 +2957,10 @@ function createBucketCard(bucket, idx) {
         <option value=""     ${!investmentOf(bucket) ? 'selected' : ''}>· No bucket</option>
         ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(bucket) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
       </select>
+      <select class="bucket-rel-select${releaseOf(bucket) ? ' has-rel' : ''}" title="Release">
+        <option value="" ${!releaseOf(bucket) ? 'selected' : ''}>· No release</option>
+        ${sortedTagIds().map(t => `<option value="${esc(t)}" ${releaseOf(bucket) === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+      </select>
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false, 'bucket', bucket.id)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
@@ -2964,6 +3002,14 @@ function createBucketCard(bucket, idx) {
   // The header toggles expand/collapse on click, which would close the bucket the
   // moment the select is used.
   card.querySelector('.bucket-inv-select').addEventListener('click', e => e.stopPropagation());
+
+  // release change
+  card.querySelector('.bucket-rel-select').addEventListener('change', (e) => {
+    setBucketRelease(bucket.id, e.target.value);
+    e.target.classList.toggle('has-rel', !!e.target.value);
+    e.stopPropagation();
+  });
+  card.querySelector('.bucket-rel-select').addEventListener('click', e => e.stopPropagation());
 
   // rename bucket button
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
@@ -3534,6 +3580,18 @@ function setBucketInvestment(bucketId, invId) {
   if (!b) return;
   b.tags = visibleTags(b.tags);                    // only ever one investment per bucket
   if (invId) b.tags.push(INV_PREFIX + invId);
+  const holder = document.querySelector(`.bucket-tags[data-owner="${bucketId}"]`);
+  if (holder) holder.innerHTML = tagsInnerHTML(b.tags, 'bucket', bucketId);
+}
+// The timeline treats every non-investment tag as a release, so that is what a release
+// tag is here. A bucket can still carry several via the chips; the select shows and
+// replaces the first, which is the case that actually occurs.
+function releaseOf(o) { return (o.tags || []).find(t => !isInvestmentTag(t)) || ''; }
+function setBucketRelease(bucketId, tag) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  b.tags = (b.tags || []).filter(isInvestmentTag);
+  if (tag) b.tags.push(tag);
   const holder = document.querySelector(`.bucket-tags[data-owner="${bucketId}"]`);
   if (holder) holder.innerHTML = tagsInnerHTML(b.tags, 'bucket', bucketId);
 }
