@@ -318,7 +318,7 @@
 
 ---
 
-## 🟡 BUCKET 38: Assigning items at fulfillment [inv:vert][10.0.50]
+## 🟡 BUCKET 38: Assigning items at fulfillment [inv:vert][10.0.52]
 
 *No items*
 
