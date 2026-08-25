@@ -925,6 +925,9 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .est-input:hover, .est-input:focus { outline: none; border-color: #3b82f6; }
 .est-input.has-est { color: #e2e8f0; border-color: rgba(148,163,184,0.4); font-weight: 600; }
 .bucket-header .est-input { padding: 3px 5px; font-size: 0.72rem; width: 52px; }
+/* Bucket estimates are derived from their critical items, so a bucket row shows a sum
+   rather than an editable field. */
+.tl-est.tl-est-sum { color: #7dd3fc; }
 /* On the roadmap the estimate is a right-hand column, so a release reads as a list of
    work with its cost beside it. */
 .tl-est {
@@ -3035,8 +3038,6 @@ function createBucketCard(bucket, idx) {
         <option value="" ${!releaseOf(bucket) ? 'selected' : ''}>· No release</option>
         ${sortedTagIds().map(t => `<option value="${esc(t)}" ${releaseOf(bucket) === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
       </select>
-      <input class="est-input${estimateOf(bucket) !== '' ? ' has-est' : ''}" type="number" min="0" step="0.5"
-             value="${estimateOf(bucket)}" placeholder="mm" title="Engineering estimate, man months">
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false, 'bucket', bucket.id)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
@@ -3093,17 +3094,6 @@ function createBucketCard(bucket, idx) {
     e.stopPropagation();
     toggleTimelineExcluded(bucket.id, null);
   });
-
-  // engineering estimate
-  const estInp = card.querySelector('.bucket-header .est-input');
-  if (estInp) {
-    estInp.addEventListener('change', (e) => {
-      setEstimate(bucket.id, null, estInp.value);
-      estInp.classList.toggle('has-est', estInp.value !== '' && parseFloat(estInp.value) > 0);
-      e.stopPropagation();
-    });
-    estInp.addEventListener('click', e => e.stopPropagation());
-  }
 
   // rename bucket button
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
@@ -3639,6 +3629,17 @@ function estimateOf(o) {
   return isFinite(n) ? n : '';
 }
 function fmtEstimate(n) { return (Math.round(n * 100) / 100) + ' mm'; }
+// The roadmap shows critical work only, so these are the items a bucket will actually
+// put on it. Everything derived from a bucket - its estimate, its drill-down, its
+// sub-label - comes from this one list, so the three can never disagree.
+function timelineItemsOf(b) {
+  return ((b && b.items) || []).filter(i => i.priority === 'critical' && !isTimelineExcluded(i));
+}
+// A bucket's estimate is the sum of those items. Nothing is stored on the bucket, so
+// the number cannot drift from the items it is made of.
+function bucketEstimate(b) {
+  return timelineItemsOf(b).reduce((sum, i) => { const n = estimateOf(i); return sum + (n === '' ? 0 : n); }, 0);
+}
 function setEstimate(bucketId, itemId, raw) {
   const b = getBucket(bucketId);
   const target = itemId ? (b && b.items.find(x => x.id === itemId)) : b;
@@ -3774,14 +3775,13 @@ function sortedTagIds() {
     return a.localeCompare(b);
   });
 }
-// Items place themselves by their own tag, and nothing else. A bucket assigned to a
-// release shows at the bucket altitude, not here - each level of the roadmap shows only
-// what was explicitly put in that release at that level.
+// Items place themselves by their own tag, and nothing else. The roadmap carries the
+// critical work only, so anything below that priority is left off at both altitudes.
 function itemsForTag(tag) {
   const result = [];
   buckets.forEach(b => b.items.forEach(i => {
-    if (isTimelineExcluded(i)) return;
-    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
+    if (i.priority !== 'critical' || isTimelineExcluded(i)) return;
+    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title, est: estimateOf(i) });
   }));
   return result;
 }
@@ -3794,12 +3794,15 @@ function bucketsForTag(tag) {
   const result = [];
   buckets.forEach(b => {
     if (releaseOf(b) !== tag || isTimelineExcluded(b)) return;
-    const items = b.items || [];
-    const n = items.filter(i => (i.tags || []).includes(tag)).length;
+    const total = (b.items || []).length;
+    const shown = timelineItemsOf(b).length;
+    const sum = bucketEstimate(b);
     result.push({
       id: b.id, text: b.title, priority: b.priority, tags: b.tags,
-      bucketTitle: n ? `${n} of ${items.length} item${items.length === 1 ? '' : 's'}`
-                     : `${items.length} item${items.length === 1 ? '' : 's'}`,
+      est: sum > 0 ? sum : '',
+      // Says what the row is made of: how many items it will show, out of how many it
+      // holds. The estimate above is the sum of exactly those.
+      bucketTitle: total ? `${shown} critical · ${total} item${total === 1 ? '' : 's'}` : 'no items',
     });
   });
   return result;
@@ -4019,17 +4022,15 @@ function renderTimelineView() {
           icon = '›'; iconClass = 'soft'; textClass = '';
         }
         row.title = item.text;
-        const est = estimateOf(item);
+        const est = item.est !== undefined ? item.est : estimateOf(item);
         // At bucket level a row can be drilled into. Reuse the priority icon as the
         // caret rather than adding a control: it is already a chevron, and keeping its
         // colour means opening a bucket does not cost the priority signal.
-        const kids = atBucketLevel
-          ? ((getBucket(item.id) || {}).items || []).filter(i => !isTimelineExcluded(i))
-          : [];
+        const kids = atBucketLevel ? timelineItemsOf(getBucket(item.id)) : [];
         const open = kids.length && tlExpanded.has(item.id);
         if (kids.length && s !== 'shipped' && item.priority !== 'na') icon = open ? '▾' : '▸';
         row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>` +
-          (est !== '' ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(est))}</span>` : '');
+          (est !== '' ? `<span class="tl-est${atBucketLevel ? ' tl-est-sum' : ''}" title="${atBucketLevel ? 'Sum of the critical items in this bucket' : 'Engineering estimate'}">${esc(fmtEstimate(est))}</span>` : '');
         if (kids.length) {
           row.classList.add('tl-expandable');
           if (open) row.classList.add('open');
