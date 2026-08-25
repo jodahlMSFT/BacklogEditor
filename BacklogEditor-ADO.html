@@ -802,18 +802,26 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-dot.inflight { background: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 8px rgba(56,189,248,0.4); }
 .tl-dot.inflight:hover { box-shadow: 0 0 14px rgba(56,189,248,0.8); }
 .tl-dot.planned { background: #0a1628; border-color: #7dd3fc; }
+/* Preliminary: planned, but not firm yet. Dashed and desaturated throughout, so it
+   reads as less committed than PLANNED without inventing a colour that competes with
+   the investment-bucket accents inside the column. */
+.tl-dot.preliminary { background: #0a1628; border-color: #94a3b8; border-style: dashed; }
+.tl-dot.preliminary:hover { box-shadow: 0 0 12px rgba(148,163,184,0.5); }
 .tl-ms-label { min-height: 44px; padding: 8px 4px 0; font-size: 0.75rem; color: #64748b; text-align: center; line-height: 1.35; cursor: pointer; transition: color 0.12s; }
 .tl-ms-label:hover { color: #e2e8f0; }
 .tl-ms-label.shipped { color: #4ade80; }
 .tl-ms-label.inflight { color: #38bdf8; }
+.tl-ms-label.preliminary { color: #94a3b8; font-style: italic; }
 .tl-pointer { width: 0; height: 0; margin: 0 auto; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 9px solid transparent; border-bottom: 9px solid #071829; }
 .tl-pointer.shipped { border-bottom-color: #041d0d; }
 .tl-pointer.planned { border-bottom-color: #0b1c32; }
+.tl-pointer.preliminary { border-bottom-color: #0e1826; }
 /* ── Column card ── */
 .tl-card { flex: 1; padding: 14px 16px 18px; border: 1px solid #1e3a5f; border-top: 3px solid #38bdf8; }
 .tl-card.shipped { background: #041d0d; border-color: #0d3321; border-top-color: #4ade80; }
 .tl-card.inflight { background: #071829; border-color: #1e3a5f; border-top-color: #38bdf8; }
 .tl-card.planned  { background: #0b1c32; border-color: #1a3050; border-top-color: #7dd3fc; }
+.tl-card.preliminary { background: #0e1826; border-color: #253449; border-top-color: #94a3b8; border-top-style: dashed; }
 .tl-badge {
   display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; font-weight: 700;
   letter-spacing: 0.1em; padding: 3px 9px; border-radius: 4px; margin-bottom: 11px;
@@ -823,6 +831,7 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-badge.shipped { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.6); color: #4ade80; }
 .tl-badge.inflight { background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.6); color: #38bdf8; }
 .tl-badge.planned  { background: rgba(125,211,252,0.06); border: 1px solid rgba(125,211,252,0.4); color: #7dd3fc; }
+.tl-badge.preliminary { background: rgba(148,163,184,0.06); border: 1px dashed rgba(148,163,184,0.65); color: #94a3b8; }
 .tl-card-title { font-size: 0.95rem; font-weight: 700; color: #f0f4f8; margin-bottom: 12px; line-height: 1.35; cursor: pointer; }
 .tl-card-title:hover { color: #ffffff; }
 .tl-card-title-input {
@@ -833,6 +842,7 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-card-divider { height: 1px; background: #1e3a5f; margin: 0 -16px 10px; }
 .tl-card-divider.shipped { background: #0d3321; }
 .tl-card-divider.planned { background: #1a3050; }
+.tl-card-divider.preliminary { background: #253449; }
 .tl-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; font-size: 0.82rem; line-height: 1.4; }
 .tl-icon { flex-shrink: 0; width: 12px; margin-top: 2px; font-size: 0.68rem; font-weight: 800; }
 .tl-icon.ok   { color: #4ade80; }
@@ -3594,12 +3604,15 @@ function bucketsForTag(tag) {
 function tlStatusLabel(s) {
   if (s === 'shipped') return '✓ SHIPPED';
   if (s === 'inflight') return '● IN FLIGHT';
+  if (s === 'preliminary') return '◌ PLANNED - PRELIMINARY';
   return '○ PLANNED';
 }
 function cycleStatus(tag) {
   const m = getTagMeta(tag);
-  const order = ['planned','inflight','shipped'];
-  const next = order[(order.indexOf(m.status) + 1) % 3];
+  const order = ['planned','preliminary','inflight','shipped'];
+  // Modulo the list length, not a literal - a hardcoded 3 here silently skipped the
+  // last status when a fourth was added.
+  const next = order[(order.indexOf(m.status) + 1) % order.length];
   setTagMetaField(tag, { status: next });
   renderTimelineView();
 }
@@ -3728,7 +3741,7 @@ function renderTimelineView() {
     msHeader.appendChild(dotRow);
 
     const msLabel = document.createElement('div');
-    msLabel.className = 'tl-ms-label' + (s === 'shipped' ? ' shipped' : s === 'inflight' ? ' inflight' : '');
+    msLabel.className = 'tl-ms-label' + (s === 'shipped' ? ' shipped' : s === 'inflight' ? ' inflight' : s === 'preliminary' ? ' preliminary' : '');
     if (m.sublabel) {
       msLabel.textContent = m.sublabel;
     } else {
@@ -3740,7 +3753,7 @@ function renderTimelineView() {
     msHeader.appendChild(msLabel);
 
     const ptr = document.createElement('div');
-    ptr.className = 'tl-pointer' + (s === 'shipped' ? ' shipped' : s === 'planned' ? ' planned' : '');
+    ptr.className = 'tl-pointer' + (s === 'shipped' ? ' shipped' : s === 'planned' ? ' planned' : s === 'preliminary' ? ' preliminary' : '');
     msHeader.appendChild(ptr);
 
     unit.appendChild(msHeader);
