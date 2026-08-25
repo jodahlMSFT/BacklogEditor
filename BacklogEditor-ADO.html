@@ -4550,11 +4550,7 @@ body{margin:0;background:#0a1628;color:#cbd5e1;font-family:-apple-system,BlinkMa
 .hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
 h1{margin:0;font-size:2.2rem;font-weight:800;color:#fff}
 h1 span{font-weight:300;color:#94a3b8}
-.tabs{display:flex;gap:2px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:2px}
-.tab{background:none;border:none;color:#64748b;font-size:0.76rem;font-weight:600;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:inherit}
-.tab.active{background:#1e293b;color:#e2e8f0}
 .scroll{overflow-x:auto;padding-bottom:20px}
-.lvl{display:none}.lvl.active{display:block}
 .meta{margin-top:26px;font-size:0.72rem;color:#334155}
 .tgt::after{content:'';position:absolute;left:1px;top:1px;right:1px;bottom:1px;border-radius:50%;background:#7dd3fc}
 .tgt::before{content:'';position:absolute;left:-8px;top:-8px;right:-8px;bottom:-8px;border-radius:50%;border:2px solid rgba(125,211,252,0.6);animation:tp 2.6s ease-out infinite}
@@ -4564,20 +4560,10 @@ h1 span{font-weight:300;color:#94a3b8}
 </style></head><body><div class="wrap">
 <div class="hd">
   <h1>${esc(roadmapTitle)} <span>Roadmap</span></h1>
-  <div class="tabs">
-    <button class="tab active" id="t-b" onclick="sw('b')">▤ Buckets</button>
-    <button class="tab" id="t-i" onclick="sw('i')">≡ Line items</button>
-  </div>
 </div>
-<div class="scroll"><div id="lvl-b" class="lvl active">${build('buckets')}</div><div id="lvl-i" class="lvl">${build('items')}</div></div>
-<div class="meta">Exported ${esc(date)} · critical work only, except ${tags.filter(isHorizonTag).length ? esc(tags.filter(isHorizonTag).join(', ')) + ' which shows everything' : 'where noted'} · click a theme to collapse it, or a bucket to see its items</div>
+<div class="scroll">${build(tlLevel)}</div>
+<div class="meta">Exported ${esc(date)} · ${tlLevel === 'buckets' ? 'buckets' : 'line items'} · critical work only, except ${tags.filter(isHorizonTag).length ? esc(tags.filter(isHorizonTag).join(', ')) + ' which shows everything' : 'where noted'}${tlLevel === 'buckets' ? ' · click a theme to collapse it, or a bucket to see its items' : ' · click a theme to collapse it'}</div>
 </div><script>
-function sw(v){
-  document.getElementById('lvl-b').classList.toggle('active',v==='b');
-  document.getElementById('lvl-i').classList.toggle('active',v==='i');
-  document.getElementById('t-b').classList.toggle('active',v==='b');
-  document.getElementById('t-i').classList.toggle('active',v==='i');
-}
 // Collapsing a theme hides it in every release, so the columns stay comparable.
 var gone = {};
 function tg(id){
