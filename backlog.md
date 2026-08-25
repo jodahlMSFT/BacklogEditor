@@ -3,7 +3,7 @@
 
 ---
 
-## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" [inv:fnd][10.0.50] <!-- ado:1149935 -->
+## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" [inv:fnd][10.0.50][no-timeline] <!-- ado:1149935 -->
 
 - ⬜ Rename "Rental Item" to "Fleet item" in UI [10.0.49] <!-- ado:1149936 -->
 - 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc. [10.0.50] <!-- ado:1149937 -->
@@ -217,7 +217,7 @@
 
 ---
 
-## 🔵 BUCKET 23: UX / Usability Polish [inv:fnd][10.0.52]
+## 🔵 BUCKET 23: UX / Usability Polish
 
 - 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
 - 🟡 Multi-assign: fleet items to quote and contract lines
