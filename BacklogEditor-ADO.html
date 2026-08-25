@@ -190,6 +190,35 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .item-priority-select:hover, .item-priority-select:focus {
   outline: none; border-color: #3b82f6; color: #cbd5e1;
 }
+/* Investment bucket select — same shape as the priority select so the row reads as
+   two peer dimensions, but tinted per bucket so a column can be scanned at a glance.
+   Untagged is deliberately dim rather than red: not yet classified is a normal state. */
+.item-inv-select {
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 2px 3px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #475569;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.item-inv-select:hover, .item-inv-select:focus { outline: none; border-color: #3b82f6; }
+.item-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+.item-inv-select.inv-cat  { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
+.item-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.35); }
+.item-inv-select.inv-xdyn { color: #fbbf24; border-color: rgba(251,191,36,0.35); }
+/* Investment group header inside a timeline release column. */
+.tl-inv-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; margin: 10px 0 3px; padding: 2px 0 2px 7px;
+  border-left: 2px solid #334155;
+}
+.tl-inv-head:first-child { margin-top: 2px; }
+.tl-inv-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tl-inv-count { font-size: 0.62rem; color: #475569; font-variant-numeric: tabular-nums; }
 .item-row.na-item {
   opacity: 0.55;
 }
@@ -2948,6 +2977,10 @@ function makeItemLI(item) {
         <option value="na"       ${p === 'na'       ? 'selected' : ''}>⬜ N/A</option>
       </select>
       <span class="item-text" data-item-id="${item.id}">${fmtItemText(item.text)}</span>
+      <select class="item-inv-select inv-${investmentOf(item) || 'none'}" data-item-id="${item.id}" title="Investment bucket">
+        <option value=""     ${!investmentOf(item) ? 'selected' : ''}>· inv</option>
+        ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.short}</option>`).join('')}
+      </select>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
       ${adoChipHTML(item, true, 'item', item.id)}
       <div class="item-actions">
@@ -2978,6 +3011,11 @@ function wireItemEvents(card, bucketId) {
         item.priority = sel.value;
         sel.closest('.item-row').classList.toggle('na-item', sel.value === 'na');
       }
+    }));
+  card.querySelectorAll('.item-inv-select').forEach(sel =>
+    sel.addEventListener('change', () => {
+      setItemInvestment(bucketId, sel.dataset.itemId, sel.value);
+      sel.className = 'item-inv-select inv-' + (sel.value || 'none');
     }));
   card.querySelectorAll('.item-select').forEach(cb =>
     cb.addEventListener('change', () => onAdoSelectToggle(cb)));
@@ -3247,7 +3285,9 @@ function tagAddBtnHtml(type, ownerId) {
   return `<button class="tag-add-btn" onclick="showTagInput('${type}','${ownerId}',this)" title="Add tag">＋</button>`;
 }
 function tagsInnerHTML(tags, type, ownerId) {
-  const chips = (tags || []).map(t => tagChipHtml(t, type, ownerId)).join('');
+  // Investment tags are surfaced by their own select control, so showing them as chips
+  // as well would give the same fact two editable representations that can disagree.
+  const chips = visibleTags(tags).map(t => tagChipHtml(t, type, ownerId)).join('');
   return chips + tagAddBtnHtml(type, ownerId);
 }
 function onTagChipClick(el) {
@@ -3339,6 +3379,42 @@ function parseVersionTag(s) {
   if (/^\d+(\.\d+)+$/.test(s)) return s.split('.').map(Number);
   return null;
 }
+// ── Investment buckets ────────────────────────────────────────────────────────
+// Jonas, 2026-08-25: tag each item with which investment case it belongs to, and
+// group the timeline by those under each release.
+//
+// Implemented as a PREFIXED TAG rather than a new field, so it round-trips through
+// the Markdown for free and needs no change to the file format, the ADO sync or the
+// snapshot export. The prefix is what keeps it out of the timeline's release axis:
+// sortedTagIds() treats every tag as a milestone column, so a bare [cat] would have
+// silently created a release called "cat".
+const INV_PREFIX = 'inv:';
+const INVESTMENTS = [
+  { id: 'fnd',  label: 'Foundation',      short: 'FND',  icon: '🔧', color: '#a78bfa' },
+  { id: 'cat',  label: 'CAT + dealers',   short: 'CAT',  icon: '1️⃣', color: '#38bdf8' },
+  { id: 'vert', label: 'Other verticals', short: 'VERT', icon: '2️⃣', color: '#34d399' },
+  { id: 'xdyn', label: 'Cross-Dynamics',  short: 'XDYN', icon: '3️⃣', color: '#fbbf24' },
+];
+const INV_BY_ID = Object.fromEntries(INVESTMENTS.map(i => [i.id, i]));
+
+function isInvestmentTag(t) { return typeof t === 'string' && t.toLowerCase().startsWith(INV_PREFIX); }
+function investmentOf(o)   { const t = (o.tags || []).find(isInvestmentTag); return t ? t.slice(INV_PREFIX.length).toLowerCase() : ''; }
+// Tags a row carries that are NOT investment tags - what the chips should show.
+function visibleTags(tags)  { return (tags || []).filter(t => !isInvestmentTag(t)); }
+
+function setItemInvestment(bucketId, itemId, invId) {
+  const b = getBucket(bucketId);
+  const it = b && b.items.find(x => x.id === itemId);
+  if (!it) return;
+  it.tags = visibleTags(it.tags);                 // only ever one investment per item
+  if (invId) it.tags.push(INV_PREFIX + invId);
+  // Mutate in place and repaint just the chips, exactly as the priority select does.
+  // Saving stays explicit (💾), so this must not trigger a write or a full re-render -
+  // a full render would collapse every expanded bucket mid-edit.
+  const holder = document.querySelector(`.item-tags[data-owner="${itemId}"]`);
+  if (holder) holder.innerHTML = tagsInnerHTML(it.tags, 'item', itemId);
+}
+
 function sortedTagIds() {
   const seen = new Set();
   buckets.forEach(b => {
@@ -3346,6 +3422,8 @@ function sortedTagIds() {
     b.items.forEach(i => (i.tags || []).forEach(t => seen.add(t)));
   });
   Object.keys(tagMeta).forEach(t => seen.add(t));
+  // Investment tags are a second dimension, not points on the release axis.
+  [...seen].filter(isInvestmentTag).forEach(t => seen.delete(t));
   return [...seen].sort((a, b) => {
     const ma = tagMeta[a] || {}, mb = tagMeta[b] || {};
     const oa = ma.order != null ? ma.order : Infinity;
@@ -3517,7 +3595,20 @@ function renderTimelineView() {
 
     const items = itemsForTag(tag);
     if (items.length) {
-      items.forEach(item => {
+      // Group by investment bucket under each release. Jonas, 2026-08-25: "items should
+      // be mapped to releases as currently the case, but then under each release it
+      // should have the investment buckets."
+      //
+      // Groups are emitted in INVESTMENTS order rather than in the order they happen to
+      // occur in the file, so the same bucket sits in the same place in every column and
+      // the timeline can be read across. Empty groups are skipped; unassigned items fall
+      // into a trailing group rather than disappearing, because an item silently missing
+      // from the roadmap is worse than one that is visibly untagged.
+      const groups = INVESTMENTS.map(v => ({ ...v, rows: items.filter(i => investmentOf(i) === v.id) }));
+      const unassigned = items.filter(i => !investmentOf(i));
+      if (unassigned.length) groups.push({ id: 'none', label: 'Unassigned', short: 'UNASSIGNED', icon: '·', color: '#64748b', rows: unassigned });
+
+      const renderRow = (item) => {
         const row = document.createElement('div');
         row.className = 'tl-item';
         let iconClass, textClass, icon;
@@ -3534,7 +3625,23 @@ function renderTimelineView() {
         }
         row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(item.text)}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>`;
         card.appendChild(row);
-      });
+      };
+
+      const populated = groups.filter(g => g.rows.length);
+      if (populated.length === 1 && populated[0].id === 'none') {
+        // Nothing in this release is tagged yet - show it flat rather than under a
+        // header that says "Unassigned" and adds no information.
+        populated[0].rows.forEach(renderRow);
+      } else {
+        populated.forEach(g => {
+          const h = document.createElement('div');
+          h.className = 'tl-inv-head';
+          h.style.borderLeftColor = g.color;
+          h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}">${g.icon} ${esc(g.label)}</span><span class="tl-inv-count">${g.rows.length}</span>`;
+          card.appendChild(h);
+          g.rows.forEach(renderRow);
+        });
+      }
     } else {
       const empty = document.createElement('div');
       empty.className = 'tl-empty';
