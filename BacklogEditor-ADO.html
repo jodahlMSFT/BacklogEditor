@@ -256,6 +256,10 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 .tl-inv-head:first-child { margin-top: 2px; }
 .tl-inv-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tl-inv-toggle { cursor: pointer; user-select: none; transition: background 0.12s; }
+.tl-inv-toggle:hover { background: rgba(255,255,255,0.035); }
+.tl-inv-caret { display: inline-block; width: 10px; font-size: 0.6rem; opacity: 0.75; }
+.tl-inv-toggle.collapsed { opacity: 0.72; }
 .tl-inv-count { font-size: 0.62rem; color: #475569; font-variant-numeric: tabular-nums; }
 /* The group total is the headline number on the roadmap - it is what a release costs
    per investment bucket - so it is set larger and heavier than the rows it adds up. */
@@ -3631,6 +3635,16 @@ function toggleTimelineBucket(id) {
   if (tlExpanded.has(id)) tlExpanded.delete(id); else tlExpanded.add(id);
   renderTimelineView();
 }
+// Collapsed investment themes, held globally rather than per release: the roadmap is
+// read across columns, so hiding a theme should hide it everywhere and keep the columns
+// comparable. Remembered between sessions, since it is usually a presentation choice.
+const tlCollapsedInv = new Set();
+try { (JSON.parse(localStorage.getItem('tlCollapsedInv') || '[]') || []).forEach(x => tlCollapsedInv.add(x)); } catch (e) {}
+function toggleInvGroup(id) {
+  if (tlCollapsedInv.has(id)) tlCollapsedInv.delete(id); else tlCollapsedInv.add(id);
+  try { localStorage.setItem('tlCollapsedInv', JSON.stringify([...tlCollapsedInv])); } catch (e) {}
+  renderTimelineView();
+}
 
 // Engineering estimate in man months. Stored as a marker tag like the others so it
 // round-trips through backlog.md with no format change. Bucket and item estimates are
@@ -4080,12 +4094,17 @@ function renderTimelineView() {
           // release. The row count moves to the tooltip rather than disappearing.
           const gSum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
           const rounded = Math.round(gSum * 100) / 100;
+          const collapsed = tlCollapsedInv.has(g.id);
           h.title = `${g.label} - ${g.rows.length} row${g.rows.length === 1 ? '' : 's'}` +
-                    (rounded > 0 ? `, ${rounded} man months` : ', not estimated yet');
-          h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}">${g.icon} ${esc(g.label)}</span>` +
+                    (rounded > 0 ? `, ${rounded} man months` : ', not estimated yet') +
+                    `\n\nClick to ${collapsed ? 'expand' : 'collapse'} this theme in every release`;
+          h.classList.add('tl-inv-toggle');
+          if (collapsed) h.classList.add('collapsed');
+          h.onclick = () => toggleInvGroup(g.id);
+          h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}"><span class="tl-inv-caret">${collapsed ? '▸' : '▾'}</span>${g.icon} ${esc(g.label)}</span>` +
             `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : '-'}</span>`;
           card.appendChild(h);
-          g.rows.forEach(renderRow);
+          if (!collapsed) g.rows.forEach(renderRow);
         });
       }
     } else {
@@ -4418,8 +4437,8 @@ function exportTimelineSnapshot() {
     const body = groups.filter(g => g.rows.length).map(g => {
       const sum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
       const sumTxt = sum > 0 ? `${Math.round(sum*100)/100} mm` : '-';
-      const head = `<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:12px 0 4px;padding:2px 7px;border-left:2px solid ${g.color};border-right:2px solid ${g.color}">
-          <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${g.color}">${g.icon} ${esc(g.label)}</span>
+      const head = `<div class="ghead" data-inv="${g.id}" onclick="tg('${g.id}')" title="Click to collapse this theme in every release" style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;gap:6px;margin:12px 0 4px;padding:2px 7px;border-left:2px solid ${g.color};border-right:2px solid ${g.color}">
+          <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${g.color}"><span class="gcar" style="display:inline-block;width:10px;font-size:0.6rem;opacity:0.75">▾</span>${g.icon} ${esc(g.label)}</span>
           <span style="font-size:${sum>0?'0.78rem':'0.62rem'};font-weight:${sum>0?800:400};color:${sum>0?'#a5dffd':'#475569'};font-variant-numeric:tabular-nums">${esc(sumTxt)}</span>
         </div>`;
       const rowsHtml = g.rows.map(r => {
@@ -4451,7 +4470,7 @@ function exportTimelineSnapshot() {
             </div>${kidsHtml}
           </div>`;
       }).join('');
-      return head + rowsHtml;
+      return head + `<div class="gbody" data-inv="${g.id}">` + rowsHtml + `</div>`;
     }).join('') || `<div style="color:#2a3f5e;font-size:0.78rem;font-style:italic;padding:4px 0">Nothing assigned</div>`;
 
     return `<div style="flex:1 1 250px;min-width:250px;max-width:560px;${dim}">
@@ -4497,13 +4516,23 @@ h1 span{font-weight:300;color:#94a3b8}
   </div>
 </div>
 <div class="scroll"><div id="lvl-b" class="lvl active">${build('buckets')}</div><div id="lvl-i" class="lvl">${build('items')}</div></div>
-<div class="meta">Exported ${esc(date)} · showing critical work only · click a bucket to see its items</div>
+<div class="meta">Exported ${esc(date)} · showing critical work only · click a theme to collapse it, or a bucket to see its items</div>
 </div><script>
 function sw(v){
   document.getElementById('lvl-b').classList.toggle('active',v==='b');
   document.getElementById('lvl-i').classList.toggle('active',v==='i');
   document.getElementById('t-b').classList.toggle('active',v==='b');
   document.getElementById('t-i').classList.toggle('active',v==='i');
+}
+// Collapsing a theme hides it in every release, so the columns stay comparable.
+var gone = {};
+function tg(id){
+  gone[id] = !gone[id];
+  document.querySelectorAll('.gbody[data-inv="'+id+'"]').forEach(function(e){ e.style.display = gone[id] ? 'none' : ''; });
+  document.querySelectorAll('.ghead[data-inv="'+id+'"]').forEach(function(e){
+    e.style.opacity = gone[id] ? '0.72' : '';
+    var c = e.querySelector('.gcar'); if (c) c.textContent = gone[id] ? '▸' : '▾';
+  });
 }
 <\/script></body></html>`;
 
