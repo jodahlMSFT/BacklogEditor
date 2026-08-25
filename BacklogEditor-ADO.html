@@ -3686,11 +3686,18 @@ function estimateOf(o) {
   return isFinite(n) ? n : '';
 }
 function fmtEstimate(n) { return (Math.round(n * 100) / 100) + ' mm'; }
-// The roadmap shows critical work only, so these are the items a bucket will actually
-// put on it. Everything derived from a bucket - its estimate, its drill-down, its
-// sub-label - comes from this one list, so the three can never disagree.
+// A horizon release - "10.0.52+" - is where work sits before it has been triaged, so
+// nothing in it is critical yet and a critical-only rule would render it empty. The
+// roadmap therefore shows everything in a horizon column and critical work everywhere
+// else. One predicate, so the rule cannot differ between the two altitudes.
+function isHorizonTag(tag) { return !!tag && !parseVersionTag(tag); }
+function showsAllPriorities(tag) { return isHorizonTag(tag); }
+// The items a bucket will actually put on the roadmap. Everything derived from a bucket
+// - its estimate, its drill-down, its sub-label - comes from this one list, so the three
+// can never disagree.
 function timelineItemsOf(b) {
-  return ((b && b.items) || []).filter(i => i.priority === 'critical' && !isTimelineExcluded(i));
+  const all = showsAllPriorities(releaseOf(b || {}));
+  return ((b && b.items) || []).filter(i => (all || i.priority === 'critical') && !isTimelineExcluded(i));
 }
 // A bucket's estimate is the sum of those items. Nothing is stored on the bucket, so
 // the number cannot drift from the items it is made of.
@@ -3835,9 +3842,10 @@ function sortedTagIds() {
 // Items place themselves by their own tag, and nothing else. The roadmap carries the
 // critical work only, so anything below that priority is left off at both altitudes.
 function itemsForTag(tag) {
+  const all = showsAllPriorities(tag);
   const result = [];
   buckets.forEach(b => b.items.forEach(i => {
-    if (i.priority !== 'critical' || isTimelineExcluded(i)) return;
+    if ((!all && i.priority !== 'critical') || isTimelineExcluded(i)) return;
     if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title, est: estimateOf(i) });
   }));
   return result;
@@ -3859,7 +3867,10 @@ function bucketsForTag(tag) {
       est: sum > 0 ? sum : '',
       // Says what the row is made of: how many items it will show, out of how many it
       // holds. The estimate above is the sum of exactly those.
-      bucketTitle: total ? `${shown} critical · ${total} item${total === 1 ? '' : 's'}` : 'no items',
+      bucketTitle: total
+        ? (showsAllPriorities(tag) ? `${total} item${total === 1 ? '' : 's'}`
+                                   : `${shown} critical · ${total} item${total === 1 ? '' : 's'}`)
+        : 'no items',
     });
   });
   return result;
@@ -4559,7 +4570,7 @@ h1 span{font-weight:300;color:#94a3b8}
   </div>
 </div>
 <div class="scroll"><div id="lvl-b" class="lvl active">${build('buckets')}</div><div id="lvl-i" class="lvl">${build('items')}</div></div>
-<div class="meta">Exported ${esc(date)} · showing critical work only · click a theme to collapse it, or a bucket to see its items</div>
+<div class="meta">Exported ${esc(date)} · critical work only, except ${tags.filter(isHorizonTag).length ? esc(tags.filter(isHorizonTag).join(', ')) + ' which shows everything' : 'where noted'} · click a theme to collapse it, or a bucket to see its items</div>
 </div><script>
 function sw(v){
   document.getElementById('lvl-b').classList.toggle('active',v==='b');
