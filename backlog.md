@@ -288,9 +288,9 @@
 
 ---
 
-## 🟡 BUCKET 33: Public preview feedback [inv:fnd][10.0.52]
+## 🔴 BUCKET 33: Public preview feedback [inv:fnd][10.0.52]
 
-*No items*
+- 🟡 Respond to high-priority public preview feedback
 
 ---
 
