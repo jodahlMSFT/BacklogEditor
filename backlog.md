@@ -105,7 +105,7 @@
 
 ---
 
-## 🟡 BUCKET 12: Improved search (free text, configurations and features, AI search) [inv:cat][10.0.52]
+## 🟡 BUCKET 12: Improved search (free text, configurations and features, AI search) [10.0.52][inv:fnd]
 
 - 🟡 Free text search: search on configuration, features, etc.
 - 🟡 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search.
