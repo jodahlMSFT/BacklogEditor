@@ -83,7 +83,7 @@
 
 ---
 
-## 🔴 BUCKET 9: RPO [inv:cat][10.0.52][est:1] <!-- ado:1125475 -->
+## 🔴 BUCKET 9: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
 
 - 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
@@ -338,7 +338,7 @@
 
 ## 🟡 BUCKET 41: High-volume pricing API [inv:cat][10.0.52]
 
-*No items*
+- 🔴 High-volume pricing API for rental eCommerce
 
 ---
 
