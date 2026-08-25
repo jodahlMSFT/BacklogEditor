@@ -211,7 +211,7 @@
 
 ---
 
-## 🔵 BUCKET 22: Availability and Reservations [inv:vert][10.0.52+]
+## 🟡 BUCKET 22: Availability and Reservations [inv:vert][10.0.52+]
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
@@ -228,7 +228,7 @@
 
 ---
 
-## 🔵 BUCKET 24: Accessory Packs [inv:vert][10.0.52+]
+## 🟡 BUCKET 24: Accessory Packs [inv:vert][10.0.52+]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
