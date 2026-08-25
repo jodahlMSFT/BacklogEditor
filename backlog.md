@@ -77,13 +77,19 @@
 
 ---
 
-## 🔴 BUCKET 8: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
+## 🔴 BUCKET 8: Blockers for go-live of first customer [inv:fnd][10.0.50]
+
+*No items*
+
+---
+
+## 🔴 BUCKET 9: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
 
 - 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
 ---
 
-## 🟡 BUCKET 9: Private preview feedback: Improvements [inv:cat][10.0.50] <!-- ado:1149948 -->
+## 🟡 BUCKET 10: Private preview feedback: Improvements [inv:cat][10.0.50] <!-- ado:1149948 -->
 
 - 🔴 Private preview feedback: Ability to tie rental templates to one or more customers [10.0.50] <!-- ado:1108023 -->
 - 🔴 Private preview feedback: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin) <!-- ado:1095542 -->
@@ -91,7 +97,7 @@
 
 ---
 
-## 🟡 BUCKET 10: Configurability [inv:cat][10.0.52]
+## 🟡 BUCKET 11: Configurability [inv:cat][10.0.52]
 
 - 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52]
 - 🟡 Access to fleets: Limit fleet visibility per user/role
@@ -99,7 +105,7 @@
 
 ---
 
-## 🟡 BUCKET 11: Improved search (free text, configurations and features, AI search) [inv:cat][10.0.52]
+## 🟡 BUCKET 12: Improved search (free text, configurations and features, AI search) [inv:cat][10.0.52]
 
 - 🟡 Free text search: search on configuration, features, etc.
 - 🟡 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search.
@@ -107,7 +113,7 @@
 
 ---
 
-## 🟡 BUCKET 12: Re-Rents [inv:cat][10.0.50]
+## 🟡 BUCKET 13: Re-Rents [inv:cat][10.0.50]
 
 - 🔴 Re-rent of fleet items rented from competitors. [10.0.49]
 - 🟡 Intercompany re-rent process: (renting from a sister entity)
@@ -117,7 +123,7 @@
 
 ---
 
-## 🟡 BUCKET 13: Automation Gaps [inv:cat][10.0.52]
+## 🟡 BUCKET 14: Automation Gaps [inv:cat][10.0.52]
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
 - 🟡 (Auto-) create work order from item movement: For prep, etc. work flows
@@ -138,7 +144,7 @@
 
 ---
 
-## 🟡 BUCKET 14: Intercompany [inv:vert][10.0.52+]
+## 🟡 BUCKET 15: Intercompany [inv:vert][10.0.52+]
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -147,7 +153,7 @@
 
 ---
 
-## 🟡 BUCKET 15: Field Service Integration Gaps [inv:cat][10.0.52]
+## 🟡 BUCKET 16: Field Service Integration Gaps [inv:cat][10.0.52]
 
 - 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [10.0.50] <!-- ado:1149953 -->
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported. [10.0.50]
@@ -163,7 +169,7 @@
 
 ---
 
-## 🟡 BUCKET 16: Jobsite management [inv:cat][10.0.52]
+## 🟡 BUCKET 17: Jobsite management [inv:cat][10.0.52]
 
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
@@ -171,7 +177,7 @@
 
 ---
 
-## 🟡 BUCKET 17: Pricing Gaps [inv:vert][10.0.52+]
+## 🟡 BUCKET 18: Pricing Gaps [inv:vert][10.0.52+]
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -180,13 +186,13 @@
 
 ---
 
-## 🟡 BUCKET 18: Counter rentals [inv:cat][10.0.52]
+## 🟡 BUCKET 19: Counter rentals [inv:cat][10.0.52]
 
 - 🟡 Counter rentals: Integration with Commerce (10.0.52) [10.0.52]
 
 ---
 
-## 🟡 BUCKET 19: Combined Sales and Rental [inv:cat][10.0.52+]
+## 🔵 BUCKET 20: Combined Sales and Rental [10.0.52+][inv:fnd]
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
@@ -194,7 +200,7 @@
 
 ---
 
-## 🟡 BUCKET 20: Kitting / Packages [inv:vert][10.0.52+]
+## 🟡 BUCKET 21: Kitting / Packages [inv:vert][10.0.52+]
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -204,14 +210,14 @@
 
 ---
 
-## 🔵 BUCKET 21: Availability and Reservations [inv:vert][10.0.52+]
+## 🔵 BUCKET 22: Availability and Reservations [inv:vert][10.0.52+]
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
 
 ---
 
-## 🔵 BUCKET 22: UX / Usability Polish [inv:fnd][10.0.52]
+## 🔵 BUCKET 23: UX / Usability Polish [inv:fnd][10.0.52]
 
 - 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
 - 🟡 Multi-assign: fleet items to quote and contract lines
@@ -221,7 +227,7 @@
 
 ---
 
-## 🔵 BUCKET 23: Accessory Packs [inv:vert][10.0.52+]
+## 🔵 BUCKET 24: Accessory Packs [inv:vert][10.0.52+]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
@@ -230,7 +236,7 @@
 
 ---
 
-## 🔵 BUCKET 24: Transportation Management
+## 🔵 BUCKET 25: Transportation Management
 
 - 🟡 Blanket PO for carrier vs. per-load PO — blanket approach not supported
 - 🟡 No mobile app for driver or external carrier (scan/count at point of delivery)
@@ -240,49 +246,49 @@
 
 ---
 
-## 🔴 BUCKET 25: Test automation [10.0.49][inv:fnd]
+## 🔴 BUCKET 26: Test automation [10.0.49][inv:fnd]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 26: Data entities & APIs I [10.0.49][inv:cat]
+## 🔴 BUCKET 27: Data entities & APIs I [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 27: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:cat]
+## 🔴 BUCKET 28: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 28: One availability status [10.0.49][inv:cat]
+## 🟡 BUCKET 29: One availability status [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 29: Location-based pricing [10.0.49][inv:cat]
+## 🟡 BUCKET 30: Location-based pricing [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 30: Business events [10.0.49][inv:cat]
+## 🟡 BUCKET 31: Business events [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 31: FS integration II [10.0.49][inv:cat]
+## 🟡 BUCKET 32: FS integration II [10.0.49][inv:cat]
 
 *No items*
 
 ---
 
 
-<!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped","date":"July 2026"},"10.0.50":{"status":"inflight"},"10.0.52":{"status":"preliminary"},"10.0.52+":{"status":"preliminary"}} -->
+<!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped","date":"July 2026","sublabel":"End-to-end core rentals"},"10.0.50":{"status":"inflight","sublabel":"Adoption blockers & data model changes"},"10.0.52":{"status":"preliminary","sublabel":""},"10.0.52+":{"status":"preliminary"}} -->
 
 <!-- ado-meta: {"acked":{"1095542":"In Progress","1101548":"Proposed","1108023":"Not Started","1125475":"Proposed","1133532":"Proposed","1147069":"In Progress","1149926":"Proposed","1149927":"Not Started","1149928":"Not Started","1149929":"Not Started","1149931":"Not Started","1149932":"Not Started","1149935":"Proposed","1149936":"Closed","1149937":"Not Started","1149939":"Proposed","1149940":"Not Started","1149941":"Not Started","1149942":"Not Started","1149943":"Proposed","1149944":"Not Started","1149946":"Not Started","1149947":"Not Started","1149948":"Proposed","1149953":"Not Started"},"ignoredNew":[1143346,1056127,1133536,1133532,1057303,1149934,1139448,1149930,1057247]} -->
