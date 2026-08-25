@@ -3626,11 +3626,11 @@ function itemsForTag(tag) {
     b.items.forEach(i => {
       if ((i.tags || []).includes(tag)) { result.push({ ...i, bucketTitle: b.title }); n++; }
     });
-    // A bucket committed to a release none of whose items are individually tagged would
+    // A bucket assigned to a release none of whose items are individually tagged would
     // otherwise be missing from the line-item roadmap entirely, making the release look
-    // emptier than it is. Scope declared at the bucket level stays visible at both
-    // altitudes; the sub-label says which kind of row this is.
-    if (!n && (b.tags || []).includes(tag)) {
+    // emptier than it is. The assignment comes from the same dropdown that drives the
+    // bucket altitude, so both views agree on where a bucket belongs.
+    if (!n && releaseOf(b) === tag) {
       result.push({
         id: b.id, text: b.title, priority: b.priority, tags: b.tags, isBucketRow: true,
         bucketTitle: b.items.length ? `whole bucket · ${b.items.length} item${b.items.length === 1 ? '' : 's'}`
@@ -3640,21 +3640,21 @@ function itemsForTag(tag) {
   });
   return result;
 }
-// A bucket belongs to a release if it carries the tag itself or - far more commonly -
-// if any of its items do. Keying this on bucket tags alone would render a near-empty
-// roadmap: only 1 of the 24 buckets carries a release tag today.
+// The dropdown is the single source of truth for which release a bucket belongs to.
+// Placement used to be derived from item tags as well, so a bucket whose dropdown read
+// "No release" still appeared in a column because one of its items was tagged - the
+// control and the roadmap disagreed about the same bucket. Only releaseOf() counts now,
+// which is exactly what the dropdown shows.
 function bucketsForTag(tag) {
   const result = [];
   buckets.forEach(b => {
+    if (releaseOf(b) !== tag) return;
     const items = b.items || [];
     const n = items.filter(i => (i.tags || []).includes(tag)).length;
-    if (!n && !(b.tags || []).includes(tag)) return;
     result.push({
       id: b.id, text: b.title, priority: b.priority, tags: b.tags,
-      // The sub-label answers "how much of this bucket lands here", which is the
-      // question the bucket altitude exists to answer.
       bucketTitle: n ? `${n} of ${items.length} item${items.length === 1 ? '' : 's'}`
-                     : 'tagged directly',
+                     : `${items.length} item${items.length === 1 ? '' : 's'}`,
     });
   });
   return result;
