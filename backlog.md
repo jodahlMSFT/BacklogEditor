@@ -41,7 +41,7 @@
 
 ---
 
-## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O [inv:fnd][10.0.50] <!-- ado:1149943 -->
+## 🔴 BUCKET 4: Enabling AI skills & Rental UX outside of F&O [inv:fnd][10.0.50] <!-- ado:1149943 -->
 
 - 🔴 Entities and actions: Enables customers and partners to build their own UX on top of F&O capabilities. [10.0.50] <!-- ado:1133532 -->
 - 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc. <!-- ado:1149944 -->
