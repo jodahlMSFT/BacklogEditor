@@ -333,6 +333,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .item-row {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 7px;
   padding: 5px 5px;
   border-radius: 6px;
@@ -354,7 +355,8 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .item-drag-handle:active { cursor: grabbing; }
 
 .item-text {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 260px;
   font-size: 0.845rem;
   line-height: 1.55;
   color: #cbd5e1;
@@ -881,6 +883,22 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   transition: color 0.12s;
 }
 .tl-level-hint:hover { color: #7dd3fc; }
+/* Kept off the roadmap. The toggle lives in the hover-only actions row, so the state
+   needs a marker that is visible at rest - otherwise an excluded item looks ordinary
+   until you happen to hover it. */
+.tl-off-chip {
+  flex-shrink: 0; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.02em;
+  color: #fb7185; background: rgba(251,113,133,0.10);
+  border: 1px solid rgba(251,113,133,0.35); border-radius: 4px; padding: 1px 6px;
+  white-space: nowrap;
+}
+.item-tl-btn, .tl-bucket-btn {
+  background: none; border: none; cursor: pointer; font-size: 0.78rem;
+  padding: 2px 4px; border-radius: 4px; color: #475569; transition: all 0.12s;
+}
+.item-tl-btn:hover, .tl-bucket-btn:hover { color: #fb7185; background: rgba(251,113,133,0.12); }
+.item-tl-btn.on, .tl-bucket-btn.on { color: #fb7185; }
+.tl-bucket-btn { flex-shrink: 0; }
 .tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
 .tl-add-ms-btn {
   background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
@@ -2972,6 +2990,7 @@ function createBucketCard(bucket, idx) {
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
       <button class="desc-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>
       <button class="rename-bucket-btn" title="Rename bucket">✏</button>
+      <button class="tl-bucket-btn${isTimelineExcluded(bucket) ? ' on' : ''}" title="${isTimelineExcluded(bucket) ? 'Excluded from the timeline - click to put it back' : 'Exclude from the timeline'}">⊘</button>
       <span class="item-count-badge">${bucket.items.length}</span>
       <button class="delete-bucket-btn" title="Delete bucket">🗑</button>
       <span class="chevron">▶</span>
@@ -3016,6 +3035,12 @@ function createBucketCard(bucket, idx) {
     e.stopPropagation();
   });
   card.querySelector('.bucket-rel-select').addEventListener('click', e => e.stopPropagation());
+
+  // exclude from timeline
+  card.querySelector('.tl-bucket-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleTimelineExcluded(bucket.id, null);
+  });
 
   // rename bucket button
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
@@ -3089,10 +3114,12 @@ function makeItemLI(item) {
         ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
       </select>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
+      ${isTimelineExcluded(item) ? '<span class="tl-off-chip" title="Kept off the timeline">⊘ off roadmap</span>' : ''}
       ${adoChipHTML(item, true, 'item', item.id)}
       <div class="item-actions">
         ${excluded ? '' : `<button class="item-desc-btn" data-item-id="${item.id}" title="${committed ? 'Write ADO description' : 'Draft a description (link to push)'}">✍</button>`}
         ${excluded ? '' : `<button class="item-link-btn" data-item-id="${item.id}" title="${committed ? 'Manage ADO link (#' + item.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>`}
+        <button class="item-tl-btn${isTimelineExcluded(item) ? ' on' : ''}" data-item-id="${item.id}" title="${isTimelineExcluded(item) ? 'Excluded from the timeline - click to put it back' : 'Exclude from the timeline'}">⊘</button>
         <button class="item-edit-btn"   data-item-id="${item.id}" title="Edit (or double-click)">✎</button>
         <button class="delete-item-btn" data-item-id="${item.id}" title="Delete">✕</button>
       </div>
@@ -3102,8 +3129,9 @@ function makeItemLI(item) {
 function wireItemEvents(card, bucketId) {
   card.querySelectorAll('.delete-item-btn').forEach(btn =>
     btn.addEventListener('click', () => deleteItem(bucketId, btn.dataset.itemId)));
-  card.querySelectorAll('.item-edit-btn').forEach(btn =>
-    btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-edit-btn').forEach(btn =>    btn.addEventListener('click', () => editItem(bucketId, btn.dataset.itemId)));
+  card.querySelectorAll('.item-tl-btn').forEach(btn =>
+    btn.addEventListener('click', () => toggleTimelineExcluded(bucketId, btn.dataset.itemId)));
   card.querySelectorAll('.item-link-btn').forEach(btn =>
     btn.addEventListener('click', () => openAdoLink('item', btn.dataset.itemId, bucketId)));
   card.querySelectorAll('.item-desc-btn').forEach(btn =>
@@ -3519,6 +3547,26 @@ function setTimelineLevel(level) {
   renderTimelineView();
 }
 
+// Kept off the roadmap without losing its release. Follows the existing [no-ado]
+// convention - a marker tag rather than a new field, so it round-trips through
+// backlog.md unchanged. It must never be treated as a release, or excluding something
+// would create a column named "no-timeline" next to 10.0.50.
+const NO_TL_TAG = 'no-timeline';
+function isNoTimelineTag(t) { return typeof t === 'string' && t.toLowerCase() === NO_TL_TAG; }
+// Tags that carry meaning other than "which release": they have their own controls and
+// are kept off the release axis and out of the chip list.
+function isMetaTag(t) { return isInvestmentTag(t) || isNoTimelineTag(t); }
+function isTimelineExcluded(o) { return (o && (o.tags || []).some(isNoTimelineTag)) || false; }
+function toggleTimelineExcluded(bucketId, itemId) {
+  const b = getBucket(bucketId);
+  const target = itemId ? (b && b.items.find(x => x.id === itemId)) : b;
+  if (!target) return;
+  const on = isTimelineExcluded(target);
+  target.tags = (target.tags || []).filter(t => !isNoTimelineTag(t));
+  if (!on) target.tags.push(NO_TL_TAG);
+  if (currentView === 'priority') renderPriorityView(); else renderAll();
+}
+
 // The timeline is a scan-in-one-pass overview, so its cards want a headline rather
 // than the whole item. Most items here are written "Headline: elaboration", so the
 // text before the first colon is the headline. Two shapes stop that working alone:
@@ -3566,14 +3614,14 @@ function timelineTitleMap(items) {
 
 function isInvestmentTag(t) { return typeof t === 'string' && t.toLowerCase().startsWith(INV_PREFIX); }
 function investmentOf(o)   { const t = (o.tags || []).find(isInvestmentTag); return t ? t.slice(INV_PREFIX.length).toLowerCase() : ''; }
-// Tags a row carries that are NOT investment tags - what the chips should show.
-function visibleTags(tags)  { return (tags || []).filter(t => !isInvestmentTag(t)); }
+// Tags a row carries that are NOT meta tags - what the chips should show.
+function visibleTags(tags)  { return (tags || []).filter(t => !isMetaTag(t)); }
 
 function setItemInvestment(bucketId, itemId, invId) {
   const b = getBucket(bucketId);
   const it = b && b.items.find(x => x.id === itemId);
   if (!it) return;
-  it.tags = visibleTags(it.tags);                 // only ever one investment per item
+  it.tags = (it.tags || []).filter(t => !isInvestmentTag(t));   // one investment per item
   if (invId) it.tags.push(INV_PREFIX + invId);
   // Mutate in place and repaint just the chips, exactly as the priority select does.
   // Saving stays explicit (💾), so this must not trigger a write or a full re-render -
@@ -3584,7 +3632,7 @@ function setItemInvestment(bucketId, itemId, invId) {
 function setBucketInvestment(bucketId, invId) {
   const b = getBucket(bucketId);
   if (!b) return;
-  b.tags = visibleTags(b.tags);                    // only ever one investment per bucket
+  b.tags = (b.tags || []).filter(t => !isInvestmentTag(t));   // one investment per bucket
   if (invId) b.tags.push(INV_PREFIX + invId);
   const holder = document.querySelector(`.bucket-tags[data-owner="${bucketId}"]`);
   if (holder) holder.innerHTML = tagsInnerHTML(b.tags, 'bucket', bucketId);
@@ -3592,11 +3640,11 @@ function setBucketInvestment(bucketId, invId) {
 // The timeline treats every non-investment tag as a release, so that is what a release
 // tag is here. A bucket can still carry several via the chips; the select shows and
 // replaces the first, which is the case that actually occurs.
-function releaseOf(o) { return (o.tags || []).find(t => !isInvestmentTag(t)) || ''; }
+function releaseOf(o) { return (o.tags || []).find(t => !isMetaTag(t)) || ''; }
 function setBucketRelease(bucketId, tag) {
   const b = getBucket(bucketId);
   if (!b) return;
-  b.tags = (b.tags || []).filter(isInvestmentTag);
+  b.tags = (b.tags || []).filter(isMetaTag);
   if (tag) b.tags.push(tag);
   const holder = document.querySelector(`.bucket-tags[data-owner="${bucketId}"]`);
   if (holder) holder.innerHTML = tagsInnerHTML(b.tags, 'bucket', bucketId);
@@ -3609,8 +3657,8 @@ function sortedTagIds() {
     b.items.forEach(i => (i.tags || []).forEach(t => seen.add(t)));
   });
   Object.keys(tagMeta).forEach(t => seen.add(t));
-  // Investment tags are a second dimension, not points on the release axis.
-  [...seen].filter(isInvestmentTag).forEach(t => seen.delete(t));
+  // Investment and no-timeline tags are other dimensions, not points on the release axis.
+  [...seen].filter(isMetaTag).forEach(t => seen.delete(t));
   return [...seen].sort((a, b) => {
     const ma = tagMeta[a] || {}, mb = tagMeta[b] || {};
     const oa = ma.order != null ? ma.order : Infinity;
@@ -3631,6 +3679,7 @@ function sortedTagIds() {
 function itemsForTag(tag) {
   const result = [];
   buckets.forEach(b => b.items.forEach(i => {
+    if (isTimelineExcluded(i)) return;
     if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
   }));
   return result;
@@ -3643,7 +3692,7 @@ function itemsForTag(tag) {
 function bucketsForTag(tag) {
   const result = [];
   buckets.forEach(b => {
-    if (releaseOf(b) !== tag) return;
+    if (releaseOf(b) !== tag || isTimelineExcluded(b)) return;
     const items = b.items || [];
     const n = items.filter(i => (i.tags || []).includes(tag)).length;
     result.push({
