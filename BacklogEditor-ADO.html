@@ -838,6 +838,34 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
    the investment-bucket accents inside the column. */
 .tl-dot.preliminary { background: #0a1628; border-color: #94a3b8; border-style: dashed; }
 .tl-dot.preliminary:hover { box-shadow: 0 0 12px rgba(148,163,184,0.5); }
+/* The next concrete release still ahead of us - the thing currently being aimed at.
+   A ring with a filled core reads as a target rather than as another waypoint, and the
+   halo expands slowly enough to draw the eye without becoming a distraction on screen
+   during a presentation. Pseudo-elements are click-through so the dot still cycles. */
+.tl-dot.target {
+  background: #0a1628 !important;
+  border-color: #7dd3fc !important;
+  border-style: solid !important;
+  box-shadow: 0 0 10px rgba(125,211,252,0.5);
+}
+.tl-dot.target::after {
+  content: ''; position: absolute; left: 2px; top: 2px; right: 2px; bottom: 2px;
+  border-radius: 50%; background: #7dd3fc; pointer-events: none;
+}
+.tl-dot.target::before {
+  content: ''; position: absolute; left: -8px; top: -8px; right: -8px; bottom: -8px;
+  border-radius: 50%; border: 2px solid rgba(125,211,252,0.6);
+  animation: tlTargetPulse 2.6s ease-out infinite; pointer-events: none;
+}
+.tl-dot.target:hover { box-shadow: 0 0 18px rgba(125,211,252,0.85); }
+@keyframes tlTargetPulse {
+  0%   { transform: scale(0.7); opacity: 0.85; }
+  75%  { transform: scale(1.3);  opacity: 0; }
+  100% { transform: scale(1.3);  opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-dot.target::before { animation: none; opacity: 0.55; }
+}
 .tl-ms-label { min-height: 44px; padding: 8px 4px 0; font-size: 0.75rem; color: #64748b; text-align: center; line-height: 1.35; cursor: pointer; transition: color 0.12s; }
 .tl-ms-label:hover { color: #e2e8f0; }
 .tl-ms-label.shipped { color: #4ade80; }
@@ -3893,6 +3921,14 @@ function renderTimelineView() {
   const anyInvestment = atBucketLevel
     ? buckets.some(b => investmentOf(b))
     : buckets.some(b => (b.items || []).some(i => investmentOf(i)));
+  // The next thing being aimed at: the first concrete release that is neither shipped
+  // nor under way. Derived rather than flagged, so it moves on by itself when 10.0.52
+  // starts and never has to be corrected by hand. A horizon column is excluded - "and
+  // beyond" is not a target.
+  const nextTarget = tags.find(t => {
+    const st = getTagMeta(t).status;
+    return st !== 'shipped' && st !== 'inflight' && parseVersionTag(t);
+  });
   const view = document.createElement('div');
   view.className = 'tl-view';
 
@@ -3969,8 +4005,8 @@ function renderTimelineView() {
     const dotRow = document.createElement('div');
     dotRow.className = 'tl-dot-row';
     const dot = document.createElement('div');
-    dot.className = 'tl-dot ' + s;
-    dot.title = 'Click to cycle: planned → in flight → shipped';
+    dot.className = 'tl-dot ' + s + (tag === nextTarget ? ' target' : '');
+    dot.title = (tag === nextTarget ? 'Next target\n\n' : '') + 'Click to cycle: planned → in flight → shipped';
     dot.onclick = () => cycleStatus(tag);
     dotRow.appendChild(dot);
     msHeader.appendChild(dotRow);
@@ -4411,6 +4447,10 @@ function exportTimelineSnapshot() {
 
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const nextTgt = tags.find(t => {
+    const s = getTagMeta(t).status;
+    return s !== 'shipped' && s !== 'inflight' && parseVersionTag(t);
+  });
   const STATUS = {
     shipped:     { label: '✓ SHIPPED',              c: '#4ade80', bg: '#041d0d', bd: '#0d3321', dash: false },
     inflight:    { label: '● IN FLIGHT',            c: '#38bdf8', bg: '#071829', bd: '#1e3a5f', dash: false },
@@ -4424,6 +4464,7 @@ function exportTimelineSnapshot() {
     const m = getTagMeta(tag);
     const st = STATUS[m.status] || STATUS.planned;
     const horizon = !parseVersionTag(tag);
+    const isTarget = tag === nextTgt;
     const rows = level === 'buckets' ? bucketsForTag(tag) : itemsForTag(tag);
     const titles = timelineTitleMap(level === 'buckets'
       ? buckets.map(b => ({ id: b.id, text: b.title }))
@@ -4477,7 +4518,7 @@ function exportTimelineSnapshot() {
       <div style="text-align:center;padding-bottom:10px">
         <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;letter-spacing:0.05em">${esc(tag)}</div>
         <div style="font-size:0.72rem;color:${m.status==='shipped'?'#4ade80':'#475569'};font-weight:${m.status==='shipped'?600:400};min-height:16px">${esc(m.date||'')}</div>
-        <div style="width:14px;height:14px;border-radius:50%;margin:6px auto;background:${m.status==='shipped'?'#4ade80':m.status==='inflight'?'#38bdf8':'#0a1628'};border:3px solid ${st.c};${st.dash?'border-style:dashed;':''}"></div>
+        <div class="${isTarget?'tgt':''}" style="position:relative;width:14px;height:14px;border-radius:50%;margin:6px auto;background:${isTarget?'#0a1628':(m.status==='shipped'?'#4ade80':m.status==='inflight'?'#38bdf8':'#0a1628')};border:3px solid ${isTarget?'#7dd3fc':st.c};${st.dash&&!isTarget?'border-style:dashed;':''}${isTarget?'box-shadow:0 0 10px rgba(125,211,252,0.5);':''}"></div>
         <div style="font-size:0.75rem;color:${st.c};line-height:1.35;min-height:30px">${esc(m.sublabel||'')}</div>
       </div>
       <div style="background:${st.bg};border:1px solid ${st.bd};border-top:3px ${st.dash?'dashed':'solid'} ${st.c};padding:14px 16px 18px">
@@ -4506,6 +4547,10 @@ h1 span{font-weight:300;color:#94a3b8}
 .scroll{overflow-x:auto;padding-bottom:20px}
 .lvl{display:none}.lvl.active{display:block}
 .meta{margin-top:26px;font-size:0.72rem;color:#334155}
+.tgt::after{content:'';position:absolute;left:1px;top:1px;right:1px;bottom:1px;border-radius:50%;background:#7dd3fc}
+.tgt::before{content:'';position:absolute;left:-8px;top:-8px;right:-8px;bottom:-8px;border-radius:50%;border:2px solid rgba(125,211,252,0.6);animation:tp 2.6s ease-out infinite}
+@keyframes tp{0%{transform:scale(0.7);opacity:0.85}75%{transform:scale(1.3);opacity:0}100%{transform:scale(1.3);opacity:0}}
+@media (prefers-reduced-motion:reduce){.tgt::before{animation:none;opacity:0.55}}
 .row.open>div>span:first-child{transform:none}
 </style></head><body><div class="wrap">
 <div class="hd">
