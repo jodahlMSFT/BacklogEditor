@@ -255,8 +255,10 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .tl-inv-head:first-child { margin-top: 2px; }
 .tl-inv-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .tl-inv-count { font-size: 0.62rem; color: #475569; font-variant-numeric: tabular-nums; }
-.tl-inv-count.has-sum { color: #7dd3fc; font-weight: 700; }
-.tl-card.horizon .tl-inv-count.has-sum { color: #4d6a85; }
+/* The group total is the headline number on the roadmap - it is what a release costs
+   per investment bucket - so it is set larger and heavier than the rows it adds up. */
+.tl-inv-count.has-sum { color: #a5dffd; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.01em; }
+.tl-card.horizon .tl-inv-count.has-sum { color: #5f83a3; }
 .item-row.na-item {
   opacity: 0.55;
 }
@@ -939,8 +941,8 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .est-wrap:has(.has-est) { border-color: rgba(125,211,252,0.5); }
 .est-wrap:has(.has-est) .est-unit { color: #7dd3fc; }
 /* Bucket estimates are derived from their critical items, so a bucket row shows a sum
-   rather than an editable field. */
-.tl-est.tl-est-sum { color: #7dd3fc; }
+   rather than an editable field - heavier than an item's own figure to say so. */
+.tl-est.tl-est-sum { color: #7dd3fc; font-weight: 700; font-size: 0.72rem; }
 /* On the roadmap the estimate is a right-hand column, so a release reads as a list of
    work with its cost beside it. */
 .tl-est {
@@ -3601,7 +3603,7 @@ function parseVersionTag(s) {
 const INV_PREFIX = 'inv:';
 const INVESTMENTS = [
   { id: 'fnd',  label: 'Foundation',      short: 'FND',  icon: '🔧', color: '#a78bfa' },
-  { id: 'cat',  label: 'CAT',             short: 'CAT',  icon: '1️⃣', color: '#ffcd11' },
+  { id: 'cat',  label: 'CAT',             short: 'CAT',  icon: '🏗️', color: '#ffcd11' },
   { id: 'vert', label: 'Other verticals', short: 'VERT', icon: '2️⃣', color: '#34d399' },
   { id: 'xdyn', label: 'Cross-Dynamics',  short: 'XDYN', icon: '3️⃣', color: '#38bdf8' },
 ];
