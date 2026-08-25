@@ -812,11 +812,11 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-icon.go   { color: #38bdf8; }
 .tl-icon.soft { color: #475569; }
 .tl-icon.na   { color: #334155; }
-/* Medium is 68 of 117 items, so leaving it at normal weight rendered the majority of
-   the roadmap as secondary text. Item text now reads bold by default; priority is still
-   legible from the text colour and the icon colour (blue = critical, grey = medium),
-   and low/na stay deliberately light so de-emphasis still means something. */
-.tl-itext { color: #cbd5e1; flex: 1; font-weight: 600; }
+/* Medium is 68 of 117 items, so encoding priority in the item text rendered the majority
+   of the roadmap as secondary content. Weight and colour are now uniform; critical vs
+   medium stays legible from the icon colour (blue vs grey), and low/na keep the lighter,
+   quieter treatment so de-emphasis still means something. */
+.tl-itext { color: #f0f4f8; flex: 1; font-weight: 600; }
 .tl-itext.bold { color: #f0f4f8; font-weight: 600; }
 .tl-itext.dim  { color: #4b5873; font-weight: 400; }
 .tl-itext.strike { color: #334155; text-decoration: line-through; font-weight: 400; }
