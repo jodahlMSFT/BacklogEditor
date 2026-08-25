@@ -83,9 +83,9 @@
 
 ---
 
-## 🔴 BUCKET 9: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
+## 🔴 BUCKET 9: RPO (XAPT) [inv:cat][10.0.52] <!-- ado:1125475 -->
 
-- 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
+- 🔴 RPO: Account for delayed payments and validate end-to-end RPO scenarios. [10.0.50][inv:cat] <!-- ado:1149947 -->
 
 ---
 
@@ -97,18 +97,18 @@
 
 ---
 
-## 🟡 BUCKET 11: Configurability [inv:cat][10.0.52]
+## 🔴 BUCKET 11: Configurability [inv:cat][10.0.52]
 
-- 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52]
+- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52][est:3]
 - 🟡 Access to fleets: Limit fleet visibility per user/role
 - 🟡 Configurable master data: Fleet item attributes
 
 ---
 
-## 🟡 BUCKET 12: Improved search (free text, configurations and features, AI search) [10.0.52][inv:fnd]
+## 🔴 BUCKET 12: Improved search (free text, configurations and features, AI search) [10.0.52][inv:fnd]
 
-- 🟡 Free text search: search on configuration, features, etc.
-- 🟡 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search.
+- 🔴 Free text search: search on configuration, features, etc. [est:3][inv:fnd]
+- 🔴 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search. [est:6][inv:fnd]
 - 🟡 Scheduling view: Calendar view of availability and reservations.
 
 ---
@@ -336,9 +336,9 @@
 
 ---
 
-## 🟡 BUCKET 41: High-volume pricing API [inv:cat][10.0.52]
+## 🔴 BUCKET 41: High-volume pricing API [inv:cat][10.0.52]
 
-- 🔴 High-volume pricing API for rental eCommerce
+- 🔴 High-volume pricing API for rental eCommerce [est:13][inv:cat]
 
 ---
 
