@@ -325,7 +325,7 @@
 
 ---
 
-## 🔵 BUCKET 39: Damage recovery workflows [10.0.52][inv:xdyn]
+## 🔴 BUCKET 39: Damage recovery workflows [10.0.52][inv:xdyn]
 
 *No items*
 
