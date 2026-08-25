@@ -100,7 +100,7 @@
 ## 🔴 BUCKET 11: Configurability [inv:cat][10.0.52]
 
 - 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52][est:3]
-- 🔴 Access to fleets: Limit fleet visibility per user/role [inv:cat][est:2][10.0.52]
+- 🔴 Limit fleet and fleet item visibility per user/role: Admin specifies which fleets and which fleet locations a user has access to. [inv:cat][est:2][10.0.52]
 - 🟡 Configurable master data: Fleet item attributes
 
 ---
