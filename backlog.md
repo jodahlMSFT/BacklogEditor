@@ -77,7 +77,7 @@
 
 ---
 
-## 🔴 BUCKET 8: RPO [inv:cat] <!-- ado:1125475 -->
+## 🔴 BUCKET 8: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
 
 - 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
@@ -283,6 +283,6 @@
 ---
 
 
-<!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped"},"10.0.50":{},"10.0.52":{}} -->
+<!-- tag-meta: {"_title":"Backlog","10.0.49":{},"10.0.50":{},"10.0.52":{}} -->
 
 <!-- ado-meta: {"acked":{"1095542":"In Progress","1101548":"Proposed","1108023":"Not Started","1125475":"Proposed","1133532":"Proposed","1147069":"In Progress","1149926":"Proposed","1149927":"Not Started","1149928":"Not Started","1149929":"Not Started","1149931":"Not Started","1149932":"Not Started","1149935":"Proposed","1149936":"Closed","1149937":"Not Started","1149939":"Proposed","1149940":"Not Started","1149941":"Not Started","1149942":"Not Started","1149943":"Proposed","1149944":"Not Started","1149946":"Not Started","1149947":"Not Started","1149948":"Proposed","1149953":"Not Started"},"ignoredNew":[1143346,1056127,1133536,1133532,1057303,1149934,1139448,1149930,1057247]} -->
