@@ -58,6 +58,14 @@ const PROJECT = cfg('ADO_PROJECT', 'FinOps');
 // Org base URL — msdyneng uses the classic host; override with ADO_ORG_URL if needed.
 const ORG_URL = (cfg('ADO_ORG_URL', `https://dev.azure.com/${ORG}`)).replace(/\/+$/, '');
 const PORT = parseInt(cfg('ADO_PROXY_PORT', '7777'), 10);
+// Entra tenant to mint the ADO token against. Defaults to the tenant that owns the
+// default org above, for the same reason ORG and PROJECT have defaults: this proxy
+// ships pointed at one place. Without it, `az account get-access-token` uses whatever
+// subscription happens to be current - and on a machine that is also signed in to an
+// F&O OneBox that is the OneBox tenant, so ADO answers 302 to a sign-in page and the
+// editor silently falls back to the mock. Set ADO_TENANT to override, or '' to use the
+// az default.
+const TENANT = cfg('ADO_TENANT', '72f988bf-86f1-41af-91ab-2d7cd011db47');
 const API_VERSION = '7.0';
 // FinOps requires a Release value on create. We inherit it from the parent work
 // item; ADO_RELEASE_FIELD / ADO_DEFAULT_RELEASE let you override the field ref or
@@ -95,16 +103,33 @@ function azToken() {
   const now = Date.now();
   if (_azToken && _azToken.expiresAt - now > 5 * 60 * 1000) return _azToken.token;
   try {
-    const raw = execFileSync('az', ['account', 'get-access-token', '--resource', ADO_RESOURCE, '-o', 'json'], {
+    const args = ['account', 'get-access-token', '--resource', ADO_RESOURCE, '-o', 'json'];
+    // Pin the tenant when one is configured. `--only-show-errors` keeps az from
+    // writing warnings into the JSON we are about to parse.
+    if (TENANT) args.push('--tenant', TENANT, '--only-show-errors');
+    const raw = execFileSync('az', args, {
       encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'ignore'], shell: true,
     });
     const j = JSON.parse(raw);
     if (!j.accessToken) return null;
     // expires_on is epoch seconds; expiresOn is a local-time string.
     const expiresAt = j.expires_on ? j.expires_on * 1000 : Date.parse(j.expiresOn) || (now + 45 * 60 * 1000);
+    // A token for the wrong tenant is worse than no token: ADO answers 302 to a
+    // sign-in page, which reads as "proxy unreachable" rather than "wrong account".
+    if (TENANT && j.tenant && j.tenant !== TENANT) {
+      console.warn(`[auth] az returned a token for tenant ${j.tenant}, expected ${TENANT}. ` +
+                   `Sign in with: az login --tenant ${TENANT}`);
+      return null;
+    }
     _azToken = { token: j.accessToken, expiresAt };
     return _azToken.token;
-  } catch (e) { return null; }
+  } catch (e) {
+    if (TENANT) {
+      console.warn(`[auth] could not mint an ADO token for tenant ${TENANT}. ` +
+                   `Sign in with: az login --tenant ${TENANT}  (ADO features fall back to the mock)`);
+    }
+    return null;
+  }
 }
 
 function authHeader(mode) {
