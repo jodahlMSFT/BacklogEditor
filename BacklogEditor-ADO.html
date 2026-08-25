@@ -135,6 +135,7 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .bucket-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   padding: 12px 14px;
   gap: 9px;
   cursor: pointer;
@@ -174,6 +175,25 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   font-weight: 500;
 }
 .priority-select:focus { outline: none; border-color: #3b82f6; }
+/* Bucket-level investment select. Sized like .priority-select (its peer in the bucket
+   header) rather than like the smaller per-item control. */
+.bucket-inv-select {
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  background: #0f172a;
+  color: #475569;
+  font-weight: 500;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.bucket-inv-select:hover, .bucket-inv-select:focus { outline: none; border-color: #3b82f6; }
+.bucket-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.45); }
+.bucket-inv-select.inv-cat  { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
+.bucket-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.45); }
+.bucket-inv-select.inv-xdyn { color: #fbbf24; border-color: rgba(251,191,36,0.45); }
 
 .item-priority-select {
   border: 1px solid #1e293b;
@@ -228,7 +248,8 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 }
 
 .bucket-title {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 260px;
   font-weight: 600;
   font-size: 0.9rem;
   color: #e2e8f0;
@@ -733,6 +754,12 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   min-height: calc(100vh - 140px);
   padding: 36px 40px 60px;
 }
+.tl-head-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+.tl-head-row .tl-title-h2 { margin-bottom: 0; }
+.tl-level { display: flex; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 2px; flex-shrink: 0; }
+.tl-level-btn { background: none; border: none; color: #64748b; font-size: 0.76rem; font-weight: 600; padding: 5px 13px; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.tl-level-btn.active { background: #1e293b; color: #e2e8f0; }
+.tl-level-btn:hover:not(.active) { color: #94a3b8; }
 .tl-title-h2 {
   font-size: 2.4rem; font-weight: 800; color: #ffffff;
   cursor: pointer; line-height: 1.1; margin-bottom: 40px;
@@ -2882,6 +2909,10 @@ function createBucketCard(bucket, idx) {
         <option value="low"      ${bucket.priority === 'low'      ? 'selected' : ''}>🔵 Low</option>
       </select>
       <span class="bucket-title" title="Click ✏ or double-click to rename">${esc(bucket.title)}</span>
+      <select class="bucket-inv-select inv-${investmentOf(bucket) || 'none'}" title="Investment bucket">
+        <option value=""     ${!investmentOf(bucket) ? 'selected' : ''}>· No bucket</option>
+        ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(bucket) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
+      </select>
       <div class="bucket-tags" data-owner="${bucket.id}">${tagsInnerHTML(bucket.tags, 'bucket', bucket.id)}</div>
       ${adoChipHTML(bucket, false, 'bucket', bucket.id)}
       <button class="link-bucket-btn" title="${bucket.ado && bucket.ado.id ? 'Manage ADO link (#' + bucket.ado.id + ')' : 'Link to an existing ADO item'}">🔗</button>
@@ -2913,6 +2944,16 @@ function createBucketCard(bucket, idx) {
     changePriority(bucket.id, e.target.value);
     e.stopPropagation();
   });
+
+  // investment bucket change
+  card.querySelector('.bucket-inv-select').addEventListener('change', (e) => {
+    setBucketInvestment(bucket.id, e.target.value);
+    e.target.className = 'bucket-inv-select inv-' + (e.target.value || 'none');
+    e.stopPropagation();
+  });
+  // The header toggles expand/collapse on click, which would close the bucket the
+  // moment the select is used.
+  card.querySelector('.bucket-inv-select').addEventListener('click', e => e.stopPropagation());
 
   // rename bucket button
   card.querySelector('.rename-bucket-btn').addEventListener('click', (e) => {
@@ -3401,6 +3442,21 @@ const INVESTMENTS = [
 ];
 const INV_BY_ID = Object.fromEntries(INVESTMENTS.map(i => [i.id, i]));
 
+// The roadmap can be read at two altitudes: every line item, or the buckets they sit in.
+const TL_LEVELS = [
+  { id: 'items',   label: 'Line items', icon: '≡' },
+  { id: 'buckets', label: 'Buckets',    icon: '▤' },
+];
+let tlLevel = (() => {
+  try { return localStorage.getItem('tlLevel') === 'buckets' ? 'buckets' : 'items'; }
+  catch (e) { return 'items'; }
+})();
+function setTimelineLevel(level) {
+  tlLevel = level === 'buckets' ? 'buckets' : 'items';
+  try { localStorage.setItem('tlLevel', tlLevel); } catch (e) {}
+  renderTimelineView();
+}
+
 // The timeline is a scan-in-one-pass overview, so its cards want a headline rather
 // than the whole item. Most items here are written "Headline: elaboration", so the
 // text before the first colon is the headline. Two shapes stop that working alone:
@@ -3463,6 +3519,14 @@ function setItemInvestment(bucketId, itemId, invId) {
   const holder = document.querySelector(`.item-tags[data-owner="${itemId}"]`);
   if (holder) holder.innerHTML = tagsInnerHTML(it.tags, 'item', itemId);
 }
+function setBucketInvestment(bucketId, invId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  b.tags = visibleTags(b.tags);                    // only ever one investment per bucket
+  if (invId) b.tags.push(INV_PREFIX + invId);
+  const holder = document.querySelector(`.bucket-tags[data-owner="${bucketId}"]`);
+  if (holder) holder.innerHTML = tagsInnerHTML(b.tags, 'bucket', bucketId);
+}
 
 function sortedTagIds() {
   const seen = new Set();
@@ -3492,6 +3556,25 @@ function itemsForTag(tag) {
   buckets.forEach(b => b.items.forEach(i => {
     if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
   }));
+  return result;
+}
+// A bucket belongs to a release if it carries the tag itself or - far more commonly -
+// if any of its items do. Keying this on bucket tags alone would render a near-empty
+// roadmap: only 1 of the 24 buckets carries a release tag today.
+function bucketsForTag(tag) {
+  const result = [];
+  buckets.forEach(b => {
+    const items = b.items || [];
+    const n = items.filter(i => (i.tags || []).includes(tag)).length;
+    if (!n && !(b.tags || []).includes(tag)) return;
+    result.push({
+      id: b.id, text: b.title, priority: b.priority, tags: b.tags,
+      // The sub-label answers "how much of this bucket lands here", which is the
+      // question the bucket altitude exists to answer.
+      bucketTitle: n ? `${n} of ${items.length} item${items.length === 1 ? '' : 's'}`
+                     : 'tagged directly',
+    });
+  });
   return result;
 }
 function tlStatusLabel(s) {
@@ -3534,15 +3617,20 @@ function renderTimelineView() {
   const container = document.getElementById('buckets-container');
   container.innerHTML = '';
   const tags = sortedTagIds();
-  // Built once across every item, so a headline that is unique inside one release
-  // but clashes in another still resolves the same way wherever it is shown.
-  const tlTitles = timelineTitleMap(buckets.flatMap(b => b.items || []));
+  const atBucketLevel = tlLevel === 'buckets';
+  // Titles are de-duplicated across whichever set is on screen, so bucket titles get the
+  // same collision handling that item titles do.
+  const tlTitles = timelineTitleMap(atBucketLevel
+    ? buckets.map(b => ({ id: b.id, text: b.title }))
+    : buckets.flatMap(b => b.items || []));
   // Whether to group is a decision about the whole board, not about one release.
   // Deciding per release meant a release with nothing tagged rendered flat while the
   // one beside it rendered under headers, so two columns of the same thing looked
   // like different components. Group everywhere once anything is tagged; until then,
   // stay flat so the feature is invisible before it is used.
-  const anyInvestment = buckets.some(b => (b.items || []).some(i => investmentOf(i)));
+  const anyInvestment = atBucketLevel
+    ? buckets.some(b => investmentOf(b))
+    : buckets.some(b => (b.items || []).some(i => investmentOf(i)));
   const view = document.createElement('div');
   view.className = 'tl-view';
 
@@ -3552,7 +3640,21 @@ function renderTimelineView() {
   titleEl.title = 'Click to edit title';
   titleEl.innerHTML = `<strong>${esc(roadmapTitle)}</strong> <span class="tl-t-light">Roadmap</span>`;
   titleEl.onclick = () => editRoadmapTitle(titleEl);
-  view.appendChild(titleEl);
+
+  const levelBar = document.createElement('div');
+  levelBar.className = 'tl-level';
+  levelBar.innerHTML = TL_LEVELS.map(l =>
+    `<button class="tl-level-btn${tlLevel === l.id ? ' active' : ''}" data-level="${l.id}">${l.icon} ${esc(l.label)}</button>`
+  ).join('');
+  levelBar.querySelectorAll('.tl-level-btn').forEach(btn => {
+    btn.onclick = () => setTimelineLevel(btn.dataset.level);
+  });
+
+  const headRow = document.createElement('div');
+  headRow.className = 'tl-head-row';
+  headRow.appendChild(titleEl);
+  headRow.appendChild(levelBar);
+  view.appendChild(headRow);
 
   if (!tags.length) {
     const empty = document.createElement('div');
@@ -3651,7 +3753,7 @@ function renderTimelineView() {
     divider.className = 'tl-card-divider ' + s;
     card.appendChild(divider);
 
-    const items = itemsForTag(tag);
+    const items = atBucketLevel ? bucketsForTag(tag) : itemsForTag(tag);
     if (items.length) {
       // Group by investment bucket under each release. Jonas, 2026-08-25: "items should
       // be mapped to releases as currently the case, but then under each release it
@@ -3702,7 +3804,7 @@ function renderTimelineView() {
     } else {
       const empty = document.createElement('div');
       empty.className = 'tl-empty';
-      empty.textContent = `No items tagged [${tag}]`;
+      empty.textContent = `No ${atBucketLevel ? 'buckets' : 'items'} tagged [${tag}]`;
       card.appendChild(empty);
     }
 
