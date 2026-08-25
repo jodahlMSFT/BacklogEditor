@@ -3553,9 +3553,23 @@ function sortedTagIds() {
 }
 function itemsForTag(tag) {
   const result = [];
-  buckets.forEach(b => b.items.forEach(i => {
-    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
-  }));
+  buckets.forEach(b => {
+    let n = 0;
+    b.items.forEach(i => {
+      if ((i.tags || []).includes(tag)) { result.push({ ...i, bucketTitle: b.title }); n++; }
+    });
+    // A bucket committed to a release none of whose items are individually tagged would
+    // otherwise be missing from the line-item roadmap entirely, making the release look
+    // emptier than it is. Scope declared at the bucket level stays visible at both
+    // altitudes; the sub-label says which kind of row this is.
+    if (!n && (b.tags || []).includes(tag)) {
+      result.push({
+        id: b.id, text: b.title, priority: b.priority, tags: b.tags, isBucketRow: true,
+        bucketTitle: b.items.length ? `whole bucket · ${b.items.length} item${b.items.length === 1 ? '' : 's'}`
+                                    : 'whole bucket',
+      });
+    }
+  });
   return result;
 }
 // A bucket belongs to a release if it carries the tag itself or - far more commonly -
@@ -3622,7 +3636,7 @@ function renderTimelineView() {
   // same collision handling that item titles do.
   const tlTitles = timelineTitleMap(atBucketLevel
     ? buckets.map(b => ({ id: b.id, text: b.title }))
-    : buckets.flatMap(b => b.items || []));
+    : [...buckets.flatMap(b => b.items || []), ...buckets.map(b => ({ id: b.id, text: b.title }))]);
   // Whether to group is a decision about the whole board, not about one release.
   // Deciding per release meant a release with nothing tagged rendered flat while the
   // one beside it rendered under headers, so two columns of the same thing looked
