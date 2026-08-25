@@ -343,9 +343,9 @@
 
 ---
 
-## 🟡 BUCKET 42: High-volume availability API [inv:cat][10.0.52]
+## 🔴 BUCKET 42: High-volume availability API [inv:cat][10.0.52]
 
-*No items*
+- 🔴 High-volume availability API for rental eCommerce
 
 ---
 
