@@ -171,7 +171,7 @@
 
 ## 🟡 BUCKET 17: Jobsite management improvements [inv:cat][10.0.52]
 
-- 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52]
+- 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52][est:2]
 - 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:cat][10.0.52][est:2]
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
