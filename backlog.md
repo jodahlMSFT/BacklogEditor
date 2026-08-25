@@ -123,7 +123,7 @@
 
 ---
 
-## 🟡 BUCKET 14: Automation Gaps [inv:cat][10.0.52]
+## 🔴 BUCKET 14: Automation Gaps [inv:cat][10.0.52]
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
 - 🔴 (Auto-) create work order from item movement: For prep, etc. work flows [inv:cat][est:2]
@@ -169,7 +169,7 @@
 
 ---
 
-## 🟡 BUCKET 17: Jobsite management improvements [inv:cat][10.0.52]
+## 🔴 BUCKET 17: Jobsite management improvements [inv:cat][10.0.52]
 
 - 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52][est:2]
 - 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:cat][10.0.52][est:2]
