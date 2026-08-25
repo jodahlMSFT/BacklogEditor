@@ -1,5 +1,5 @@
 # Backlog Editor
-**Updated: 25 August 2026**
+**Updated: 26 August 2026**
 
 ---
 
@@ -77,7 +77,7 @@
 
 ---
 
-## 🔴 BUCKET 8: Blockers for go-live of first customer [inv:fnd][10.0.50]
+## 🔴 BUCKET 8: Blockers for go-live of first customer [inv:fnd][10.0.52]
 
 *No items*
 
