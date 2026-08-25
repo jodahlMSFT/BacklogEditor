@@ -933,6 +933,22 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 1px;
 }
 .tl-card.horizon .tl-est { color: #46536b; }
+/* A bucket row that can be drilled into. */
+.tl-item.tl-expandable { cursor: pointer; border-radius: 4px; margin: 0 -4px; padding-left: 4px; padding-right: 4px; }
+.tl-item.tl-expandable:hover { background: rgba(255,255,255,0.045); }
+.tl-item.tl-expandable .tl-icon { transition: color 0.12s; }
+/* Items revealed under an expanded bucket. Indented and quieter than the bucket itself,
+   so the column still reads bucket-first with detail underneath. */
+.tl-subitem {
+  display: flex; align-items: flex-start; gap: 5px;
+  padding: 1px 0 1px 18px; font-size: 0.76rem; line-height: 1.4;
+}
+.tl-sub-icon { flex-shrink: 0; width: 8px; color: #334155; font-weight: 800; margin-top: 1px; }
+.tl-subtext { flex: 1; color: #94a3b8; }
+.tl-subitem.dim .tl-subtext { color: #4b5873; }
+.tl-subitem.strike .tl-subtext { color: #334155; text-decoration: line-through; }
+.tl-subitem .tl-est { font-size: 0.64rem; color: #475569; }
+.tl-card.horizon .tl-subtext { color: #6b7a90; }
 .tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
 .tl-add-ms-btn {
   background: rgba(56,189,248,0.03); border: 1px dashed #1e3a5f; border-radius: 10px;
@@ -3602,6 +3618,14 @@ function setTimelineLevel(level) {
   try { localStorage.setItem('tlLevel', tlLevel); } catch (e) {}
   renderTimelineView();
 }
+// Which bucket rows are drilled into on the roadmap. Deliberately not bucket.expanded -
+// that belongs to the Buckets view, and opening something on the roadmap should not
+// rearrange the editor behind it. View state only, never written to backlog.md.
+const tlExpanded = new Set();
+function toggleTimelineBucket(id) {
+  if (tlExpanded.has(id)) tlExpanded.delete(id); else tlExpanded.add(id);
+  renderTimelineView();
+}
 
 // Engineering estimate in man months. Stored as a marker tag like the others so it
 // round-trips through backlog.md with no format change. Bucket and item estimates are
@@ -3996,9 +4020,34 @@ function renderTimelineView() {
         }
         row.title = item.text;
         const est = estimateOf(item);
+        // At bucket level a row can be drilled into. Reuse the priority icon as the
+        // caret rather than adding a control: it is already a chevron, and keeping its
+        // colour means opening a bucket does not cost the priority signal.
+        const kids = atBucketLevel
+          ? ((getBucket(item.id) || {}).items || []).filter(i => !isTimelineExcluded(i))
+          : [];
+        const open = kids.length && tlExpanded.has(item.id);
+        if (kids.length && s !== 'shipped' && item.priority !== 'na') icon = open ? '▾' : '▸';
         row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>` +
           (est !== '' ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(est))}</span>` : '');
+        if (kids.length) {
+          row.classList.add('tl-expandable');
+          if (open) row.classList.add('open');
+          row.title = `${item.text}\n\n${open ? 'Click to collapse' : 'Click to show ' + kids.length + ' item' + (kids.length === 1 ? '' : 's')}`;
+          row.onclick = () => toggleTimelineBucket(item.id);
+        }
         card.appendChild(row);
+        if (open) {
+          kids.forEach(k => {
+            const sub = document.createElement('div');
+            sub.className = 'tl-subitem' + (k.priority === 'na' ? ' strike' : k.priority === 'low' ? ' dim' : '');
+            sub.title = k.text;
+            const ke = estimateOf(k);
+            sub.innerHTML = `<span class="tl-sub-icon">·</span><span class="tl-subtext">${esc(timelineTitle(k.text))}</span>` +
+              (ke !== '' ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(ke))}</span>` : '');
+            card.appendChild(sub);
+          });
+        }
       };
 
       const populated = groups.filter(g => g.rows.length);
