@@ -348,7 +348,7 @@
 
 ---
 
-## 🟡 BUCKET 43: Scheduling and availability UI [inv:vert][10.0.52]
+## 🟡 BUCKET 43: Scheduling and availability UI [inv:vert][10.0.52+]
 
 *No items*
 
