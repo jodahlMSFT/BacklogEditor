@@ -83,7 +83,7 @@
 
 ---
 
-## 🔴 BUCKET 9: RPO [inv:cat][10.0.52] <!-- ado:1125475 -->
+## 🔴 BUCKET 9: RPO [inv:cat][10.0.52][est:1] <!-- ado:1125475 -->
 
 - 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
@@ -324,7 +324,7 @@
 
 ---
 
-## 🟡 BUCKET 39: Damage recovery workflows [10.0.52][inv:xdyn]
+## 🔵 BUCKET 39: Damage recovery workflows [10.0.52][inv:xdyn]
 
 *No items*
 
