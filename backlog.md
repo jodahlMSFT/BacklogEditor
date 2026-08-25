@@ -169,7 +169,7 @@
 
 ---
 
-## 🟡 BUCKET 17: Jobsite management [inv:cat][10.0.52]
+## 🟡 BUCKET 17: Jobsite management improvements [inv:cat][10.0.52]
 
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
@@ -186,9 +186,9 @@
 
 ---
 
-## 🟡 BUCKET 19: Counter rentals [inv:cat][10.0.52]
+## 🟡 BUCKET 19: Counter rentals [inv:cat][10.0.52+]
 
-- 🟡 Counter rentals: Integration with Commerce (10.0.52) [10.0.52]
+- 🟡 Counter rentals: Integration with Commerce [10.0.52]
 
 ---
 
