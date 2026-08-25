@@ -290,7 +290,7 @@
 
 ## 🔴 BUCKET 33: Public preview feedback [inv:fnd][10.0.52]
 
-- 🔴 Respond to high-priority public preview feedback
+- 🔴 Respond to high-priority public preview feedback [inv:fnd][est:6]
 
 ---
 
