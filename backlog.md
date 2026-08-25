@@ -60,7 +60,7 @@
 
 ---
 
-## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50][inv:fnd] <!-- ado:1147069 -->
+## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50][inv:cat] <!-- ado:1147069 -->
 
 - 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping (customer, contact, start and end date/time for contract etc), inspection status on the card, so the coordinator can act without calling the back office.
 - 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming. Most critical is inbound and outbound.
