@@ -812,11 +812,15 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-icon.go   { color: #38bdf8; }
 .tl-icon.soft { color: #475569; }
 .tl-icon.na   { color: #334155; }
-.tl-itext { color: #cbd5e1; flex: 1; }
+/* Medium is 68 of 117 items, so leaving it at normal weight rendered the majority of
+   the roadmap as secondary text. Item text now reads bold by default; priority is still
+   legible from the text colour and the icon colour (blue = critical, grey = medium),
+   and low/na stay deliberately light so de-emphasis still means something. */
+.tl-itext { color: #cbd5e1; flex: 1; font-weight: 600; }
 .tl-itext.bold { color: #f0f4f8; font-weight: 600; }
-.tl-itext.dim  { color: #4b5873; }
-.tl-itext.strike { color: #334155; text-decoration: line-through; }
-.tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; }
+.tl-itext.dim  { color: #4b5873; font-weight: 400; }
+.tl-itext.strike { color: #334155; text-decoration: line-through; font-weight: 400; }
+.tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; font-weight: 400; }
 .tl-empty { color: #2a3f5e; font-size: 0.78rem; padding: 4px 0; font-style: italic; }
 .tl-add-ms { flex: 0 0 160px; display: flex; align-items: flex-start; padding: 0 8px; margin-top: 0; }
 .tl-add-ms-btn {
