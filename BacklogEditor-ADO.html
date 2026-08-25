@@ -910,21 +910,32 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .item-tl-btn:hover, .tl-bucket-btn:hover { color: #fb7185; background: rgba(251,113,133,0.12); }
 .item-tl-btn.on, .tl-bucket-btn.on { color: #fb7185; }
 .tl-bucket-btn { flex-shrink: 0; }
-/* Engineering estimate, man months. Narrow and spinner-free: the rows are already
-   crowded, and the value is nearly always one or two characters. */
+/* Engineering estimate, man months. The unit is always shown rather than living in a
+   placeholder: an empty box on the right of a crowded row reads as decoration, and this
+   field was being missed entirely. */
+.est-wrap {
+  display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+  border: 1px solid #334155; border-radius: 5px; padding: 1px 5px 1px 3px;
+  background: #0f172a; transition: border-color 0.12s;
+}
+.est-wrap:hover, .est-wrap:focus-within { border-color: #3b82f6; }
+.est-unit { font-size: 0.62rem; color: #475569; font-weight: 600; letter-spacing: 0.02em; }
+.est-wrap .est-input { border: none; background: none; width: 30px; padding: 1px 0; }
+.est-wrap .est-input:hover, .est-wrap .est-input:focus { border: none; }
 .est-input {
   width: 46px; flex-shrink: 0;
   border: 1px solid #1e293b; border-radius: 5px;
   padding: 2px 4px; font-size: 0.7rem; font-family: inherit;
-  background: #0f172a; color: #475569; text-align: right;
+  background: #0f172a; color: #cbd5e1; text-align: right;
   transition: all 0.12s;
 }
 .est-input::-webkit-outer-spin-button, .est-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .est-input { -moz-appearance: textfield; appearance: textfield; }
-.est-input::placeholder { color: #334155; }
+.est-input::placeholder { color: #475569; }
 .est-input:hover, .est-input:focus { outline: none; border-color: #3b82f6; }
-.est-input.has-est { color: #e2e8f0; border-color: rgba(148,163,184,0.4); font-weight: 600; }
-.bucket-header .est-input { padding: 3px 5px; font-size: 0.72rem; width: 52px; }
+.est-input.has-est { color: #e2e8f0; font-weight: 600; }
+.est-wrap:has(.has-est) { border-color: rgba(125,211,252,0.5); }
+.est-wrap:has(.has-est) .est-unit { color: #7dd3fc; }
 /* Bucket estimates are derived from their critical items, so a bucket row shows a sum
    rather than an editable field. */
 .tl-est.tl-est-sum { color: #7dd3fc; }
@@ -3167,8 +3178,8 @@ function makeItemLI(item) {
         ${INVESTMENTS.map(v => `<option value="${v.id}" ${investmentOf(item) === v.id ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
       </select>
       <div class="item-tags" data-owner="${item.id}">${tagsInnerHTML(item.tags, 'item', item.id)}</div>
-      <input class="est-input${estimateOf(item) !== '' ? ' has-est' : ''}" type="number" min="0" step="0.5"
-             data-item-id="${item.id}" value="${estimateOf(item)}" placeholder="mm" title="Engineering estimate, man months">
+      <span class="est-wrap" title="Engineering estimate, man months"><input class="est-input${estimateOf(item) !== '' ? ' has-est' : ''}" type="number" min="0" step="0.5"
+             data-item-id="${item.id}" value="${estimateOf(item)}" placeholder="-"><span class="est-unit">mm</span></span>
       ${isTimelineExcluded(item) ? '<span class="tl-off-chip" title="Kept off the timeline">⊘ off roadmap</span>' : ''}
       ${adoChipHTML(item, true, 'item', item.id)}
       <div class="item-actions">
