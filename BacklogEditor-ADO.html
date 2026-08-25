@@ -246,11 +246,13 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .item-inv-select.inv-cat  { color: #ffcd11; border-color: rgba(255,205,17,0.35); }
 .item-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.35); }
 .item-inv-select.inv-xdyn { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
-/* Investment group header inside a timeline release column. */
+/* Investment group header inside a timeline release column. The accent bar is mirrored
+   on both ends so the header reads as a band across the column rather than a left tick. */
 .tl-inv-head {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 6px; margin: 10px 0 3px; padding: 2px 0 2px 7px;
+  gap: 6px; margin: 10px 0 3px; padding: 2px 7px;
   border-left: 2px solid #334155;
+  border-right: 2px solid #334155;
 }
 .tl-inv-head:first-child { margin-top: 2px; }
 .tl-inv-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -4074,6 +4076,7 @@ function renderTimelineView() {
           const h = document.createElement('div');
           h.className = 'tl-inv-head';
           h.style.borderLeftColor = g.color;
+          h.style.borderRightColor = g.color;
           // The number is the cost of the group, not its length: what a reader wants
           // from an investment header is how much this bucket of work costs in this
           // release. The row count moves to the tooltip rather than disappearing.
