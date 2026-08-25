@@ -3619,25 +3619,14 @@ function sortedTagIds() {
     return a.localeCompare(b);
   });
 }
+// Items place themselves by their own tag, and nothing else. A bucket assigned to a
+// release shows at the bucket altitude, not here - each level of the roadmap shows only
+// what was explicitly put in that release at that level.
 function itemsForTag(tag) {
   const result = [];
-  buckets.forEach(b => {
-    let n = 0;
-    b.items.forEach(i => {
-      if ((i.tags || []).includes(tag)) { result.push({ ...i, bucketTitle: b.title }); n++; }
-    });
-    // A bucket assigned to a release none of whose items are individually tagged would
-    // otherwise be missing from the line-item roadmap entirely, making the release look
-    // emptier than it is. The assignment comes from the same dropdown that drives the
-    // bucket altitude, so both views agree on where a bucket belongs.
-    if (!n && releaseOf(b) === tag) {
-      result.push({
-        id: b.id, text: b.title, priority: b.priority, tags: b.tags, isBucketRow: true,
-        bucketTitle: b.items.length ? `whole bucket · ${b.items.length} item${b.items.length === 1 ? '' : 's'}`
-                                    : 'whole bucket',
-      });
-    }
-  });
+  buckets.forEach(b => b.items.forEach(i => {
+    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title });
+  }));
   return result;
 }
 // The dropdown is the single source of truth for which release a bucket belongs to.
@@ -3707,7 +3696,7 @@ function renderTimelineView() {
   // same collision handling that item titles do.
   const tlTitles = timelineTitleMap(atBucketLevel
     ? buckets.map(b => ({ id: b.id, text: b.title }))
-    : [...buckets.flatMap(b => b.items || []), ...buckets.map(b => ({ id: b.id, text: b.title }))]);
+    : buckets.flatMap(b => b.items || []));
   // Whether to group is a decision about the whole board, not about one release.
   // Deciding per release meant a release with nothing tagged rendered flat while the
   // one beside it rendered under headers, so two columns of the same thing looked
