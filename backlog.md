@@ -173,7 +173,7 @@
 
 - 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52][est:2]
 - 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:cat][10.0.52][est:2]
-- 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
+- 🔴 Prevent duplicate jobsites: prevent duplicate addresses and near-identical lat/long. [inv:cat][10.0.52]
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
 
 ---
