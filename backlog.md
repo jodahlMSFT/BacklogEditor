@@ -3,14 +3,14 @@
 
 ---
 
-## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" <!-- ado:1149935 -->
+## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" [inv:fnd] <!-- ado:1149935 -->
 
 - ⬜ Rename "Rental Item" to "Fleet item" in UI [10.0.49] <!-- ado:1149936 -->
 - 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc. [10.0.50] <!-- ado:1149937 -->
 
 ---
 
-## 🔴 BUCKET 2: Brownfield / Adoption Blockers <!-- ado:1149926 -->
+## 🔴 BUCKET 2: Brownfield / Adoption Blockers [inv:cat] <!-- ado:1149926 -->
 
 - 🔴 Batch tracking: Make batch tracking optional. [10.0.50] <!-- ado:1149927 -->
 - 🔴 Configurable fleet types (not hardcoded): Improves transparency and enables non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
@@ -25,7 +25,7 @@
 
 ---
 
-## 🔴 BUCKET 3: Bulk Items refactoring <!-- ado:1149939 -->
+## 🔴 BUCKET 3: Bulk Items refactoring [inv:fnd] <!-- ado:1149939 -->
 
 - 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc). [10.0.50] <!-- ado:1149940 -->
 - 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity, [10.0.50] <!-- ado:1149941 -->
@@ -41,26 +41,26 @@
 
 ---
 
-## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O <!-- ado:1149943 -->
+## 🔴 BUCKET 4: AI skills & Rental UX outside of F&O [inv:fnd] <!-- ado:1149943 -->
 
 - 🔴 Entities and actions: Enables customers and partners to build their own UX on top of F&O capabilities. [10.0.50] <!-- ado:1133532 -->
 - 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc. <!-- ado:1149944 -->
 
 ---
 
-## 🔴 BUCKET 5: Demo data - Public Preview [10.0.49] <!-- ado:1101548 -->
+## 🔴 BUCKET 5: Demo data - Public Preview [10.0.49][inv:fnd] <!-- ado:1101548 -->
 
 - 🔴 Demo data: Official rental demo data [10.0.50] <!-- ado:1149946 -->
 
 ---
 
-## 🔴 BUCKET 6: Financial tags [10.0.49]
+## 🔴 BUCKET 6: Financial tags [10.0.49][inv:fnd]
 
 - 🔴 Financial tags defaulting: [10.0.50]
 
 ---
 
-## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50] <!-- ado:1147069 -->
+## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50][inv:fnd] <!-- ado:1147069 -->
 
 - 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping (customer, contact, start and end date/time for contract etc), inspection status on the card, so the coordinator can act without calling the back office.
 - 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming. Most critical is inbound and outbound.
@@ -77,13 +77,13 @@
 
 ---
 
-## 🔴 BUCKET 8: RPO <!-- ado:1125475 -->
+## 🔴 BUCKET 8: RPO [inv:cat] <!-- ado:1125475 -->
 
 - 🔴 RPO: Fix calculations and validate rent-to-purchase scenarios. [10.0.50] <!-- ado:1149947 -->
 
 ---
 
-## 🟡 BUCKET 9: Private preview feedback: Improvements <!-- ado:1149948 -->
+## 🟡 BUCKET 9: Private preview feedback: Improvements [inv:cat] <!-- ado:1149948 -->
 
 - 🔴 Private preview feedback: Ability to tie rental templates to one or more customers [10.0.50] <!-- ado:1108023 -->
 - 🔴 Private preview feedback: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin) <!-- ado:1095542 -->
@@ -91,7 +91,7 @@
 
 ---
 
-## 🟡 BUCKET 10: Configurability
+## 🟡 BUCKET 10: Configurability [inv:cat]
 
 - 🟡 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52]
 - 🟡 Access to fleets: Limit fleet visibility per user/role
@@ -99,7 +99,7 @@
 
 ---
 
-## 🟡 BUCKET 11: Improved search (free text, configurations and features, AI search)
+## 🟡 BUCKET 11: Improved search (free text, configurations and features, AI search) [inv:cat]
 
 - 🟡 Free text search: search on configuration, features, etc.
 - 🟡 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search.
@@ -107,7 +107,7 @@
 
 ---
 
-## 🟡 BUCKET 12: Re-Rents
+## 🟡 BUCKET 12: Re-Rents [inv:vert]
 
 - 🔴 Re-rent of fleet items rented from competitors. [10.0.49]
 - 🟡 Intercompany re-rent process: (renting from a sister entity)
@@ -117,7 +117,7 @@
 
 ---
 
-## 🟡 BUCKET 13: Automation Gaps
+## 🟡 BUCKET 13: Automation Gaps [inv:cat]
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
 - 🟡 (Auto-) create work order from item movement: For prep, etc. work flows
@@ -138,7 +138,7 @@
 
 ---
 
-## 🟡 BUCKET 14: Intercompany
+## 🟡 BUCKET 14: Intercompany [inv:vert]
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -147,7 +147,7 @@
 
 ---
 
-## 🟡 BUCKET 15: Field Service Integration Gaps
+## 🟡 BUCKET 15: Field Service Integration Gaps [inv:cat]
 
 - 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [10.0.50] <!-- ado:1149953 -->
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported. [10.0.50]
@@ -163,7 +163,7 @@
 
 ---
 
-## 🟡 BUCKET 16: Jobsite management
+## 🟡 BUCKET 16: Jobsite management [inv:cat]
 
 - 🟡 Jobsite deduplication: prevent duplicate addresses and near-identical lat/long.
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
@@ -171,7 +171,7 @@
 
 ---
 
-## 🟡 BUCKET 17: Pricing Gaps
+## 🟡 BUCKET 17: Pricing Gaps [inv:vert]
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -180,13 +180,13 @@
 
 ---
 
-## 🟡 BUCKET 18: Counter rentals
+## 🟡 BUCKET 18: Counter rentals [inv:cat]
 
 - 🟡 Counter rentals: Integration with Commerce (10.0.52) [10.0.52]
 
 ---
 
-## 🟡 BUCKET 19: Combined Sales and Rental
+## 🟡 BUCKET 19: Combined Sales and Rental [inv:cat]
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
@@ -194,7 +194,7 @@
 
 ---
 
-## 🟡 BUCKET 20: Kitting / Packages
+## 🟡 BUCKET 20: Kitting / Packages [inv:vert]
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -204,14 +204,14 @@
 
 ---
 
-## 🔵 BUCKET 21: Availability and Reservations
+## 🔵 BUCKET 21: Availability and Reservations [inv:vert]
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
 
 ---
 
-## 🔵 BUCKET 22: UX / Usability Polish
+## 🔵 BUCKET 22: UX / Usability Polish [inv:fnd]
 
 - 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
 - 🟡 Multi-assign: fleet items to quote and contract lines
@@ -221,7 +221,7 @@
 
 ---
 
-## 🔵 BUCKET 23: Accessory Packs
+## 🔵 BUCKET 23: Accessory Packs [inv:vert]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
@@ -240,31 +240,45 @@
 
 ---
 
-## 🔴 BUCKET 25: Test automation [10.0.49]
+## 🔴 BUCKET 25: Test automation [10.0.49][inv:fnd]
+
+*No items*
 
 ---
 
-## 🔴 BUCKET 26: Data entities & APIs I [10.0.49]
+## 🔴 BUCKET 26: Data entities & APIs I [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
-## 🔴 BUCKET 27: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49]
+## 🔴 BUCKET 27: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
-## 🟡 BUCKET 28: One availability status [10.0.49]
+## 🟡 BUCKET 28: One availability status [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
-## 🟡 BUCKET 29: Location-based pricing [10.0.49]
+## 🟡 BUCKET 29: Location-based pricing [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
-## 🟡 BUCKET 30: Business events [10.0.49]
+## 🟡 BUCKET 30: Business events [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
-## 🟡 BUCKET 31: FS integration II [10.0.49]
+## 🟡 BUCKET 31: FS integration II [10.0.49][inv:cat]
+
+*No items*
 
 ---
 
