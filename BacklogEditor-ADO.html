@@ -4391,7 +4391,146 @@ function collapseAll() {
   a.href = url; a.download = snapName;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast(`✓ Snapshot exported as ${snapName}`);
+
+  const roadName = exportTimelineSnapshot();
+  showToast(roadName ? `✓ Exported ${snapName} and ${roadName}` : `✓ Snapshot exported as ${snapName}`);
+}
+
+// The roadmap goes out as its own file rather than a third tab in the backlog snapshot:
+// it is the artefact you send to someone who wants the plan, not the backlog, and it
+// wants a wide landscape page while the backlog snapshot is a narrow column.
+//
+// This is a second, self-contained document with its own CSS - nothing is shared with
+// the live view - so anything changed there has to be mirrored here deliberately.
+function exportTimelineSnapshot() {
+  const tags = sortedTagIds();
+  if (!tags.length) return null;
+
+  const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const STATUS = {
+    shipped:     { label: '✓ SHIPPED',              c: '#4ade80', bg: '#041d0d', bd: '#0d3321', dash: false },
+    inflight:    { label: '● IN FLIGHT',            c: '#38bdf8', bg: '#071829', bd: '#1e3a5f', dash: false },
+    preliminary: { label: '◌ PLANNED - PRELIMINARY',c: '#94a3b8', bg: '#0e1826', bd: '#253449', dash: true  },
+    planned:     { label: '○ PLANNED',              c: '#7dd3fc', bg: '#0b1c32', bd: '#1a3050', dash: false },
+  };
+
+  // One column, at one altitude. Both altitudes are rendered and toggled in the file,
+  // so the reader can drop from releases into line items without going back to the app.
+  const column = (tag, level) => {
+    const m = getTagMeta(tag);
+    const st = STATUS[m.status] || STATUS.planned;
+    const horizon = !parseVersionTag(tag);
+    const rows = level === 'buckets' ? bucketsForTag(tag) : itemsForTag(tag);
+    const titles = timelineTitleMap(level === 'buckets'
+      ? buckets.map(b => ({ id: b.id, text: b.title }))
+      : buckets.flatMap(b => b.items || []));
+    const dim = horizon ? 'opacity:0.72;' : '';
+
+    const groups = INVESTMENTS.map(v => ({ ...v, rows: rows.filter(r => investmentOf(r) === v.id) }));
+    const none = rows.filter(r => !investmentOf(r));
+    if (none.length) groups.push({ id:'none', label:'Unassigned', icon:'·', color:'#64748b', rows: none });
+
+    const body = groups.filter(g => g.rows.length).map(g => {
+      const sum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
+      const sumTxt = sum > 0 ? `${Math.round(sum*100)/100} mm` : '-';
+      const head = `<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:12px 0 4px;padding:2px 7px;border-left:2px solid ${g.color};border-right:2px solid ${g.color}">
+          <span style="font-size:0.66rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:${g.color}">${g.icon} ${esc(g.label)}</span>
+          <span style="font-size:${sum>0?'0.78rem':'0.62rem'};font-weight:${sum>0?800:400};color:${sum>0?'#a5dffd':'#475569'};font-variant-numeric:tabular-nums">${esc(sumTxt)}</span>
+        </div>`;
+      const rowsHtml = g.rows.map(r => {
+        const done = m.status === 'shipped';
+        const crit = r.priority === 'critical';
+        const icon = done ? '✓' : (r.priority === 'na' ? '–' : '›');
+        const iconC = done ? '#4ade80' : (r.priority === 'na' ? '#334155' : crit ? '#38bdf8' : '#6b7f99');
+        const txtC  = r.priority === 'na' ? '#334155' : (r.priority === 'low' ? '#4b5873' : '#f0f4f8');
+        const strike = r.priority === 'na' ? 'text-decoration:line-through;' : '';
+        const est = r.est === '' || r.est == null ? '' :
+          `<span style="flex-shrink:0;margin-left:auto;padding-left:6px;font-size:${level==='buckets'?'0.72rem':'0.68rem'};font-weight:${level==='buckets'?700:600};color:${level==='buckets'?'#7dd3fc':'#64748b'};font-variant-numeric:tabular-nums;white-space:nowrap">${Math.round(r.est*100)/100} mm</span>`;
+        const kids = level === 'buckets' ? timelineItemsOf(getBucket(r.id)) : [];
+        const kidsHtml = kids.length ? `<div class="kids" style="display:none">` + kids.map(k => {
+          const ke = estimateOf(k);
+          return `<div style="display:flex;align-items:flex-start;gap:5px;padding:1px 0 1px 18px;font-size:0.76rem;line-height:1.4">
+            <span style="flex-shrink:0;width:8px;color:#334155;font-weight:800;margin-top:1px">·</span>
+            <span style="flex:1;color:#94a3b8">${esc(timelineTitle(k.text))}</span>
+            ${ke===''?'':`<span style="flex-shrink:0;font-size:0.64rem;color:#475569;font-variant-numeric:tabular-nums">${Math.round(ke*100)/100} mm</span>`}
+          </div>`; }).join('') + `</div>` : '';
+        const clickable = kids.length
+          ? ` class="row" onclick="this.classList.toggle('open');var k=this.querySelector('.kids');k.style.display=k.style.display==='none'?'block':'none'" style="cursor:pointer;"`
+          : '';
+        return `<div${clickable}>
+            <div style="display:flex;align-items:flex-start;gap:6px;padding:3px 0;font-size:0.82rem;line-height:1.4">
+              <span style="flex-shrink:0;width:12px;margin-top:2px;font-size:0.68rem;font-weight:800;color:${iconC}">${kids.length?'▸':icon}</span>
+              <span style="flex:1;color:${txtC};font-weight:600;${strike}">${esc(titles.get(r.id) || timelineTitle(r.text))}
+                <span style="display:block;font-size:0.62rem;color:#2d4060;margin-top:1px;font-weight:400">${esc(r.bucketTitle || '')}</span>
+              </span>${est}
+            </div>${kidsHtml}
+          </div>`;
+      }).join('');
+      return head + rowsHtml;
+    }).join('') || `<div style="color:#2a3f5e;font-size:0.78rem;font-style:italic;padding:4px 0">Nothing assigned</div>`;
+
+    return `<div style="flex:0 0 250px;${dim}">
+      <div style="text-align:center;padding-bottom:10px">
+        <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;letter-spacing:0.05em">${esc(tag)}</div>
+        <div style="font-size:0.72rem;color:${m.status==='shipped'?'#4ade80':'#475569'};font-weight:${m.status==='shipped'?600:400};min-height:16px">${esc(m.date||'')}</div>
+        <div style="width:14px;height:14px;border-radius:50%;margin:6px auto;background:${m.status==='shipped'?'#4ade80':m.status==='inflight'?'#38bdf8':'#0a1628'};border:3px solid ${st.c};${st.dash?'border-style:dashed;':''}"></div>
+        <div style="font-size:0.75rem;color:${st.c};line-height:1.35;min-height:30px">${esc(m.sublabel||'')}</div>
+      </div>
+      <div style="background:${st.bg};border:1px solid ${st.bd};border-top:3px ${st.dash?'dashed':'solid'} ${st.c};padding:14px 16px 18px">
+        <div style="display:inline-flex;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;padding:3px 9px;border-radius:4px;margin-bottom:11px;color:${st.c};border:1px ${st.dash?'dashed':'solid'} ${st.c}77;background:${st.c}14">${esc(st.label)}</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#f0f4f8;margin-bottom:12px">${esc(m.colTitle || tag)}</div>
+        <div style="height:1px;background:${st.bd};margin:0 -16px 10px"></div>
+        ${body}
+      </div>
+    </div>`;
+  };
+
+  const build = level => `<div style="display:flex;gap:20px;align-items:flex-start;min-width:100%">${tags.map(t => column(t, level)).join('')}</div>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${esc(roadmapTitle)} Roadmap</title><style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a1628;color:#cbd5e1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.wrap{padding:28px 30px 70px}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+h1{margin:0;font-size:2.2rem;font-weight:800;color:#fff}
+h1 span{font-weight:300;color:#94a3b8}
+.tabs{display:flex;gap:2px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:2px}
+.tab{background:none;border:none;color:#64748b;font-size:0.76rem;font-weight:600;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:inherit}
+.tab.active{background:#1e293b;color:#e2e8f0}
+.scroll{overflow-x:auto;padding-bottom:20px}
+.lvl{display:none}.lvl.active{display:block}
+.meta{margin-top:26px;font-size:0.72rem;color:#334155}
+.row.open>div>span:first-child{transform:none}
+</style></head><body><div class="wrap">
+<div class="hd">
+  <h1>${esc(roadmapTitle)} <span>Roadmap</span></h1>
+  <div class="tabs">
+    <button class="tab active" id="t-b" onclick="sw('b')">▤ Buckets</button>
+    <button class="tab" id="t-i" onclick="sw('i')">≡ Line items</button>
+  </div>
+</div>
+<div class="scroll"><div id="lvl-b" class="lvl active">${build('buckets')}</div><div id="lvl-i" class="lvl">${build('items')}</div></div>
+<div class="meta">Exported ${esc(date)} · showing critical work only · click a bucket to see its items</div>
+</div><script>
+function sw(v){
+  document.getElementById('lvl-b').classList.toggle('active',v==='b');
+  document.getElementById('lvl-i').classList.toggle('active',v==='i');
+  document.getElementById('t-b').classList.toggle('active',v==='b');
+  document.getElementById('t-i').classList.toggle('active',v==='i');
+}
+<\/script></body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = _loadedFileName.replace(/\.md$/i, '') + '-roadmap.html';
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return name;
 }
 
 // ─── Markdown Import ──────────────────────────────────────────────────────────
