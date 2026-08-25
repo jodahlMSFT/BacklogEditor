@@ -192,7 +192,7 @@
 
 ---
 
-## 🔵 BUCKET 20: Combined Sales and Rental [10.0.52+][inv:fnd]
+## 🟡 BUCKET 20: Combined Sales and Rental [10.0.52+][inv:fnd]
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
