@@ -153,7 +153,7 @@
 
 ---
 
-## 🟡 BUCKET 16: Field Service Integration Gaps [inv:cat][10.0.52]
+## 🔴 BUCKET 16: Field Service Integration Gaps [inv:cat][10.0.52]
 
 - 🔴 FS -> Project Ops -> F&O: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [inv:cat] <!-- ado:1149953 -->
 - 🔴 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported. [10.0.50]
