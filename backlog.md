@@ -48,13 +48,13 @@
 
 ---
 
-## 🔴 BUCKET 5: Demo data - Public Preview <!-- ado:1101548 -->
+## 🔴 BUCKET 5: Demo data - Public Preview [10.0.49] <!-- ado:1101548 -->
 
 - 🔴 Demo data: Official rental demo data [10.0.50] <!-- ado:1149946 -->
 
 ---
 
-## 🔴 BUCKET 6: Financial tags
+## 🔴 BUCKET 6: Financial tags [10.0.49]
 
 - 🔴 Financial tags defaulting: [10.0.50]
 
@@ -237,6 +237,34 @@
 - 🔵 No paperwork generated from system: no waybill, no hazmat documentation, no delivery receipt
 - 🔵 No weight/dimensions on rental item record (should come from released product)
 - 🔵 No routing/dispatch solution (ISV partner recommendation needed — acknowledge gap proactively)
+
+---
+
+## 🔴 BUCKET 25: Test automation [10.0.49]
+
+---
+
+## 🔴 BUCKET 26: Data entities & APIs I [10.0.49]
+
+---
+
+## 🔴 BUCKET 27: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49]
+
+---
+
+## 🟡 BUCKET 28: One availability status [10.0.49]
+
+---
+
+## 🟡 BUCKET 29: Location-based pricing [10.0.49]
+
+---
+
+## 🟡 BUCKET 30: Business events [10.0.49]
+
+---
+
+## 🟡 BUCKET 31: FS integration II [10.0.49]
 
 ---
 
