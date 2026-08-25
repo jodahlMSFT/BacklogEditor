@@ -3537,6 +3537,12 @@ function renderTimelineView() {
   // Built once across every item, so a headline that is unique inside one release
   // but clashes in another still resolves the same way wherever it is shown.
   const tlTitles = timelineTitleMap(buckets.flatMap(b => b.items || []));
+  // Whether to group is a decision about the whole board, not about one release.
+  // Deciding per release meant a release with nothing tagged rendered flat while the
+  // one beside it rendered under headers, so two columns of the same thing looked
+  // like different components. Group everywhere once anything is tagged; until then,
+  // stay flat so the feature is invisible before it is used.
+  const anyInvestment = buckets.some(b => (b.items || []).some(i => investmentOf(i)));
   const view = document.createElement('div');
   view.className = 'tl-view';
 
@@ -3681,10 +3687,8 @@ function renderTimelineView() {
       };
 
       const populated = groups.filter(g => g.rows.length);
-      if (populated.length === 1 && populated[0].id === 'none') {
-        // Nothing in this release is tagged yet - show it flat rather than under a
-        // header that says "Unassigned" and adds no information.
-        populated[0].rows.forEach(renderRow);
+      if (!anyInvestment) {
+        populated.forEach(g => g.rows.forEach(renderRow));
       } else {
         populated.forEach(g => {
           const h = document.createElement('div');
