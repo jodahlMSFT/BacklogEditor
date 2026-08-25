@@ -255,6 +255,8 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
 .tl-inv-head:first-child { margin-top: 2px; }
 .tl-inv-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .tl-inv-count { font-size: 0.62rem; color: #475569; font-variant-numeric: tabular-nums; }
+.tl-inv-count.has-sum { color: #7dd3fc; font-weight: 700; }
+.tl-card.horizon .tl-inv-count.has-sum { color: #4d6a85; }
 .item-row.na-item {
   opacity: 0.55;
 }
@@ -4070,7 +4072,15 @@ function renderTimelineView() {
           const h = document.createElement('div');
           h.className = 'tl-inv-head';
           h.style.borderLeftColor = g.color;
-          h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}">${g.icon} ${esc(g.label)}</span><span class="tl-inv-count">${g.rows.length}</span>`;
+          // The number is the cost of the group, not its length: what a reader wants
+          // from an investment header is how much this bucket of work costs in this
+          // release. The row count moves to the tooltip rather than disappearing.
+          const gSum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
+          const rounded = Math.round(gSum * 100) / 100;
+          h.title = `${g.label} - ${g.rows.length} row${g.rows.length === 1 ? '' : 's'}` +
+                    (rounded > 0 ? `, ${rounded} man months` : ', not estimated yet');
+          h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}">${g.icon} ${esc(g.label)}</span>` +
+            `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : '-'}</span>`;
           card.appendChild(h);
           g.rows.forEach(renderRow);
         });
