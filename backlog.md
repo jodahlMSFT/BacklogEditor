@@ -367,6 +367,12 @@
 
 ---
 
+## 🔴 BUCKET 46: Rentals on Project Operations projects [inv:xdyn][10.0.52+]
+
+- 🔴 Rentals on Project Operations projects
+
+---
+
 
 <!-- tag-meta: {"_title":"Backlog","10.0.49":{"status":"shipped","date":"July 2026","sublabel":"End-to-end core rentals"},"10.0.50":{"status":"inflight","sublabel":"Adoption blockers & data model changes"},"10.0.52":{"status":"preliminary","sublabel":"Target GA: First customer live"},"10.0.52+":{"status":"preliminary","sublabel":"Expansion"}} -->
 
