@@ -785,6 +785,9 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-head-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
 .tl-head-row .tl-title-h2 { margin-bottom: 0; }
 .tl-level { display: flex; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 2px; flex-shrink: 0; }
+.tl-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tl-est-toggle .tl-level-btn { font-variant-numeric: tabular-nums; }
+.tl-est-toggle .tl-level-btn.active { color: #a5dffd; }
 .tl-level-btn { background: none; border: none; color: #64748b; font-size: 0.76rem; font-weight: 600; padding: 5px 13px; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .tl-level-btn.active { background: #1e293b; color: #e2e8f0; }
 .tl-level-btn:hover:not(.active) { color: #94a3b8; }
@@ -3655,6 +3658,16 @@ function setTimelineLevel(level) {
   try { localStorage.setItem('tlLevel', tlLevel); } catch (e) {}
   renderTimelineView();
 }
+// Estimates are useful while planning and noise when presenting the shape of a release,
+// so they are switchable. View state only - the figures stay on the items either way.
+let tlShowEst = (() => {
+  try { return localStorage.getItem('tlShowEst') !== 'off'; } catch (e) { return true; }
+})();
+function setTimelineEstimates(on) {
+  tlShowEst = !!on;
+  try { localStorage.setItem('tlShowEst', tlShowEst ? 'on' : 'off'); } catch (e) {}
+  renderTimelineView();
+}
 // Which bucket rows are drilled into on the roadmap. Deliberately not bucket.expanded -
 // that belongs to the Buckets view, and opening something on the roadmap should not
 // rearrange the editor behind it. View state only, never written to backlog.md.
@@ -3959,10 +3972,19 @@ function renderTimelineView() {
     btn.onclick = () => setTimelineLevel(btn.dataset.level);
   });
 
+  const estBar = document.createElement('div');
+  estBar.className = 'tl-level tl-est-toggle';
+  estBar.innerHTML = `<button class="tl-level-btn${tlShowEst ? ' active' : ''}" title="${tlShowEst ? 'Hide' : 'Show'} engineering estimates">${tlShowEst ? '◉' : '○'} mm</button>`;
+  estBar.querySelector('button').onclick = () => setTimelineEstimates(!tlShowEst);
+
   const headRow = document.createElement('div');
   headRow.className = 'tl-head-row';
   headRow.appendChild(titleEl);
-  headRow.appendChild(levelBar);
+  const controls = document.createElement('div');
+  controls.className = 'tl-controls';
+  controls.appendChild(estBar);
+  controls.appendChild(levelBar);
+  headRow.appendChild(controls);
   view.appendChild(headRow);
 
   if (!tags.length) {
@@ -4106,7 +4128,7 @@ function renderTimelineView() {
         const open = kids.length && tlExpanded.has(item.id);
         if (kids.length && s !== 'shipped' && item.priority !== 'na') icon = open ? '▾' : '▸';
         row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>` +
-          (est !== '' ? `<span class="tl-est${atBucketLevel ? ' tl-est-sum' : ''}" title="${atBucketLevel ? 'Sum of the critical items in this bucket' : 'Engineering estimate'}">${esc(fmtEstimate(est))}</span>` : '');
+          (est !== '' && tlShowEst ? `<span class="tl-est${atBucketLevel ? ' tl-est-sum' : ''}" title="${atBucketLevel ? 'Sum of the critical items in this bucket' : 'Engineering estimate'}">${esc(fmtEstimate(est))}</span>` : '');
         if (kids.length) {
           row.classList.add('tl-expandable');
           if (open) row.classList.add('open');
@@ -4121,7 +4143,7 @@ function renderTimelineView() {
             sub.title = k.text;
             const ke = estimateOf(k);
             sub.innerHTML = `<span class="tl-sub-icon">·</span><span class="tl-subtext">${esc(timelineTitle(k.text))}</span>` +
-              (ke !== '' ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(ke))}</span>` : '');
+              (ke !== '' && tlShowEst ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(ke))}</span>` : '');
             card.appendChild(sub);
           });
         }
@@ -4140,16 +4162,16 @@ function renderTimelineView() {
           // from an investment header is how much this bucket of work costs in this
           // release. The row count moves to the tooltip rather than disappearing.
           const gSum = g.rows.reduce((s, r) => s + (r.est === '' || r.est == null ? 0 : r.est), 0);
-          const rounded = Math.round(gSum * 100) / 100;
+          const rounded = tlShowEst ? Math.round(gSum * 100) / 100 : 0;
           const collapsed = tlCollapsedInv.has(g.id);
           h.title = `${g.label} - ${g.rows.length} row${g.rows.length === 1 ? '' : 's'}` +
-                    (rounded > 0 ? `, ${rounded} man months` : ', not estimated yet') +
+                    (gSum > 0 ? `, ${Math.round(gSum * 100) / 100} man months` : ', not estimated yet') +
                     `\n\nClick to ${collapsed ? 'expand' : 'collapse'} this theme in every release`;
           h.classList.add('tl-inv-toggle');
           if (collapsed) h.classList.add('collapsed');
           h.onclick = () => toggleInvGroup(g.id);
           h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}"><span class="tl-inv-caret">${collapsed ? '▸' : '▾'}</span>${g.icon} ${esc(g.label)}</span>` +
-            `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : '-'}</span>`;
+            `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : (tlShowEst ? '-' : g.rows.length)}</span>`;
           card.appendChild(h);
           if (!collapsed) g.rows.forEach(renderRow);
         });
