@@ -289,7 +289,7 @@
 
 ---
 
-## 🔴 BUCKET 33: Public preview feedback [inv:fnd][10.0.52]
+## 🔴 BUCKET 33: Public preview feedback (incl. blockers for go-live of first customer) [inv:fnd][10.0.52]
 
 - 🔴 Respond to high-priority public preview feedback [inv:fnd][est:6]
 
