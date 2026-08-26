@@ -77,7 +77,7 @@
 
 ---
 
-## 🟡 BUCKET 8: Blockers for go-live of first customer [inv:fnd][10.0.52]
+## 🟡 BUCKET 8: Blockers for go-live of first customer [inv:fnd]
 
 *No items*
 
