@@ -952,6 +952,13 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
   padding: 3px 6px; outline: none;
 }
 .tl-add-input::placeholder { color: #3a5170; font-weight: 400; font-style: italic; }
+/* A theme keeps a little height when empty so there is something to drop onto. */
+.tl-group-body { min-height: 6px; }
+.tl-card.shipped .tl-group-body:empty,
+.tl-group-body:empty { min-height: 10px; border-radius: 4px; }
+.tl-drag-ghost { opacity: 0.35; background: rgba(56,189,248,0.14); border-radius: 4px; }
+.tl-group-body .tl-item { cursor: grab; }
+.tl-group-body .tl-item:active { cursor: grabbing; }
 .tl-level-hint {
   margin-top: 12px; padding-top: 8px; border-top: 1px dashed #1e3a5f;
   font-size: 0.68rem; color: #475569; cursor: pointer; user-select: none;
@@ -3989,6 +3996,48 @@ function tlMakeAdder(releaseTag, invId) {
   return row;
 }
 
+// Dragging a bucket across the roadmap is the same edit as picking a new release or
+// investment from its dropdowns - the drop target supplies both. Only whole buckets
+// drag: the sub-items under an expanded bucket belong to it, not to the theme, so they
+// are excluded as drag sources.
+const _tlSorts = [];
+function tlInitSortables() {
+  while (_tlSorts.length) { try { _tlSorts.pop().destroy(); } catch (e) {} }
+  if (tlLevel !== 'buckets' || typeof Sortable === 'undefined') return;
+  document.querySelectorAll('.tl-group-body').forEach(body => {
+    _tlSorts.push(Sortable.create(body, {
+      group: 'tl-buckets',
+      draggable: '.tl-item',
+      animation: 150,
+      ghostClass: 'tl-drag-ghost',
+      onEnd: tlOnBucketDrop,
+    }));
+  });
+}
+
+function tlOnBucketDrop(e) {
+  const id = e.item && e.item.dataset ? e.item.dataset.rowId : null;
+  const b = id ? getBucket(id) : null;
+  if (!b) { renderTimelineView(); return; }
+  const to = e.to;
+
+  setBucketRelease(b.id, to.dataset.tag || '');
+  setBucketInvestment(b.id, to.dataset.inv || '');
+
+  // Keep the dropped order. The row's new neighbour in the DOM is the bucket it should
+  // sit in front of, which survives the re-render because the roadmap draws rows in
+  // buckets[] order within each theme.
+  const ids = [...to.querySelectorAll('.tl-item[data-row-id]')].map(el => el.dataset.rowId);
+  const at = ids.indexOf(String(b.id));
+  const nextId = at >= 0 && at + 1 < ids.length ? ids[at + 1] : null;
+  const from = buckets.indexOf(b);
+  if (from !== -1) buckets.splice(from, 1);
+  const before = nextId ? buckets.findIndex(x => String(x.id) === String(nextId)) : -1;
+  buckets.splice(before === -1 ? buckets.length : before, 0, b);
+
+  renderTimelineView();
+}
+
 function tlStartInlineEdit(el, currentVal, onSave) {
   const inp = document.createElement('input');
   inp.className = 'tl-meta-inline-input';
@@ -4176,7 +4225,11 @@ function renderTimelineView() {
     card.appendChild(divider);
 
     const items = atBucketLevel ? bucketsForTag(tag) : itemsForTag(tag);
-    if (items.length) {
+    // At the bucket altitude every theme is drawn even when it holds nothing, because a
+    // theme that is not on screen is a theme you cannot drop onto or type into. At the
+    // item altitude the old rule stands and empty themes stay hidden.
+    const themeSlots = atBucketLevel && anyInvestment;
+    if (items.length || themeSlots) {
       // Group by investment bucket under each release. Jonas, 2026-08-25: "items should
       // be mapped to releases as currently the case, but then under each release it
       // should have the investment buckets."
@@ -4190,9 +4243,10 @@ function renderTimelineView() {
       const unassigned = items.filter(i => !rowInvestment(i));
       if (unassigned.length) groups.push({ id: 'none', label: 'Unassigned', short: 'UNASSIGNED', icon: '·', color: '#64748b', rows: unassigned });
 
-      const renderRow = (item) => {
+      const renderRow = (item, host) => {
         const row = document.createElement('div');
         row.className = 'tl-item';
+        row.dataset.rowId = item.id;
         let iconClass, textClass, icon;
         if (s === 'shipped') {
           icon = '✓'; iconClass = 'ok'; textClass = 'bold';
@@ -4223,7 +4277,7 @@ function renderTimelineView() {
           row.title = `${item.text}${count}\n\n${open ? 'Click to collapse' : 'Click to show ' + kids.length + ' item' + (kids.length === 1 ? '' : 's')}`;
           row.onclick = () => toggleTimelineBucket(item.id);
         }
-        card.appendChild(row);
+        host.appendChild(row);
         if (open) {
           kids.forEach(k => {
             const sub = document.createElement('div');
@@ -4232,14 +4286,27 @@ function renderTimelineView() {
             const ke = estimateOf(k);
             sub.innerHTML = `<span class="tl-sub-icon">·</span><span class="tl-subtext">${esc(timelineTitle(k.text))}</span>` +
               (ke !== '' && tlShowEst ? `<span class="tl-est" title="Engineering estimate">${esc(fmtEstimate(ke))}</span>` : '');
-            card.appendChild(sub);
+            host.appendChild(sub);
           });
         }
       };
 
-      const populated = groups.filter(g => g.rows.length);
+      // Rows live in a per-theme container rather than loose in the card, so each theme
+      // in each release is its own drop target and a drag knows exactly which release and
+      // investment it landed in.
+      const makeBody = invId => {
+        const body = document.createElement('div');
+        body.className = 'tl-group-body';
+        body.dataset.tag = tag;
+        body.dataset.inv = invId && invId !== 'none' ? invId : '';
+        return body;
+      };
+
+      const populated = groups.filter(g => g.rows.length || themeSlots && g.id !== 'none');
       if (!anyInvestment) {
-        populated.forEach(g => g.rows.forEach(renderRow));
+        const body = makeBody('');
+        populated.forEach(g => g.rows.forEach(r => renderRow(r, body)));
+        card.appendChild(body);
         if (atBucketLevel) card.appendChild(tlMakeAdder(tag, ''));
       } else {
         populated.forEach(g => {
@@ -4263,7 +4330,9 @@ function renderTimelineView() {
             `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : (tlShowEst ? '-' : g.rows.length)}</span>`;
           card.appendChild(h);
           if (!collapsed) {
-            g.rows.forEach(renderRow);
+            const body = makeBody(g.id);
+            g.rows.forEach(r => renderRow(r, body));
+            card.appendChild(body);
             if (atBucketLevel) card.appendChild(tlMakeAdder(tag, g.id));
           }
         });
@@ -4310,6 +4379,8 @@ function renderTimelineView() {
       `.tl-add-row[data-add-tag="${f.tag}"][data-add-inv="${f.inv || ''}"]`);
     if (el && el.replaceWith) tlOpenAdder(el, f.tag, f.inv);
   }
+
+  tlInitSortables();
 }
 
 // ─── Markdown Export ──────────────────────────────────────────────────────────
