@@ -150,7 +150,21 @@
 
 ---
 
-## 🟡 BUCKET 16: Intercompany [inv:scm][10.0.52+]
+## 🟡 BUCKET 16: Combined Sales and Rental [10.0.52+][inv:scm]
+
+- 🟡 Combined quoting: Combined sales, RPO, and rental quote
+- 🟡 Fleet visibility: Get overview of combined sales + rental fleet
+- 🟡 Automated fleet transfer: Quickly sell a rental item
+
+---
+
+## 🟡 BUCKET 17: Scheduling and availability UI [10.0.52+][inv:scm]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 18: Intercompany [inv:scm][10.0.52+]
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -159,7 +173,7 @@
 
 ---
 
-## 🔴 BUCKET 17: Field Service Integration Gaps [inv:fs][10.0.52]
+## 🔴 BUCKET 19: Field Service Integration Gaps [inv:fs][10.0.52]
 
 - 🔴 Linking expenses to fleet items: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [inv:fin][10.0.52] <!-- ado:1149953 -->
 - 🟡 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported.
@@ -175,7 +189,7 @@
 
 ---
 
-## 🔴 BUCKET 18: Jobsite management improvements [inv:scm][10.0.52]
+## 🔴 BUCKET 20: Jobsite management improvements [inv:scm][10.0.52]
 
 - 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52][est:2]
 - 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:scm][10.0.52][est:2]
@@ -184,7 +198,7 @@
 
 ---
 
-## 🟡 BUCKET 19: Pricing Gaps [inv:fin][10.0.52+]
+## 🟡 BUCKET 21: Pricing Gaps [inv:fin][10.0.52+]
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -193,21 +207,26 @@
 
 ---
 
-## 🟡 BUCKET 20: Counter rentals [inv:scm][10.0.52+]
+## 🟡 BUCKET 22: Availability and Reservations [10.0.52+][inv:scm]
+
+- 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
+- 🔵 Improved reservation management: promote class reservations to single-unit reservations
+
+---
+
+## 🟡 BUCKET 23: Counter rentals [inv:scm][10.0.52+]
 
 - 🟡 Counter rentals: Integration with Commerce [10.0.52]
 
 ---
 
-## 🟡 BUCKET 21: Combined Sales and Rental [10.0.52+][inv:scm]
+## 🔴 BUCKET 24: Rentals in Project Operations projects [10.0.52+][inv:scm]
 
-- 🟡 Combined quoting: Combined sales, RPO, and rental quote
-- 🟡 Fleet visibility: Get overview of combined sales + rental fleet
-- 🟡 Automated fleet transfer: Quickly sell a rental item
+- 🔴 Rentals in Project Operations projects
 
 ---
 
-## 🟡 BUCKET 22: Kitting / Packages [inv:scm][10.0.52+]
+## 🟡 BUCKET 25: Kitting / Packages [inv:scm][10.0.52+]
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -217,14 +236,7 @@
 
 ---
 
-## 🟡 BUCKET 23: Availability and Reservations [inv:scm][10.0.52+]
-
-- 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
-- 🔵 Improved reservation management: promote class reservations to single-unit reservations
-
----
-
-## 🔵 BUCKET 24: UX / Usability Polish
+## 🔵 BUCKET 26: UX / Usability Polish
 
 - 🟡 Movement status setup UX: Not intuitive — both Lachlan and Robert flagged. Needs tooltips aligned with documentation.
 - 🟡 Multi-assign: fleet items to quote and contract lines
@@ -234,7 +246,7 @@
 
 ---
 
-## 🟡 BUCKET 25: Accessory Packs [inv:scm][10.0.52+]
+## 🟡 BUCKET 27: Accessory Packs [inv:scm][10.0.52+]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
@@ -243,7 +255,7 @@
 
 ---
 
-## 🔵 BUCKET 26: Transportation Management
+## 🔵 BUCKET 28: Transportation Management
 
 - 🟡 Blanket PO for carrier vs. per-load PO — blanket approach not supported
 - 🟡 No mobile app for driver or external carrier (scan/count at point of delivery)
@@ -253,145 +265,169 @@
 
 ---
 
-## 🔴 BUCKET 27: Test automation [10.0.49][inv:scm]
+## 🔴 BUCKET 29: Test automation [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 28: Data entities & APIs I [10.0.49][inv:api]
+## 🔴 BUCKET 30: Data entities & APIs I [10.0.49][inv:api]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 29: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:scm]
+## 🔴 BUCKET 31: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 30: One availability status [10.0.49][inv:scm]
+## 🟡 BUCKET 32: One availability status [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 31: Location-based pricing [10.0.49][inv:fin][no-timeline]
+## 🟡 BUCKET 33: Location-based pricing [10.0.49][inv:fin][no-timeline]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 32: Business events [10.0.49][inv:api]
+## 🟡 BUCKET 34: Business events [10.0.49][inv:api]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 33: Credit Management [inv:fin][10.0.50]
+## 🟡 BUCKET 35: Credit Management [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 34: Brownfield / Adoption blockers II [10.0.52][inv:fin]
+## 🔴 BUCKET 36: Brownfield / Adoption blockers II [10.0.52][inv:fin]
 
 - 🔴 Create fleet items from existing fixed assets at scale: Ability to create fleet items from existing fixed assets. [10.0.52]
 
 ---
 
-## 🔴 BUCKET 35: Credit Management II [inv:fin][10.0.52]
+## 🔴 BUCKET 37: Credit Management II [inv:fin][10.0.52]
 
 - 🔴 Credit management for long-running contracts: Avoid activating new rental contracts if customer is past due
 
 ---
 
-## 🟡 BUCKET 36: Capitalization of maintenance costs [inv:fin][10.0.52]
+## 🟡 BUCKET 38: Capitalization of maintenance costs [inv:fin][10.0.52]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 37: Financial tags defaulting [inv:fin][10.0.50]
+## 🟡 BUCKET 39: Financial tags defaulting [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 38: Assigning items at fulfillment [inv:scm][10.0.52]
-
-*No items*
-
----
-
-## 🔴 BUCKET 39: Damage recovery workflows [10.0.52][inv:scm]
-
-*No items*
-
----
-
-## 🔴 BUCKET 40: High-volume pricing API [inv:api][10.0.52]
-
-- 🔴 High-volume pricing API for rental eCommerce [est:13][inv:api]
-
----
-
-## 🔴 BUCKET 41: High-volume availability API [inv:api][10.0.52]
-
-- 🔴 High-volume availability API for rental eCommerce
-
----
-
-## 🟡 BUCKET 42: Scheduling and availability UI [inv:scm][10.0.52+]
-
-*No items*
-
----
-
-## 🔴 BUCKET 43: Rentals in Project Operations projects [inv:scm][10.0.52+]
-
-- 🔴 Rentals in Project Operations projects
-
----
-
-## 🔴 BUCKET 44: FS planned maintenance blocks rental availability [inv:fs][10.0.52+]
-
-- 🔴 FS planned maintenance blocks rental availability [10.0.52]
-
----
-
-## 🔴 BUCKET 45: Allowing fleet item qt > 1 on quotes and contracts [inv:scm][10.0.52]
-
-*No items*
-
----
-
-## 🟡 BUCKET 46: FS integration II [10.0.50][inv:fs]
-
-*No items*
-
----
-
-## 🟡 BUCKET 47: FS integration I [10.0.49][inv:fs]
-
-*No items*
-
----
-
-## 🟡 BUCKET 48: Data entities & APIs II [10.0.50][inv:api]
-
-*No items*
-
----
-
-## 🔴 BUCKET 49: Rates by division [10.0.52][inv:scm]
+## 🔴 BUCKET 40: Rates by division [10.0.52][inv:scm]
 
 - 🔴 Rates by division: Ability to define rates and discounts per division [10.0.52][inv:fin][est:1]
 
 ---
 
+## 🔴 BUCKET 41: Assigning items at fulfillment [inv:scm][10.0.52]
+
+*No items*
+
+---
+
+## 🔴 BUCKET 42: Damage recovery workflows [10.0.52][inv:scm]
+
+*No items*
+
+---
+
+## 🔴 BUCKET 43: High-volume pricing API [inv:api][10.0.52]
+
+- 🔴 High-volume pricing API for rental eCommerce [est:13][inv:api]
+
+---
+
+## 🔴 BUCKET 44: High-volume availability API [inv:api][10.0.52]
+
+- 🔴 High-volume availability API for rental eCommerce
+
+---
+
+## 🔴 BUCKET 45: FS planned maintenance blocks rental availability [inv:fs][10.0.52+]
+
+- 🔴 FS planned maintenance blocks rental availability [10.0.52]
+
+---
+
+## 🔴 BUCKET 46: Allowing fleet item qt > 1 on quotes and contracts [inv:scm][10.0.52]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 47: FS integration II [10.0.50][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 48: FS integration I [10.0.49][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 49: Data entities & APIs II [10.0.50][inv:api]
+
+*No items*
+
+---
+
 ## 🟡 BUCKET 50: Maintenance costs inform fleet management decisions [10.0.52+][inv:scm]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 51: Automation: Service status update on ship/receive [10.0.49][inv:scm][no-timeline]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 52: Service status automation [10.0.49][inv:scm]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 53: Capitalization of maintenance costs (FS) [10.0.52][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 54: Asset BOM [10.0.52][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 55: Enhanced WO financial summary [10.0.52][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 56: Advanced maintenance and controls [10.0.52][inv:fs]
 
 *No items*
 
