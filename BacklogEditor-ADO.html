@@ -190,10 +190,10 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   transition: all 0.12s;
 }
 .bucket-inv-select:hover, .bucket-inv-select:focus { outline: none; border-color: #3b82f6; }
-.bucket-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.45); }
-.bucket-inv-select.inv-cat  { color: #ffcd11; border-color: rgba(255,205,17,0.45); }
-.bucket-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.45); }
-.bucket-inv-select.inv-xdyn { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
+.bucket-inv-select.inv-scm  { color: #a78bfa; border-color: rgba(167,139,250,0.45); }
+.bucket-inv-select.inv-fin  { color: #ffcd11; border-color: rgba(255,205,17,0.45); }
+.bucket-inv-select.inv-api  { color: #34d399; border-color: rgba(52,211,153,0.45); }
+.bucket-inv-select.inv-fs   { color: #38bdf8; border-color: rgba(56,189,248,0.45); }
 /* Release select. Same shape as the investment select so the two read as peer
    dimensions of the same bucket: which release, and which investment. */
 .bucket-rel-select {
@@ -242,10 +242,10 @@ mark.hl { background: #78350f; color: #fef3c7; border-radius: 2px; padding: 0 1p
   transition: all 0.12s;
 }
 .item-inv-select:hover, .item-inv-select:focus { outline: none; border-color: #3b82f6; }
-.item-inv-select.inv-fnd  { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
-.item-inv-select.inv-cat  { color: #ffcd11; border-color: rgba(255,205,17,0.35); }
-.item-inv-select.inv-vert { color: #34d399; border-color: rgba(52,211,153,0.35); }
-.item-inv-select.inv-xdyn { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
+.item-inv-select.inv-scm  { color: #a78bfa; border-color: rgba(167,139,250,0.35); }
+.item-inv-select.inv-fin  { color: #ffcd11; border-color: rgba(255,205,17,0.35); }
+.item-inv-select.inv-api  { color: #34d399; border-color: rgba(52,211,153,0.35); }
+.item-inv-select.inv-fs   { color: #38bdf8; border-color: rgba(56,189,248,0.35); }
 /* Investment group header inside a timeline release column. The accent bar is mirrored
    on both ends so the header reads as a band across the column rather than a left tick. */
 .tl-inv-head {
@@ -3637,10 +3637,10 @@ function parseVersionTag(s) {
 // silently created a release called "cat".
 const INV_PREFIX = 'inv:';
 const INVESTMENTS = [
-  { id: 'fnd',  label: 'Foundation',      short: 'FND',  icon: '🔧', color: '#a78bfa' },
-  { id: 'cat',  label: 'CAT',             short: 'CAT',  icon: '🚜', color: '#ffcd11' },
-  { id: 'vert', label: 'Other verticals', short: 'VERT', icon: '2️⃣', color: '#34d399' },
-  { id: 'xdyn', label: 'Cross-Dynamics',  short: 'XDYN', icon: '3️⃣', color: '#38bdf8' },
+  { id: 'scm', label: 'SCM',               short: 'SCM', icon: '📦', color: '#a78bfa' },
+  { id: 'fin', label: 'Finance',           short: 'FIN', icon: '💰', color: '#ffcd11' },
+  { id: 'api', label: 'APIs',              short: 'API', icon: '🔌', color: '#34d399' },
+  { id: 'fs',  label: 'FS/FS integration', short: 'FS',  icon: '🔧', color: '#38bdf8' },
 ];
 const INV_BY_ID = Object.fromEntries(INVESTMENTS.map(i => [i.id, i]));
 
@@ -3793,6 +3793,13 @@ function timelineTitleMap(items) {
 
 function isInvestmentTag(t) { return typeof t === 'string' && t.toLowerCase().startsWith(INV_PREFIX); }
 function investmentOf(o)   { const t = (o.tags || []).find(isInvestmentTag); return t ? t.slice(INV_PREFIX.length).toLowerCase() : ''; }
+// What the roadmap should group a row under. investmentOf() stays the item's own answer,
+// because that is what the dropdown edits and it must be able to read "No bucket". But an
+// item almost never carries an investment of its own - it is set once on the bucket - so
+// grouping on the raw value dropped 112 of 126 items into Unassigned and made the line
+// item altitude unreadable. Rows resolve it once, at build time, and the timeline reads
+// that; an item that does set its own still overrides its bucket.
+function rowInvestment(r) { return r && r.inv !== undefined ? r.inv : investmentOf(r || {}); }
 // Tags a row carries that are NOT meta tags - what the chips should show.
 function visibleTags(tags)  { return (tags || []).filter(t => !isMetaTag(t)); }
 
@@ -3859,7 +3866,10 @@ function itemsForTag(tag) {
   const result = [];
   buckets.forEach(b => b.items.forEach(i => {
     if ((!all && i.priority !== 'critical') || isTimelineExcluded(i)) return;
-    if ((i.tags || []).includes(tag)) result.push({ ...i, bucketTitle: b.title, est: estimateOf(i) });
+    if ((i.tags || []).includes(tag)) result.push({
+      ...i, bucketTitle: b.title, est: estimateOf(i),
+      inv: investmentOf(i) || investmentOf(b),
+    });
   }));
   return result;
 }
@@ -3878,9 +3888,15 @@ function bucketsForTag(tag) {
     result.push({
       id: b.id, text: b.title, priority: b.priority, tags: b.tags,
       est: sum > 0 ? sum : '',
+      inv: investmentOf(b),
+      // No sub-line at bucket level: the parent name is what that slot carries at item
+      // level, and a bucket has no parent to name.
+      bucketTitle: '',
       // Says what the row is made of: how many items it will show, out of how many it
-      // holds. The estimate above is the sum of exactly those.
-      bucketTitle: total
+      // holds. The estimate above is the sum of exactly those. It rides in the tooltip
+      // rather than under the title - a count on every row cost a line of height each
+      // and crowded out the titles, which are what the column is actually read for.
+      countLabel: total
         ? (showsAllPriorities(tag) ? `${total} item${total === 1 ? '' : 's'}`
                                    : `${shown} critical · ${total} item${total === 1 ? '' : 's'}`)
         : 'no items',
@@ -3944,7 +3960,7 @@ function renderTimelineView() {
   // stay flat so the feature is invisible before it is used.
   const anyInvestment = atBucketLevel
     ? buckets.some(b => investmentOf(b))
-    : buckets.some(b => (b.items || []).some(i => investmentOf(i)));
+    : buckets.some(b => investmentOf(b) || (b.items || []).some(i => investmentOf(i)));
   // The next thing being aimed at: the first concrete release that is neither shipped
   // nor under way. Derived rather than flagged, so it moves on by itself when 10.0.52
   // starts and never has to be corrected by hand. A horizon column is excluded - "and
@@ -4100,8 +4116,8 @@ function renderTimelineView() {
       // the timeline can be read across. Empty groups are skipped; unassigned items fall
       // into a trailing group rather than disappearing, because an item silently missing
       // from the roadmap is worse than one that is visibly untagged.
-      const groups = INVESTMENTS.map(v => ({ ...v, rows: items.filter(i => investmentOf(i) === v.id) }));
-      const unassigned = items.filter(i => !investmentOf(i));
+      const groups = INVESTMENTS.map(v => ({ ...v, rows: items.filter(i => rowInvestment(i) === v.id) }));
+      const unassigned = items.filter(i => !rowInvestment(i));
       if (unassigned.length) groups.push({ id: 'none', label: 'Unassigned', short: 'UNASSIGNED', icon: '·', color: '#64748b', rows: unassigned });
 
       const renderRow = (item) => {
@@ -4119,7 +4135,8 @@ function renderTimelineView() {
         } else {
           icon = '›'; iconClass = 'soft'; textClass = '';
         }
-        row.title = item.text;
+        const count = item.countLabel ? `\n${item.countLabel}` : '';
+        row.title = item.text + count;
         const est = item.est !== undefined ? item.est : estimateOf(item);
         // At bucket level a row can be drilled into. Reuse the priority icon as the
         // caret rather than adding a control: it is already a chevron, and keeping its
@@ -4127,12 +4144,13 @@ function renderTimelineView() {
         const kids = atBucketLevel ? timelineItemsOf(getBucket(item.id)) : [];
         const open = kids.length && tlExpanded.has(item.id);
         if (kids.length && s !== 'shipped' && item.priority !== 'na') icon = open ? '▾' : '▸';
-        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}<span class="tl-ibucket">${esc(item.bucketTitle)}</span></span>` +
+        const subHtml = item.bucketTitle ? `<span class="tl-ibucket">${esc(item.bucketTitle)}</span>` : '';
+        row.innerHTML = `<span class="tl-icon ${iconClass}">${icon}</span><span class="tl-itext ${textClass}">${esc(tlTitles.get(item.id) || timelineTitle(item.text))}${subHtml}</span>` +
           (est !== '' && tlShowEst ? `<span class="tl-est${atBucketLevel ? ' tl-est-sum' : ''}" title="${atBucketLevel ? 'Sum of the critical items in this bucket' : 'Engineering estimate'}">${esc(fmtEstimate(est))}</span>` : '');
         if (kids.length) {
           row.classList.add('tl-expandable');
           if (open) row.classList.add('open');
-          row.title = `${item.text}\n\n${open ? 'Click to collapse' : 'Click to show ' + kids.length + ' item' + (kids.length === 1 ? '' : 's')}`;
+          row.title = `${item.text}${count}\n\n${open ? 'Click to collapse' : 'Click to show ' + kids.length + ' item' + (kids.length === 1 ? '' : 's')}`;
           row.onclick = () => toggleTimelineBucket(item.id);
         }
         card.appendChild(row);
@@ -4504,8 +4522,8 @@ function exportTimelineSnapshot() {
       : buckets.flatMap(b => b.items || []));
     const dim = horizon ? 'opacity:0.72;' : '';
 
-    const groups = INVESTMENTS.map(v => ({ ...v, rows: rows.filter(r => investmentOf(r) === v.id) }));
-    const none = rows.filter(r => !investmentOf(r));
+    const groups = INVESTMENTS.map(v => ({ ...v, rows: rows.filter(r => rowInvestment(r) === v.id) }));
+    const none = rows.filter(r => !rowInvestment(r));
     if (none.length) groups.push({ id:'none', label:'Unassigned', icon:'·', color:'#64748b', rows: none });
 
     const body = groups.filter(g => g.rows.length).map(g => {
@@ -4536,8 +4554,8 @@ function exportTimelineSnapshot() {
         return `<div${clickable}>
             <div style="display:flex;align-items:flex-start;gap:6px;padding:3px 0;font-size:0.82rem;line-height:1.4">
               <span style="flex-shrink:0;width:12px;margin-top:2px;font-size:0.68rem;font-weight:800;color:${iconC}">${kids.length?'▸':icon}</span>
-              <span style="flex:1;color:${txtC};font-weight:600;${strike}">${esc(titles.get(r.id) || timelineTitle(r.text))}
-                <span style="display:block;font-size:0.62rem;color:#2d4060;margin-top:1px;font-weight:400">${esc(r.bucketTitle || '')}</span>
+              <span style="flex:1;color:${txtC};font-weight:600;${strike}"${r.countLabel ? ` title="${esc(r.countLabel)}"` : ''}>${esc(titles.get(r.id) || timelineTitle(r.text))}${r.bucketTitle ? `
+                <span style="display:block;font-size:0.62rem;color:#2d4060;margin-top:1px;font-weight:400">${esc(r.bucketTitle)}</span>` : ''}
               </span>
             </div>${kidsHtml}
           </div>`;

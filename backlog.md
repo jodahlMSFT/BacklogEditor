@@ -3,14 +3,14 @@
 
 ---
 
-## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" [inv:fnd][10.0.50][no-timeline] <!-- ado:1149935 -->
+## 🔴 BUCKET 1: Rename "Rental Item" to "Fleet Item" [inv:scm][10.0.50][no-timeline] <!-- ado:1149935 -->
 
 - ⬜ Rename "Rental Item" to "Fleet item" in UI [10.0.49] <!-- ado:1149936 -->
 - 🔴 Rename "Rental item" to "Fleet item in tables, objects, etc. [10.0.50] <!-- ado:1149937 -->
 
 ---
 
-## 🔴 BUCKET 2: Brownfield / Adoption Blockers [inv:cat][10.0.50] <!-- ado:1149926 -->
+## 🔴 BUCKET 2: Brownfield / Adoption Blockers [inv:scm][10.0.50] <!-- ado:1149926 -->
 
 - 🔴 Batch tracking: Make batch tracking optional. [10.0.50] <!-- ado:1149927 -->
 - 🔴 Configurable fleet types (not hardcoded): Improves transparency and enables non-fixed assets rental fleets. [10.0.50] <!-- ado:1149928 -->
@@ -25,7 +25,7 @@
 
 ---
 
-## 🔴 BUCKET 3: Bulk Items refactoring [inv:fnd][10.0.50] <!-- ado:1149939 -->
+## 🔴 BUCKET 3: Bulk Items refactoring [inv:scm][10.0.50] <!-- ado:1149939 -->
 
 - 🔴 Bulk items behave as fleet items with quantity different from 1: On quotes, contracts, POs, fleet transfers, FA, item movements, etc). [10.0.50] <!-- ado:1149940 -->
 - 🔴 Incorporate bulk items into availability view: One line per bulk item type with quantity, [10.0.50] <!-- ado:1149941 -->
@@ -41,26 +41,26 @@
 
 ---
 
-## 🔴 BUCKET 4: Enabling AI skills & Rental UX outside of F&O [inv:fnd][10.0.50] <!-- ado:1149943 -->
+## 🔴 BUCKET 4: Enabling AI skills & Rental UX outside of F&O [inv:scm][10.0.50] <!-- ado:1149943 -->
 
 - 🔴 Entities and actions: Enables customers and partners to build their own UX on top of F&O capabilities. [10.0.50] <!-- ado:1133532 -->
 - 🔴 Expose entities and actions as agent skills: Agent needs to be able to query availability and prices, create quotes, contracts, CRUD jobsites, etc. <!-- ado:1149944 -->
 
 ---
 
-## 🔴 BUCKET 5: Demo data - Public Preview [10.0.49][inv:fnd] <!-- ado:1101548 -->
+## 🔴 BUCKET 5: Demo data - Public Preview [10.0.49][inv:scm] <!-- ado:1101548 -->
 
 - 🔴 Demo data: Official rental demo data [10.0.50] <!-- ado:1149946 -->
 
 ---
 
-## 🔴 BUCKET 6: Financial tags [10.0.49][inv:fnd]
+## 🔴 BUCKET 6: Financial tags [10.0.49][inv:fin]
 
 - 🔴 Financial tags defaulting: [10.0.50]
 
 ---
 
-## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50][inv:cat] <!-- ado:1147069 -->
+## 🔴 BUCKET 7: Check-in and check-out mobile app: Yard worker inspections and movement processing. [10.0.50][inv:scm] <!-- ado:1147069 -->
 
 - 🔴 Work item cards with actionable detail: Serial number, exact location, contract mapping (customer, contact, start and end date/time for contract etc), inspection status on the card, so the coordinator can act without calling the back office.
 - 🔴 View-based navigation instead of complex filters: Separate work item views and menus rather than stacked filter controls - users found filtering overwhelming. Most critical is inbound and outbound.
@@ -77,19 +77,19 @@
 
 ---
 
-## 🟡 BUCKET 8: Blockers for go-live of first customer [inv:fnd]
+## 🟡 BUCKET 8: Blockers for go-live of first customer [inv:scm]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 9: RPO (XAPT) [inv:cat][10.0.52] <!-- ado:1125475 -->
+## 🔴 BUCKET 9: RPO (XAPT) [inv:scm][10.0.52] <!-- ado:1125475 -->
 
-- 🔴 RPO: Account for delayed payments and validate end-to-end RPO scenarios. [10.0.50][inv:cat] <!-- ado:1149947 -->
+- 🔴 RPO: Account for delayed payments and validate end-to-end RPO scenarios. [10.0.50][inv:scm] <!-- ado:1149947 -->
 
 ---
 
-## 🟡 BUCKET 10: Private preview feedback: Improvements [inv:cat][10.0.50] <!-- ado:1149948 -->
+## 🟡 BUCKET 10: Private preview feedback: Improvements [inv:scm][10.0.50] <!-- ado:1149948 -->
 
 - 🔴 Private preview feedback: Ability to tie rental templates to one or more customers [10.0.50] <!-- ado:1108023 -->
 - 🔴 Private preview feedback: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin) <!-- ado:1095542 -->
@@ -97,23 +97,23 @@
 
 ---
 
-## 🔴 BUCKET 11: Configurability [inv:cat][10.0.52]
+## 🔴 BUCKET 11: Configurability [inv:scm][10.0.52]
 
-- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:fnd][10.0.52][est:3]
-- 🔴 Limit fleet and fleet item visibility per user/role: Admin specifies which fleets and which fleet locations a user has access to. [inv:cat][est:2][10.0.52]
+- 🔴 Status codes as self-definable lists (not fixed enums): Both Physical status and Service status. Some customers want their own status terminology. Defaults should align with Field Service wording - Aug 2026 research found users confused by "Hold" vs "Open Repair". [inv:scm][10.0.52][est:3]
+- 🔴 Limit fleet and fleet item visibility per user/role: Admin specifies which fleets and which fleet locations a user has access to. [inv:scm][est:2][10.0.52]
 - 🟡 Configurable master data: Fleet item attributes
 
 ---
 
-## 🔴 BUCKET 12: Improved search (free text, configurations and features, AI search) [10.0.52][inv:fnd]
+## 🔴 BUCKET 12: Improved search (free text, configurations and features, AI search) [10.0.52][inv:scm]
 
-- 🔴 Free text search: search on configuration, features, etc. [est:3][inv:fnd]
-- 🔴 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search. [est:6][inv:fnd]
+- 🔴 Free text search: search on configuration, features, etc. [est:3][inv:scm]
+- 🔴 AI enabled search: Leverage AI reasoning and "outside/common sense" knowledge in search. [est:6][inv:scm]
 - 🟡 Scheduling view: Calendar view of availability and reservations.
 
 ---
 
-## 🟡 BUCKET 13: Re-Rents [inv:cat][10.0.50]
+## 🟡 BUCKET 13: Re-Rents [inv:scm][10.0.50]
 
 - 🔴 Re-rent of fleet items rented from competitors. [10.0.49]
 - 🟡 Intercompany re-rent process: (renting from a sister entity)
@@ -123,17 +123,17 @@
 
 ---
 
-## 🔴 BUCKET 14: Automation Gaps [inv:cat][10.0.52]
+## 🔴 BUCKET 14: Automation Gaps [inv:scm][10.0.52]
 
 - 🟡 Enable item movements for purchases and sales: Inspections, etc.
-- 🔴 (Auto-) create work order from item movement: For prep, etc. work flows [inv:cat][est:2]
+- 🔴 (Auto-) create work order from item movement: For prep, etc. work flows [inv:scm][est:2]
 - 🟡 Customer - rental template links: Tie rental templates to one or more specific customers
 - 🟡 Automatically change service status through item movement processes: For preparation, etc.
 - 🟡 Movement → service location → auto-create WO: Moving a rental item to a service location should optionally auto-create a Field Service work order.
 - 🟡 Damage decision code workflow: When a damage decision code is set on a movement, it should trigger automated follow-on actions (e.g., move to service location, create WO, set service status).
-- 🔴 Location automation: Enable automatic change of location upon processing of item movement. [inv:cat][est:2]
+- 🔴 Location automation: Enable automatic change of location upon processing of item movement. [inv:scm][est:2]
 - 🟡 Auto-assign item: When adding a class to a contract an available unit should be automatically defaulted onto the contract for each line
-- 🟡 Bulk update service status: For example, there's a service note on all CTL344s - now I want to update all those models to service status = 'Hard down'. [inv:cat][est:1]
+- 🟡 Bulk update service status: For example, there's a service note on all CTL344s - now I want to update all those models to service status = 'Hard down'. [inv:scm][est:1]
 - 🟡 Clean up expired quotes: Auto-close expired quotes
 - 🔵 Missing accessories auto-charge: When movement return lacks tracked accessories, system should auto-flag for charges.
 - ⬜ Batch = New auto-set: When creating a rental item via PO flow, batch status should default to "New" automatically. Users missing this causes downstream failures.
@@ -144,7 +144,7 @@
 
 ---
 
-## 🟡 BUCKET 15: Intercompany [inv:vert][10.0.52+]
+## 🟡 BUCKET 15: Intercompany [inv:scm][10.0.52+]
 
 - 🟡 Intercompany rental processes: Needed for multi-entity deployments.
 - 🟡 Global equipment card concept: Sycor model — a global equipment master (manufacturer info, descriptions) with LE-specific rental details underneath. Needed for multi-LE deployments and intercompany.
@@ -153,9 +153,9 @@
 
 ---
 
-## 🔴 BUCKET 16: Field Service Integration Gaps [inv:cat][10.0.52]
+## 🔴 BUCKET 16: Field Service Integration Gaps [inv:fs][10.0.52]
 
-- 🔴 Linking expenses to fleet items: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [inv:cat][10.0.52] <!-- ado:1149953 -->
+- 🔴 Linking expenses to fleet items: Costs, spare part consumption, and expenses must be linked to fleet item, so that you can see the expenses associated with a fleet item or across a class in F&O. [inv:fin][10.0.52] <!-- ado:1149953 -->
 - 🟡 Internal service work without customer: Work orders currently require a customer. Internal prep/maintenance work is non-customer - needs to be supported.
 - 🟡 Damage recovery: Link WOs to damage records and invoices to facilitate recoupment of costs from damages.
 - 🟡 Fleet item maintenance costs: Expose costs associated with running the fleet items (planned maintenance, damages, refurbishments, etc.).
@@ -169,16 +169,16 @@
 
 ---
 
-## 🔴 BUCKET 17: Jobsite management improvements [inv:cat][10.0.52]
+## 🔴 BUCKET 17: Jobsite management improvements [inv:scm][10.0.52]
 
 - 🔴 Jobsite lat/long: Add latitude and longitude to jobsite (support for both decimals and degrees, incl. copy-pasting and pin + showing on map) [10.0.52][est:2]
-- 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:cat][10.0.52][est:2]
-- 🟡 Prevent duplicate jobsites: prevent duplicate addresses and near-identical lat/long. [inv:cat][10.0.52]
+- 🔴 Jobsite grouping: Associate jobsite with rental location/territory [inv:scm][10.0.52][est:2]
+- 🟡 Prevent duplicate jobsites: prevent duplicate addresses and near-identical lat/long. [inv:scm][10.0.52]
 - 🟡 Jobsite hierarchy: Jobsite can have multiple sub-locations
 
 ---
 
-## 🟡 BUCKET 18: Pricing Gaps [inv:vert][10.0.52+]
+## 🟡 BUCKET 18: Pricing Gaps [inv:fin][10.0.52+]
 
 - 🟡 Stepped pricing: Ability to configure stepped pricing.
 - 🟡 No item-level pricing and discounting(only class-level): Workaround is unique class per item — causes class fragmentation at scale
@@ -187,13 +187,13 @@
 
 ---
 
-## 🟡 BUCKET 19: Counter rentals [inv:cat][10.0.52+]
+## 🟡 BUCKET 19: Counter rentals [inv:scm][10.0.52+]
 
 - 🟡 Counter rentals: Integration with Commerce [10.0.52]
 
 ---
 
-## 🟡 BUCKET 20: Combined Sales and Rental [10.0.52+][inv:fnd]
+## 🟡 BUCKET 20: Combined Sales and Rental [10.0.52+][inv:scm]
 
 - 🟡 Combined quoting: Combined sales, RPO, and rental quote
 - 🟡 Fleet visibility: Get overview of combined sales + rental fleet
@@ -201,7 +201,7 @@
 
 ---
 
-## 🟡 BUCKET 21: Kitting / Packages [inv:vert][10.0.52+]
+## 🟡 BUCKET 21: Kitting / Packages [inv:scm][10.0.52+]
 
 - 🟡 Package/kit concept in preview is incomplete — no mini-configurator (prime unit + bulk + accessories)
 - 🟡 Pricing at package class level only; no association of specific items to a package
@@ -211,7 +211,7 @@
 
 ---
 
-## 🟡 BUCKET 22: Availability and Reservations [inv:vert][10.0.52+]
+## 🟡 BUCKET 22: Availability and Reservations [inv:scm][10.0.52+]
 
 - 🔵 Improved availability summary: incl. soft reservations, called-off, and units under prep
 - 🔵 Improved reservation management: promote class reservations to single-unit reservations
@@ -228,7 +228,7 @@
 
 ---
 
-## 🟡 BUCKET 24: Accessory Packs [inv:vert][10.0.52+]
+## 🟡 BUCKET 24: Accessory Packs [inv:scm][10.0.52+]
 
 - 🟡 Keys, safety cards, manuals, fuel guides, wheel chocks must go with equipment on every movement
 - 🟡 No mechanism to track which accessories were dispatched on outbound or returned on inbound
@@ -247,139 +247,139 @@
 
 ---
 
-## 🔴 BUCKET 26: Test automation [10.0.49][inv:fnd]
+## 🔴 BUCKET 26: Test automation [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 27: Data entities & APIs I [10.0.49][inv:cat]
+## 🔴 BUCKET 27: Data entities & APIs I [10.0.49][inv:api]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 28: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:cat]
+## 🔴 BUCKET 28: PP I feedback: Availability status, class filtering, service status on ship/receive [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 29: One availability status [10.0.49][inv:cat]
+## 🟡 BUCKET 29: One availability status [10.0.49][inv:scm]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 30: Location-based pricing [10.0.49][inv:cat]
+## 🟡 BUCKET 30: Location-based pricing [10.0.49][inv:fin]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 31: Business events [10.0.49][inv:cat]
+## 🟡 BUCKET 31: Business events [10.0.49][inv:api]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 32: FS integration II [10.0.49][inv:cat]
+## 🟡 BUCKET 32: FS integration II [10.0.49][inv:fs]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 33: Public preview feedback (incl. blockers for go-live of first customer) [inv:fnd][10.0.52]
+## 🔴 BUCKET 33: Public preview feedback (incl. blockers for go-live of first customer) [inv:scm][10.0.52]
 
-- 🔴 Respond to high-priority public preview feedback [inv:fnd][est:6]
+- 🔴 Respond to high-priority public preview feedback [inv:scm][est:6]
 
 ---
 
-## 🟡 BUCKET 34: Credit Management [inv:cat][10.0.50]
+## 🟡 BUCKET 34: Credit Management [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 35: Credit Management II [inv:cat][10.0.52]
+## 🔴 BUCKET 35: Credit Management II [inv:fin][10.0.52]
 
 - 🔴 Credit management for long-running contracts: Avoid activating new rental contracts if customer is past due
 
 ---
 
-## 🟡 BUCKET 36: Capitalization of maintenance costs [inv:xdyn][10.0.52]
+## 🟡 BUCKET 36: Capitalization of maintenance costs [inv:fin][10.0.52]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 37: Financial tags defaulting [inv:fnd][10.0.50]
+## 🟡 BUCKET 37: Financial tags defaulting [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 38: Assigning items at fulfillment [inv:vert][10.0.52]
+## 🔴 BUCKET 38: Assigning items at fulfillment [inv:scm][10.0.52]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 39: Damage recovery workflows [10.0.52][inv:xdyn]
+## 🔴 BUCKET 39: Damage recovery workflows [10.0.52][inv:scm]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 40: Rates by division [inv:cat][10.0.52]
+## 🔴 BUCKET 40: Rates by division [inv:fin][10.0.52]
 
-- 🔴 Rates by division: Ability to define rates and discounts per division [10.0.52][inv:cat][est:1]
-
----
-
-## 🔴 BUCKET 41: High-volume pricing API [inv:cat][10.0.52]
-
-- 🔴 High-volume pricing API for rental eCommerce [est:13][inv:cat]
+- 🔴 Rates by division: Ability to define rates and discounts per division [10.0.52][inv:fin][est:1]
 
 ---
 
-## 🔴 BUCKET 42: High-volume availability API [inv:cat][10.0.52]
+## 🔴 BUCKET 41: High-volume pricing API [inv:api][10.0.52]
+
+- 🔴 High-volume pricing API for rental eCommerce [est:13][inv:api]
+
+---
+
+## 🔴 BUCKET 42: High-volume availability API [inv:api][10.0.52]
 
 - 🔴 High-volume availability API for rental eCommerce
 
 ---
 
-## 🟡 BUCKET 43: Scheduling and availability UI [inv:vert][10.0.52+]
+## 🟡 BUCKET 43: Scheduling and availability UI [inv:scm][10.0.52+]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 44: Maintenance costs inform fleet management decisions [inv:xdyn][10.0.52]
+## 🟡 BUCKET 44: Maintenance costs inform fleet management decisions [inv:fin][10.0.52]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 45: Brownfield / Adoption blockers II [inv:cat][10.0.52]
+## 🔴 BUCKET 45: Brownfield / Adoption blockers II [inv:scm][10.0.52]
 
 - 🔴 Create fleet items from existing fixed assets at scale: Ability to create fleet items from existing fixed assets. [10.0.52]
 
 ---
 
-## 🔴 BUCKET 46: Rentals in Project Operations projects [inv:xdyn][10.0.52+]
+## 🔴 BUCKET 46: Rentals in Project Operations projects [inv:scm][10.0.52+]
 
 - 🔴 Rentals in Project Operations projects
 
 ---
 
-## 🔴 BUCKET 47: FS planned maintenance blocks rental availability [inv:xdyn][10.0.52+]
+## 🔴 BUCKET 47: FS planned maintenance blocks rental availability [inv:fs][10.0.52+]
 
 - 🔴 FS planned maintenance blocks rental availability [10.0.52]
 
 ---
 
-## 🔴 BUCKET 48: Allowing fleet item qt > 1 on quotes and contracts [inv:vert][10.0.52]
+## 🔴 BUCKET 48: Allowing fleet item qt > 1 on quotes and contracts [inv:scm][10.0.52]
 
 *No items*
 
