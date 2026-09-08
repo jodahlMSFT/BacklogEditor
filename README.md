@@ -55,6 +55,8 @@ Click **📤 Share snapshot** to export a standalone read-only HTML file. Upload
 | Rename bucket | Double-click bucket title |
 | Add bucket on the roadmap | Timeline view → **Buckets** altitude → click `＋ bucket` at the foot of a theme |
 | Move a bucket between releases/themes | Timeline view → **Buckets** altitude → drag the row into another column or theme |
+| Take a bucket off the roadmap | Timeline view → hover the row → click `⊘` (drops to medium priority, keeps the bucket) |
+| Put it back on the roadmap | Buckets view → click `⊘` on the bucket header |
 | Search | Type in search box in toolbar |
 | Filter by tag | Click a tag chip or type `#tagname` in search |
 

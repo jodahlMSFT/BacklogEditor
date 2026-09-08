@@ -959,6 +959,16 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-drag-ghost { opacity: 0.35; background: rgba(56,189,248,0.14); border-radius: 4px; }
 .tl-group-body .tl-item { cursor: grab; }
 .tl-group-body .tl-item:active { cursor: grabbing; }
+/* Hidden until the row is hovered - a destructive-looking control on every row at rest
+   reads as clutter, and this one is reversible anyway. */
+.tl-row-off {
+  flex-shrink: 0; margin-left: 4px; margin-top: 1px; padding: 0 2px;
+  background: none; border: none; font-family: inherit; font-size: 0.78rem;
+  line-height: 1.2; color: #33465f; cursor: pointer; opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+.tl-item:hover .tl-row-off { opacity: 1; }
+.tl-row-off:hover { color: #f87171; }
 .tl-level-hint {
   margin-top: 12px; padding-top: 8px; border-top: 1px dashed #1e3a5f;
   font-size: 0.68rem; color: #475569; cursor: pointer; user-select: none;
@@ -3996,6 +4006,21 @@ function tlMakeAdder(releaseTag, invId) {
   return row;
 }
 
+// Taking a bucket off the roadmap is a demotion, not a deletion: it drops to medium and
+// leaves the timeline, but keeps its release so putting it back lands it where it was.
+// The ⊘ button in the Buckets view is the way back.
+function tlRemoveFromRoadmap(bucketId) {
+  const b = getBucket(bucketId);
+  if (!b) return;
+  b.priority = 'medium';
+  b.tags = (b.tags || []).filter(t => !isNoTimelineTag(t));
+  b.tags.push(NO_TL_TAG);
+  renderTimelineView();
+  if (typeof showToast === 'function') {
+    showToast(`⊘ "${b.title}" off the roadmap — now medium priority`);
+  }
+}
+
 // Dragging a bucket across the roadmap is the same edit as picking a new release or
 // investment from its dropdowns - the drop target supplies both. Only whole buckets
 // drag: the sub-items under an expanded bucket belong to it, not to the theme, so they
@@ -4008,6 +4033,8 @@ function tlInitSortables() {
     _tlSorts.push(Sortable.create(body, {
       group: 'tl-buckets',
       draggable: '.tl-item',
+      filter: '.tl-row-off',
+      preventOnFilter: false,
       animation: 150,
       ghostClass: 'tl-drag-ghost',
       onEnd: tlOnBucketDrop,
@@ -4276,6 +4303,17 @@ function renderTimelineView() {
           if (open) row.classList.add('open');
           row.title = `${item.text}${count}\n\n${open ? 'Click to collapse' : 'Click to show ' + kids.length + ' item' + (kids.length === 1 ? '' : 's')}`;
           row.onclick = () => toggleTimelineBucket(item.id);
+        }
+        if (atBucketLevel) {
+          const off = document.createElement('button');
+          off.className = 'tl-row-off';
+          off.textContent = '⊘';
+          off.title = 'Take off the roadmap\n\nDrops to medium priority and leaves the timeline.\nThe bucket is kept - put it back with ⊘ in the Buckets view.';
+          // The row itself expands on click and is a drag source, so the button has to
+          // stop both from firing.
+          off.onmousedown = e => e.stopPropagation();
+          off.onclick = e => { e.stopPropagation(); tlRemoveFromRoadmap(item.id); };
+          row.appendChild(off);
         }
         host.appendChild(row);
         if (open) {
