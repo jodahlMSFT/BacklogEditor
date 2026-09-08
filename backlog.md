@@ -1,5 +1,5 @@
 # Backlog Editor
-**Updated: 26 August 2026**
+**Updated: 08 September 2026**
 
 ---
 
@@ -271,7 +271,7 @@
 
 ---
 
-## 🟡 BUCKET 30: Location-based pricing [10.0.49][inv:fin]
+## 🟡 BUCKET 30: Location-based pricing [10.0.49][inv:fin][no-timeline]
 
 *No items*
 
@@ -283,103 +283,115 @@
 
 ---
 
-## 🟡 BUCKET 32: FS integration II [10.0.49][inv:fs]
-
-*No items*
-
----
-
-## 🔴 BUCKET 33: Public preview feedback (incl. blockers for go-live of first customer) [inv:scm][10.0.52]
+## 🔴 BUCKET 32: Public preview feedback (incl. blockers for go-live of first customer) [inv:scm][10.0.52]
 
 - 🔴 Respond to high-priority public preview feedback [inv:scm][est:6]
 
 ---
 
-## 🟡 BUCKET 34: Credit Management [inv:fin][10.0.50]
+## 🟡 BUCKET 33: Credit Management [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 35: Credit Management II [inv:fin][10.0.52]
+## 🔴 BUCKET 34: Credit Management II [inv:fin][10.0.52]
 
 - 🔴 Credit management for long-running contracts: Avoid activating new rental contracts if customer is past due
 
 ---
 
-## 🟡 BUCKET 36: Capitalization of maintenance costs [inv:fin][10.0.52]
+## 🟡 BUCKET 35: Capitalization of maintenance costs [inv:fin][10.0.52]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 37: Financial tags defaulting [inv:fin][10.0.50]
+## 🟡 BUCKET 36: Financial tags defaulting [inv:fin][10.0.50]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 38: Assigning items at fulfillment [inv:scm][10.0.52]
+## 🔴 BUCKET 37: Assigning items at fulfillment [inv:scm][10.0.52]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 39: Damage recovery workflows [10.0.52][inv:scm]
+## 🔴 BUCKET 38: Damage recovery workflows [10.0.52][inv:scm]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 40: Rates by division [inv:fin][10.0.52]
+## 🔴 BUCKET 39: Rates by division [inv:fin][10.0.52]
 
 - 🔴 Rates by division: Ability to define rates and discounts per division [10.0.52][inv:fin][est:1]
 
 ---
 
-## 🔴 BUCKET 41: High-volume pricing API [inv:api][10.0.52]
+## 🔴 BUCKET 40: High-volume pricing API [inv:api][10.0.52]
 
 - 🔴 High-volume pricing API for rental eCommerce [est:13][inv:api]
 
 ---
 
-## 🔴 BUCKET 42: High-volume availability API [inv:api][10.0.52]
+## 🔴 BUCKET 41: High-volume availability API [inv:api][10.0.52]
 
 - 🔴 High-volume availability API for rental eCommerce
 
 ---
 
-## 🟡 BUCKET 43: Scheduling and availability UI [inv:scm][10.0.52+]
+## 🟡 BUCKET 42: Scheduling and availability UI [inv:scm][10.0.52+]
 
 *No items*
 
 ---
 
-## 🟡 BUCKET 44: Maintenance costs inform fleet management decisions [inv:fin][10.0.52]
+## 🟡 BUCKET 43: Maintenance costs inform fleet management decisions [inv:fin][10.0.52]
 
 *No items*
 
 ---
 
-## 🔴 BUCKET 45: Brownfield / Adoption blockers II [inv:scm][10.0.52]
+## 🔴 BUCKET 44: Brownfield / Adoption blockers II [inv:scm][10.0.52]
 
 - 🔴 Create fleet items from existing fixed assets at scale: Ability to create fleet items from existing fixed assets. [10.0.52]
 
 ---
 
-## 🔴 BUCKET 46: Rentals in Project Operations projects [inv:scm][10.0.52+]
+## 🔴 BUCKET 45: Rentals in Project Operations projects [inv:scm][10.0.52+]
 
 - 🔴 Rentals in Project Operations projects
 
 ---
 
-## 🔴 BUCKET 47: FS planned maintenance blocks rental availability [inv:fs][10.0.52+]
+## 🔴 BUCKET 46: FS planned maintenance blocks rental availability [inv:fs][10.0.52+]
 
 - 🔴 FS planned maintenance blocks rental availability [10.0.52]
 
 ---
 
-## 🔴 BUCKET 48: Allowing fleet item qt > 1 on quotes and contracts [inv:scm][10.0.52]
+## 🔴 BUCKET 47: Allowing fleet item qt > 1 on quotes and contracts [inv:scm][10.0.52]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 48: FS integration II [10.0.50][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 49: FS integration I [10.0.49][inv:fs]
+
+*No items*
+
+---
+
+## 🟡 BUCKET 50: Data entities & APIs II [10.0.50][inv:api]
 
 *No items*
 
