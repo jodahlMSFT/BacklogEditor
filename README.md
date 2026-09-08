@@ -53,6 +53,7 @@ Click **📤 Share snapshot** to export a standalone read-only HTML file. Upload
 | Reorder items | Drag ⠿ handle |
 | Reorder buckets | Drag bucket header |
 | Rename bucket | Double-click bucket title |
+| Add bucket on the roadmap | Timeline view → **Buckets** altitude → click `＋ bucket` at the foot of a theme |
 | Search | Type in search box in toolbar |
 | Filter by tag | Click a tag chip or type `#tagname` in search |
 

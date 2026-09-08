@@ -935,6 +935,23 @@ body.ado-selecting .pv-item.ado-selected { background: rgba(16,185,129,0.10); bo
 .tl-itext.strike { color: #334155; text-decoration: line-through; font-weight: 400; }
 .tl-ibucket { font-size: 0.62rem; color: #2d4060; display: block; margin-top: 1px; font-weight: 400; }
 .tl-empty { color: #2a3f5e; font-size: 0.78rem; padding: 4px 0; font-style: italic; }
+/* Inline bucket entry. Sits at the foot of each theme so the release and the investment
+   are both implied by where you are typing, and nothing has to be picked afterwards.
+   Dim at rest so thirteen of these do not compete with the work itself. */
+.tl-add-row {
+  font-size: 0.72rem; color: #24374f; padding: 3px 0 3px 18px; margin-top: 1px;
+  cursor: pointer; border-radius: 4px; user-select: none;
+  transition: color 0.12s, background 0.12s;
+}
+.tl-add-row:hover { color: #7dd3fc; background: rgba(56,189,248,0.07); }
+.tl-card.shipped .tl-add-row:hover { color: #4ade80; background: rgba(74,222,128,0.07); }
+.tl-add-input {
+  width: 100%; box-sizing: border-box; margin: 2px 0;
+  background: #0b1524; border: 1px solid #38bdf8; border-radius: 4px;
+  color: #f0f4f8; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+  padding: 3px 6px; outline: none;
+}
+.tl-add-input::placeholder { color: #3a5170; font-weight: 400; font-style: italic; }
 .tl-level-hint {
   margin-top: 12px; padding-top: 8px; border-top: 1px dashed #1e3a5f;
   font-size: 0.68rem; color: #475569; cursor: pointer; user-select: none;
@@ -3919,6 +3936,59 @@ function cycleStatus(tag) {
   setTagMetaField(tag, { status: next });
   renderTimelineView();
 }
+// Buckets can be typed straight onto the roadmap. Where the input sits decides the two
+// tags a new bucket needs - the column gives the release, the theme gives the investment
+// - so there is nothing to assign afterwards. Enter keeps the input open in the same
+// place, because these are entered in runs rather than one at a time.
+let tlAdderFocus = null;   // {tag, inv} - the adder to reopen after the re-render
+
+function tlAddBucket(releaseTag, invId, title) {
+  const t = (title || '').trim();
+  if (!t) return null;
+  const tags = [];
+  if (releaseTag) tags.push(releaseTag);
+  if (invId && invId !== 'none') tags.push(INV_PREFIX + invId);
+  const b = { id: uid(), priority: 'medium', expanded: true, title: t, items: [], tags };
+  buckets.push(b);
+  return b;
+}
+
+function tlOpenAdder(el, releaseTag, invId) {
+  const inp = document.createElement('input');
+  inp.className = 'tl-add-input';
+  inp.placeholder = 'Bucket title, Enter to add';
+  // Enter re-renders, which removes the input and fires blur; without the latch the
+  // same title would be added twice.
+  let closed = false;
+  const finish = commit => {
+    if (closed) return;
+    closed = true;
+    if (commit && tlAddBucket(releaseTag, invId, inp.value)) {
+      tlAdderFocus = { tag: releaseTag, inv: invId };
+    }
+    renderTimelineView();
+  };
+  inp.onblur = () => finish(true);
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  };
+  el.replaceWith(inp);
+  inp.focus();
+}
+
+function tlMakeAdder(releaseTag, invId) {
+  const row = document.createElement('div');
+  row.className = 'tl-add-row';
+  row.dataset.addTag = releaseTag;
+  row.dataset.addInv = invId || '';
+  const inv = INV_BY_ID[invId];
+  row.textContent = '＋ bucket';
+  row.title = `Add a bucket to ${releaseTag}` + (inv ? ` under ${inv.label}` : '');
+  row.onclick = () => tlOpenAdder(row, releaseTag, invId);
+  return row;
+}
+
 function tlStartInlineEdit(el, currentVal, onSave) {
   const inp = document.createElement('input');
   inp.className = 'tl-meta-inline-input';
@@ -4170,6 +4240,7 @@ function renderTimelineView() {
       const populated = groups.filter(g => g.rows.length);
       if (!anyInvestment) {
         populated.forEach(g => g.rows.forEach(renderRow));
+        if (atBucketLevel) card.appendChild(tlMakeAdder(tag, ''));
       } else {
         populated.forEach(g => {
           const h = document.createElement('div');
@@ -4191,7 +4262,10 @@ function renderTimelineView() {
           h.innerHTML = `<span class="tl-inv-name" style="color:${g.color}"><span class="tl-inv-caret">${collapsed ? '▸' : '▾'}</span>${g.icon} ${esc(g.label)}</span>` +
             `<span class="tl-inv-count${rounded > 0 ? ' has-sum' : ''}">${rounded > 0 ? esc(fmtEstimate(rounded)) : (tlShowEst ? '-' : g.rows.length)}</span>`;
           card.appendChild(h);
-          if (!collapsed) g.rows.forEach(renderRow);
+          if (!collapsed) {
+            g.rows.forEach(renderRow);
+            if (atBucketLevel) card.appendChild(tlMakeAdder(tag, g.id));
+          }
         });
       }
     } else {
@@ -4199,6 +4273,9 @@ function renderTimelineView() {
       empty.className = 'tl-empty';
       empty.textContent = `No ${atBucketLevel ? 'buckets' : 'items'} tagged [${tag}]`;
       card.appendChild(empty);
+      // An empty release is exactly where a bucket is most likely to be added, so the
+      // adder has to exist before there is any theme to hang it off.
+      if (atBucketLevel) card.appendChild(tlMakeAdder(tag, ''));
     }
 
     // Each altitude shows only what was assigned at that altitude, which means work can
@@ -4223,6 +4300,16 @@ function renderTimelineView() {
   scrollWrap.appendChild(colsRow);
   view.appendChild(scrollWrap);
   container.appendChild(view);
+
+  // Reopen the adder that was just used, so a run of buckets can be typed without
+  // reaching for the mouse between them.
+  if (tlAdderFocus) {
+    const f = tlAdderFocus;
+    tlAdderFocus = null;
+    const el = container.querySelector(
+      `.tl-add-row[data-add-tag="${f.tag}"][data-add-inv="${f.inv || ''}"]`);
+    if (el && el.replaceWith) tlOpenAdder(el, f.tag, f.inv);
+  }
 }
 
 // ─── Markdown Export ──────────────────────────────────────────────────────────
